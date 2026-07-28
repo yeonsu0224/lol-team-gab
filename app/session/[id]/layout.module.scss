@@ -1,0 +1,8 @@
+@use "abstracts" as *;
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: $space-8;
+  padding-block: $space-8;
+}

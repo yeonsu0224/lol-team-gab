@@ -1,0 +1,12 @@
+---
+description: Git commit message language convention
+alwaysApply: true
+---
+
+# Commit Messages
+
+Always write git commit messages in English, even though project documents and UI copy are in Korean.
+
+- Use a concise imperative subject line (e.g. `Add session storage CRUD`)
+- Optional body bullets in English, focused on the why
+- Do not include Korean text in commit messages

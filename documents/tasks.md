@@ -85,11 +85,11 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 **완료 조건**
 
-- [ ] `Session`, `Participant`, `RoundRecord`, `TeamProposal`, `TrialResult`, `TierDisplay`
-- [ ] `honeyBeeBadge`, `honeyBeeStreak`, `honeyBeeHistory`, `currentLpValue`
-- [ ] `trialPerformanceByRound` 내 `roundHoneyBee`, `roundBelowExpect` (D-07)
-- [ ] `Session.commentMode?: 'normal' | 'friend'` (F-08)
-- [ ] `rounds[]` 배열 (단일 `trialResult` / `rebalanceProposal` 없음)
+- [x] `Session`, `Participant`, `RoundRecord`, `TeamProposal`, `TrialResult`, `TierDisplay`
+- [x] `honeyBeeBadge`, `honeyBeeStreak`, `honeyBeeHistory`, `currentLpValue`
+- [x] `trialPerformanceByRound` 내 `roundHoneyBee`, `roundBelowExpect` (D-07)
+- [x] `Session.commentMode?: 'normal' | 'friend'` (F-08)
+- [x] `rounds[]` 배열 (단일 `trialResult` / `rebalanceProposal` 없음)
 
 **검증:** 타입이 spec §6 필드와 1:1 대응.
 
@@ -103,8 +103,8 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 **완료 조건**
 
-- [ ] `lib/storage/sessionStore.ts` — create, get, list, update, delete
-- [ ] 용량 초과 시 사용자 안내
+- [x] `lib/storage/sessionStore.ts` — create, get, list, update, delete
+- [x] 용량 초과 시 사용자 안내
 
 **검증:** 새로고침 후 데이터 유지, 목록에서 재진입.
 
@@ -118,8 +118,8 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 **완료 조건**
 
-- [ ] "새 내전 시작" → UUID 세션 생성 → `/session/[id]/players` 이동
-- [ ] 저장된 세션 카드 목록·재진입
+- [x] "새 내전 시작" → UUID 세션 생성 → `/session/[id]/players` 이동
+- [x] 저장된 세션 카드 목록·재진입
 
 **검증:** spec F-01 수용 기준.
 
@@ -133,8 +133,8 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 **완료 조건**
 
-- [ ] players → team → trial → rebalance 4단계 링크
-- [ ] `app/session/[id]/players` 스켈레톤 페이지
+- [x] players → team → trial → rebalance 4단계 링크
+- [x] `app/session/[id]/players` 스켈레톤 페이지
 
 **검증:** 세션 생성 후 StepNav 4단계 표시.
 
