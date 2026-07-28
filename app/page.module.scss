@@ -1,0 +1,48 @@
+@use "abstracts" as *;
+
+.page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+}
+
+.hero {
+  @include glass-surface($glass-surface-default, $glass-blur-lg);
+  @include respond-to($breakpoint-md) {
+    padding: $space-16 $space-20;
+  }
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-10 $space-8;
+  border-radius: $radius-xl;
+  text-align: center;
+}
+
+.badge {
+  @include text-style("caption");
+
+  padding: 2px $space-3;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-pill;
+  color: $color-gold-300;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.title {
+  @include text-style("display-xl");
+
+  background: $gradient-gold;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.description {
+  @include text-style("body-md");
+
+  color: $color-text-secondary;
+}

@@ -1,0 +1,49 @@
+@use "sass:map";
+@use "./colors.scss" as *;
+@use "./shadows.scss" as *;
+@use "./typography.scss" as *;
+
+// design-system.md §7 — Glass Mixin
+@mixin glass-surface(
+  $background: $glass-surface-default,
+  $blur: $glass-blur-md,
+  $border: $color-border-default
+) {
+  border: 1px solid $border;
+  background: $background;
+  box-shadow: $shadow-sm;
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: $color-bg-elevated;
+  }
+}
+
+// design-system.md §7 — 반응형 (모바일 우선)
+@mixin respond-to($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+// design-system.md §2 — 타이포 스케일 적용
+@mixin text-style($name) {
+  $style: map.get($text-styles, $name);
+
+  font-size: map.get($style, "size");
+  line-height: map.get($style, "line");
+  font-weight: map.get($style, "weight");
+}
+
+// design-system.md §2 — 고정폭 숫자 (LP·KDA·승률)
+@mixin stat-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+// design-system.md §8 — 포커스 링
+@mixin focus-ring {
+  outline: 2px solid $color-border-focus;
+  outline-offset: 3px;
+}

@@ -1,0 +1,3 @@
+// design-system.md §2 — Pretendard Variable
+// url @import가 출력 CSS 최상단에 오도록 globals.scss에서 가장 먼저 로드한다.
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");

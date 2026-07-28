@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 내전 총무
 
-## Getting Started
+LoL 5v5 내전 팀 밸런스 웹앱. Next.js(App Router) + TypeScript + SCSS Modules.
 
-First, run the development server:
+## 문서
+
+- [documents/constitution.md](./documents/constitution.md) — 프로젝트 원칙
+- [documents/spec.md](./documents/spec.md) — 기능 명세
+- [documents/design-system.md](./documents/design-system.md) — Hextech Glass 디자인 토큰·컴포넌트 규칙
+- [documents/implementation-plan.md](./documents/implementation-plan.md) — 구현 계획
+- [documents/tasks.md](./documents/tasks.md) — 작업 정의 (Task ID: `P{Phase}-T{번호}`)
+
+## 시작하기
 
 ```bash
+npm install
+cp .env.local.example .env.local   # RIOT_API_KEY, OPENAI_API_KEY 입력
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 환경 변수
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+서버 전용. `NEXT_PUBLIC_*`는 사용하지 않는다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 변수 | 용도 |
+|------|------|
+| `RIOT_API_KEY` | Riot Games API |
+| `DDRAGON_FALLBACK_VERSION` | Data Dragon `versions.json` 실패 시 fallback |
+| `OPENAI_API_KEY` | F-09 Vision 점수판 분석 + F-08 텍스트 요약 |
 
-## Learn More
+## 스타일 규칙
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 디자인 토큰은 [documents/design-system.md](./documents/design-system.md)가 단일 기준, 구현은 `styles/`(`abstracts`·`base`·`utilities`)에 있다.
+- 컴포넌트는 `*.module.scss` + `@use "abstracts" as *;`로 토큰을 사용한다.
+- 색상값·간격 하드코딩 금지 — 토큰 우선.

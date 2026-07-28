@@ -1,0 +1,11 @@
+// design-system.md §7 — 전역 스타일 진입점
+// fonts를 가장 먼저 로드해 Pretendard url @import가 출력 CSS 최상단에 오게 한다.
+
+@use "./base/fonts.scss";
+@use "./base/reset.scss";
+@use "./base/root.scss";
+@use "./base/accessibility.scss";
+
+@use "./utilities/glass.scss";
+@use "./utilities/layout.scss";
+@use "./utilities/visually-hidden.scss";
