@@ -1,0 +1,76 @@
+@use "abstracts" as *;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+}
+
+.emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.title {
+  @include text-style("heading-md");
+
+  color: $color-gold-300;
+}
+
+.message {
+  @include text-style("body-sm");
+
+  margin-top: $space-1;
+  color: $color-text-secondary;
+}
+
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  background: $glass-surface-soft;
+}
+
+.accountText {
+  @include text-style("label-md");
+
+  color: $color-text-primary;
+}
+
+.holder {
+  color: $color-text-muted;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.link {
+  @include text-style("label-md");
+  @include interactive-transition;
+
+  padding: $space-2 $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-pill;
+  color: $color-blue-300;
+  background: $glass-surface-soft;
+  text-decoration: none;
+
+  &:hover {
+    border-color: $color-border-strong;
+    background: $glass-surface-default;
+  }
+}

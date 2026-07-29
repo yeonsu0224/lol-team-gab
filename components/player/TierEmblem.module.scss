@@ -1,0 +1,14 @@
+@use "abstracts" as *;
+
+.emblem {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.fallback {
+  display: inline-block;
+  border-radius: 50%;
+  border: 1px dashed $color-border-default;
+  background: $glass-surface-soft;
+  flex-shrink: 0;
+}

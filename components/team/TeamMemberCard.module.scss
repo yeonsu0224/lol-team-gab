@@ -1,0 +1,154 @@
+@use "abstracts" as *;
+
+.card {
+  @include interactive-transition;
+
+  display: flex;
+  align-items: stretch;
+  gap: $space-1;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-md;
+  background: rgba(7, 16, 30, 0.42);
+}
+
+.selected {
+  border-color: $color-gold-300;
+  box-shadow: $shadow-gold;
+}
+
+.swapHint {
+  border-color: $color-border-focus;
+  border-style: dashed;
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  flex: 1;
+  min-width: 0;
+  padding: $space-2 $space-3;
+  border: none;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $color-text-primary;
+  cursor: pointer;
+  text-align: left;
+
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(16, 32, 56, 0.5);
+    }
+  }
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  @include text-style("stat-sm");
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  @include text-style("caption");
+
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  color: $color-text-secondary;
+}
+
+.badge {
+  @include text-style("caption");
+
+  padding: 2px $space-2;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-pill;
+  white-space: nowrap;
+}
+
+.tierDot {
+  width: 8px;
+  border-radius: $radius-pill;
+  flex-shrink: 0;
+}
+
+.remove {
+  @include interactive-transition;
+
+  width: 36px;
+  border: none;
+  border-left: 1px solid $color-border-subtle;
+  border-radius: 0 $radius-md $radius-md 0;
+  color: $color-text-muted;
+  background: transparent;
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover {
+      color: $status-error;
+      background: $status-error-bg;
+    }
+  }
+}
+
+.opBadge {
+  color: $color-purple-300;
+  border-color: rgba(196, 167, 255, 0.5);
+  background: rgba(139, 92, 246, 0.16);
+}
+.internalTier1 {
+  color: $color-gold-300;
+  border-color: rgba(200, 155, 60, 0.4);
+}
+.internalTier2 {
+  color: #63d8c8;
+  border-color: rgba(70, 200, 185, 0.4);
+}
+.internalTier3 {
+  color: $color-blue-300;
+  border-color: rgba(98, 213, 245, 0.4);
+}
+.internalTier4 {
+  color: $color-text-secondary;
+}
+
+.lolTierIron {
+  background: #96a0af;
+}
+.lolTierBronze {
+  background: #b0794a;
+}
+.lolTierSilver {
+  background: #96afc8;
+}
+.lolTierGold {
+  background: $color-gold-500;
+}
+.lolTierPlatinum {
+  background: #46c8b9;
+}
+.lolTierEmerald {
+  background: #34c878;
+}
+.lolTierDiamond {
+  background: #7896ff;
+}
+.lolTierMaster {
+  background: $color-purple-500;
+}
+.lolTierGrandmaster {
+  background: #eb5a5a;
+}
+.lolTierChallenger {
+  background: $color-gold-100;
+}

@@ -14,7 +14,7 @@ LoL 5v5 내전 팀 밸런스 웹앱. Next.js(App Router) + TypeScript + SCSS Mod
 
 ```bash
 npm install
-cp .env.local.example .env.local   # RIOT_API_KEY, OPENAI_API_KEY 입력
+cp .env.local.example .env.local   # RIOT_API_KEY, GEMINI_API_KEY 입력
 npm run dev
 ```
 
@@ -26,7 +26,7 @@ npm run dev
 |------|------|
 | `RIOT_API_KEY` | Riot Games API |
 | `DDRAGON_FALLBACK_VERSION` | Data Dragon `versions.json` 실패 시 fallback |
-| `OPENAI_API_KEY` | F-09 Vision 점수판 분석 + F-08 텍스트 요약 |
+| `GEMINI_API_KEY` | F-09 멀티모달 점수판 분석 + F-08 텍스트 요약 |
 
 ## 스타일 규칙
 

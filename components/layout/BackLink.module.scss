@@ -1,0 +1,21 @@
+@use "abstracts" as *;
+
+.backLink {
+  @include text-style("label-md");
+
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: $space-2;
+  min-height: 44px;
+  padding-inline: $space-3;
+  border-radius: $radius-md;
+  color: $color-blue-300;
+
+  @media (hover: hover) {
+    &:hover {
+      color: $color-blue-100;
+      background: $glass-surface-soft;
+    }
+  }
+}

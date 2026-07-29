@@ -1,0 +1,83 @@
+@use "abstracts" as *;
+
+.upload {
+  @include text-style("body-sm");
+  @include interactive-transition;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  padding: $space-4;
+  border: 1px dashed $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  background: $glass-surface-soft;
+  cursor: pointer;
+  text-align: center;
+
+  input {
+    display: none;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: $color-border-strong;
+    }
+  }
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.hint {
+  @include text-style("caption");
+
+  color: $color-text-muted;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-2;
+  padding: $space-3;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-md;
+  background: $glass-surface-soft;
+
+  @include respond-to($breakpoint-sm) {
+    grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 0.8fr) minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+.kdaGroup {
+  display: flex;
+  gap: $space-1;
+}
+
+.nameInput,
+.numInput,
+.select {
+  @include text-style("body-sm");
+
+  min-height: 38px;
+  padding-inline: $space-2;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-sm;
+  color: $color-text-primary;
+  background: $color-bg-soft;
+}
+
+.numInput {
+  width: 100%;
+  min-width: 44px;
+  text-align: center;
+}
+
+.select {
+  cursor: pointer;
+}

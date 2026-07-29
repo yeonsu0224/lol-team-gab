@@ -1,0 +1,193 @@
+@use "abstracts" as *;
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.state {
+  @include text-style("body-md");
+
+  color: $color-text-muted;
+}
+
+.sectionTitle {
+  @include text-style("heading-md");
+
+  margin-bottom: $space-4;
+  color: $color-text-primary;
+}
+
+.roundList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-3;
+}
+
+.roundItem {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-pill;
+  background: $glass-surface-soft;
+}
+
+.roundNo {
+  @include text-style("label-md");
+
+  color: $color-text-secondary;
+}
+
+.winner {
+  @include text-style("label-md");
+}
+
+.winnerBlue {
+  color: $color-blue-300;
+}
+
+.winnerRed {
+  color: #ffd0d6;
+}
+
+.playerList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.playerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 0;
+  border-bottom: 1px solid $color-border-subtle;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+
+.name {
+  @include text-style("label-md");
+
+  color: $color-text-primary;
+}
+
+.tierChange {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex: 1 1 220px;
+}
+
+.preTier {
+  @include text-style("body-sm");
+
+  color: $color-text-muted;
+}
+
+.arrow {
+  color: $color-text-muted;
+}
+
+.finalTier {
+  @include text-style("label-md");
+
+  color: $color-text-primary;
+}
+
+.deltaUp {
+  @include text-style("caption");
+
+  color: $status-success;
+}
+
+.deltaDown {
+  @include text-style("caption");
+
+  color: $status-error;
+}
+
+.deltaFlat {
+  @include text-style("caption");
+
+  color: $color-text-muted;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.highlightList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  li {
+    @include text-style("body-md");
+
+    color: $color-text-secondary;
+
+    strong {
+      display: inline-block;
+      min-width: 92px;
+      color: $color-gold-300;
+    }
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.textarea {
+  @include text-style("body-md");
+
+  width: 100%;
+  padding: $space-3;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  background: $glass-surface-soft;
+  resize: vertical;
+
+  &:focus-visible {
+    outline: 2px solid $color-blue-300;
+    outline-offset: 1px;
+  }
+}
+
+.saveRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.homeLink {
+  @include text-style("label-md");
+
+  align-self: center;
+  padding: $space-3 $space-6;
+  color: $color-blue-300;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

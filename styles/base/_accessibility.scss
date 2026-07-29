@@ -1,8 +1,8 @@
-@use "../abstracts/index.scss" as *;
+@use "../abstracts" as *;
 
-// design-system.md §8 — 접근성 및 모션
 :focus-visible {
-  @include focus-ring;
+  outline: 2px solid $color-border-focus;
+  outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {

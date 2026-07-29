@@ -1,0 +1,78 @@
+@use "abstracts" as *;
+
+.badge {
+  @include text-style("caption");
+
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: $space-1 $space-3;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-pill;
+  color: $color-text-primary;
+  background: $glass-surface-soft;
+  white-space: nowrap;
+}
+
+// Performance grades F~OP — a continuous success→failure scale.
+.gradeOP {
+  color: $color-purple-300;
+  border-color: rgba(196, 167, 255, 0.5);
+  background: rgba(139, 92, 246, 0.16);
+}
+.gradeA {
+  color: $status-success;
+  border-color: $status-success-border;
+  background: $status-success-bg;
+}
+.gradeB {
+  color: #7fe6c0;
+  border-color: rgba(52, 211, 153, 0.35);
+}
+.gradeC {
+  color: $color-text-secondary;
+  border-color: $color-border-default;
+}
+.gradeD {
+  color: $status-warning;
+  border-color: $status-warning-border;
+  background: $status-warning-bg;
+}
+.gradeF {
+  color: $status-error;
+  border-color: $status-error-border;
+  background: $status-error-bg;
+}
+
+// Unrated is intentionally OUTSIDE the grade scale: neutral slate + dashed
+// border + info glyph so it never reads as an F / failure (spec D-07).
+.unrated {
+  color: $color-text-muted;
+  border-style: dashed;
+  border-color: $color-border-default;
+  background: transparent;
+}
+
+.belowExpect {
+  color: $status-warning;
+  border-color: $status-warning-border;
+}
+
+.bee {
+  color: $color-gold-300;
+  border-color: rgba(200, 155, 60, 0.4);
+}
+.glitterBee {
+  color: $color-gold-100;
+  border-color: rgba(232, 207, 132, 0.6);
+  background: rgba(200, 155, 60, 0.16);
+}
+.rainbowBee {
+  color: $color-text-primary;
+  border-color: rgba(196, 167, 255, 0.6);
+  background: linear-gradient(
+    120deg,
+    rgba(139, 92, 246, 0.22),
+    rgba(10, 200, 185, 0.2)
+  );
+}

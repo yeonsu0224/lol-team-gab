@@ -1,0 +1,54 @@
+@use "abstracts" as *;
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  min-width: 0;
+}
+
+.label {
+  @include text-style("label-md");
+
+  color: $color-text-secondary;
+}
+
+.input {
+  @include text-style("body-md");
+  @include interactive-transition;
+
+  width: 100%;
+  min-height: 48px;
+  padding-inline: $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  background: $glass-surface-soft;
+
+  &::placeholder {
+    color: $color-text-muted;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: $color-border-strong;
+      background: $color-bg-soft;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    outline-offset: 1px;
+  }
+}
+
+.select {
+  cursor: pointer;
+  appearance: none;
+}
+
+.hint {
+  @include text-style("caption");
+
+  color: $color-text-muted;
+}

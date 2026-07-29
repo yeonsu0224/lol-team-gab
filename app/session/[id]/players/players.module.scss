@@ -1,50 +1,57 @@
 @use "abstracts" as *;
 
-.panel {
-  @include glass-surface;
-
+.layout {
   display: flex;
   flex-direction: column;
   gap: $space-5;
-  padding: $space-6;
-  border-radius: $radius-xl;
+  margin-top: $space-6;
 }
 
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: $space-2;
-}
+.state {
+  @include text-style("body-md");
 
-.title {
-  @include text-style("heading-lg");
-
-  color: $color-text-primary;
-}
-
-.muted {
-  @include text-style("body-sm");
-
-  color: $color-text-secondary;
-}
-
-.placeholder {
-  @include text-style("body-sm");
-
-  display: grid;
-  min-height: 160px;
-  place-items: center;
+  padding: $space-8;
   border: 1px dashed $color-border-default;
   border-radius: $radius-lg;
   color: $color-text-muted;
+  text-align: center;
 }
 
-.homeLink {
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.readyBadge {
+  @include text-style("label-md");
+  @include hover-lift;
+  @include hover-brighten;
+
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: $space-5;
+  border-radius: $radius-pill;
+  color: $color-text-inverse;
+  background: $gradient-blue;
+  box-shadow: $shadow-blue;
+}
+
+.waitBadge {
   @include text-style("label-md");
 
-  color: $color-blue-300;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-pill;
+  color: $color-text-secondary;
+  background: $glass-surface-soft;
+}
 
-  &:hover {
-    text-decoration: underline;
-  }
+.manualRow {
+  display: flex;
+  gap: $space-4;
 }

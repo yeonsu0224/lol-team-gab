@@ -1,0 +1,78 @@
+@use "abstracts" as *;
+
+.button {
+  @include text-style("label-md");
+  @include interactive-transition;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+.md {
+  min-height: 48px;
+  padding-inline: $space-6;
+}
+
+.sm {
+  min-height: 36px;
+  padding-inline: $space-4;
+}
+
+.primary {
+  color: $color-text-inverse;
+  background: $gradient-gold;
+  border-color: $color-gold-300;
+  box-shadow: $shadow-gold;
+
+  &:not(:disabled) {
+    @include hover-lift;
+    @include hover-brighten;
+  }
+}
+
+.secondary {
+  color: $color-text-primary;
+  background: $glass-surface-default;
+  border-color: $color-border-default;
+
+  &:not(:disabled) {
+    @include hover-surface-lift;
+  }
+}
+
+.ghost {
+  color: $color-blue-300;
+  background: transparent;
+  border-color: transparent;
+
+  @media (hover: hover) {
+    &:not(:disabled):hover {
+      color: $color-blue-100;
+      background: $glass-surface-soft;
+    }
+  }
+}
+
+.danger {
+  color: $status-error;
+  background: transparent;
+  border-color: transparent;
+
+  @media (hover: hover) {
+    &:not(:disabled):hover {
+      border-color: $status-error-border;
+      background: $status-error-bg;
+    }
+  }
+}

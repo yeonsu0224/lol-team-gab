@@ -1,142 +1,156 @@
-// spec.md §6 데이터 모델 — 1:1 대응 타입
-
-export type TeamSide = "blue" | "red";
-
-export type TierSource = "solo" | "flex" | "past_season" | "manual";
-
-export type InternalTierBadge = "OP" | 1 | 2 | 3 | 4;
-
-export type HoneyBeeBadge = "none" | "bee" | "glitterBee" | "rainbowBee";
-
-export type SynergyLevel = "high" | "medium" | "low";
-
 export type CommentMode = "normal" | "friend";
-
-export type TrialRound = 1 | 2 | 3;
-
-export type RebalanceTargetRound = 2 | 3 | 4;
-
+export type RoundNumber = 1 | 2 | 3;
+export type TargetRound = 2 | 3 | 4;
+export type TeamSide = "blue" | "red";
+export type TierSource = "solo" | "flex" | "past_season" | "manual";
+export type HoneyBeeBadge = "none" | "bee" | "glitterBee" | "rainbowBee";
+export type PerformanceGrade = "F" | "D" | "C" | "B" | "A" | "OP";
+export type InternalTierBadge = "OP" | 1 | 2 | 3 | 4;
+export type SynergyGrade = "high" | "medium" | "low";
 export type MainRole = "TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY";
+export type UnratedReason =
+  | "no_history"
+  | "insufficient_sample"
+  | "missing_stats"
+  | "manual_tier";
 
 export interface TierDisplay {
-  tier: string; // "PLATINUM"
-  rank: string; // "II"
+  tier: string;
+  rank: string;
   lp: number;
-  label: string; // "플래티넘 2 · 67LP"
+  label: string;
 }
 
-// F-03: 최근 20판 요약 (KDA, CS, 피해량, 시야)
-export interface RecentStatsSummary {
+export interface RecentStats {
   games: number;
   wins: number;
-  kda: number;
-  averageCs: number;
-  averageDamageDealt: number;
-  averageVisionScore: number;
+  losses: number;
+  averageKda?: number;
+  averageDamage?: number;
+  averageCs?: number;
+  averageVisionScore?: number;
 }
 
-export interface MasteryEntry {
+export interface ChampionMasterySummary {
   championId: number;
   championLevel: number;
   championPoints: number;
 }
 
 export interface RiotData {
-  tier: string;
-  rank: string;
-  lp: number;
-  winRate: number; // 원시 승률 0~1 (보정 승률은 F-03 도메인 로직에서 계산)
-  rankedGames: number; // 보정 승률 판수 입력
-  recentStats: RecentStatsSummary | null;
-  masteries: MasteryEntry[];
-  mainRole: MainRole | null;
-  preMainRoleKda?: number; // D-07 1판 사전 기대치
+  tier?: string;
+  lp?: number;
+  winRate?: number;
+  profileIconId?: number;
+  recentStats?: RecentStats;
+  masteries: ChampionMasterySummary[];
+  mainRole?: MainRole;
+  preMainRoleKda?: number;
   preMainRoleDamage?: number;
+  preMainRoleGames?: number;
 }
 
 export interface SynergyFactors {
-  duoPartners: string[]; // 함께 플레이한 참가자 puuid
-  mainRole: MainRole | null;
-  topChampions: number[]; // championId 상위 N개
+  duoPartners: string[];
+  mainRole?: MainRole;
+  topChampions: number[];
 }
 
-// D-07: 판별 기대 이상(꿀벌)·기대 이하 판정 근거
 export interface TrialPerformance {
   kda: number;
   damageDealt: number;
-  preStatScore: number;
-  tierExpectScore: number;
+  preStatScore: number | null;
+  tierExpectScore: number | null;
   trialScore: number;
+  unrated: boolean;
+  unratedReason?: UnratedReason;
   roundHoneyBee: boolean;
-  roundBelowExpect: boolean; // friend 모드·AI 입력용
+  roundBelowExpect: boolean;
+  performanceGrade: PerformanceGrade | null;
 }
 
 export interface Participant {
   riotId: string;
   puuid: string;
-  preTier: TierDisplay; // F-03: "플래티넘 2 · 67LP"
-  preLpValue: number; // 사전 LP (1판 전)
-  currentLpValue: number; // 최신 누적 LP (매 판 F-05 후 갱신)
-  personalScore: number; // 배정용 (UI 미노출, 재밸런스 전 갱신)
-  internalTierBadge: InternalTierBadge; // 뱃지 전용 (1판 전)
-  honeyBeeStreak: number; // 연속 꿀벌 판정 횟수
+  preTier: TierDisplay;
+  preLpValue: number;
+  currentLpValue: number;
+  personalScore: number;
+  internalTierBadge: InternalTierBadge;
+  honeyBeeStreak: number;
   honeyBeeBadge: HoneyBeeBadge;
-  honeyBeeHistory: boolean[]; // [1판, 2판, 3판] 달성 여부
-  trialPerformanceByRound?: Partial<Record<TrialRound, TrialPerformance>>;
+  honeyBeeHistory: boolean[];
+  trialPerformanceByRound?: Partial<Record<RoundNumber, TrialPerformance>>;
+  personalScoreDeltaByRound?: Partial<Record<RoundNumber, number>>;
   tierSource: TierSource;
   riotData: RiotData;
   synergyFactors: SynergyFactors;
 }
 
-// F-06 비교 뷰: 이동 인원·방향·사유
 export interface TeamChange {
-  puuid: string;
-  from: TeamSide;
-  to: TeamSide;
-  reason?: string;
+  outPuuid: string;
+  inPuuid: string;
+  toTeam: TeamSide;
+  reason: string;
 }
 
 export interface TeamProposal {
   type: "pre" | "rebalance";
-  targetRound?: RebalanceTargetRound; // rebalance 시 대상 판
-  blueTeam: Participant[]; // length = n/2 (4 or 5)
+  targetRound?: TargetRound;
+  blueTeam: Participant[];
   redTeam: Participant[];
   blueAvgTier: TierDisplay;
   redAvgTier: TierDisplay;
   tierDiffDivisions: number;
-  blueSynergy: SynergyLevel;
-  redSynergy: SynergyLevel;
-  changes?: TeamChange[]; // rebalance only
+  bluePowerPct: number;
+  redPowerPct: number;
+  blueSynergy: SynergyGrade;
+  redSynergy: SynergyGrade;
+  changes?: TeamChange[];
 }
 
-export interface PlayerTrialStats {
+export interface PlayerTrialStat {
   puuid: string;
   kda: number;
   damageDealt: number;
 }
 
 export interface TrialResult {
-  round: TrialRound;
+  round: RoundNumber;
   matchId?: string;
   winnerTeam: TeamSide;
   blueTeam: Participant[];
   redTeam: Participant[];
-  playerStats: PlayerTrialStats[];
+  playerStats: PlayerTrialStat[];
 }
 
 export interface RoundRecord {
-  round: TrialRound; // 입력된 판
+  round: RoundNumber;
   trialResult: TrialResult;
-  nextTeamProposal: TeamProposal; // round+1 제안 (2·3·4판)
-  lpSnapshotAfterTrial: Record<string, number>; // puuid → 누적 LP
+  nextTeamProposal: TeamProposal;
+  lpSnapshotAfterTrial: Record<string, number>;
+}
+
+export interface SessionWrapUp {
+  endedAtRound: 1 | 2 | 3 | 4;
+  mvpPuuid?: string;
+  evaluationNote?: string;
+  feedbackNote?: string;
+  endedAt: string;
 }
 
 export interface Session {
   id: string;
   name?: string;
   createdAt: string;
-  participants: Participant[]; // 2~10
-  preTeamProposal: TeamProposal | null; // 1판 제안 (round 1), 팀 생성 전 null
-  rounds: RoundRecord[]; // length 0~3 (입력된 시험 판)
-  commentMode?: CommentMode; // F-08 AI 요약 톤 (기본 normal)
+  participants: Participant[];
+  // A new session has no proposal until Phase 5 runs.
+  preTeamProposal?: TeamProposal;
+  rounds: RoundRecord[];
+  commentMode: CommentMode;
+  wrapUp?: SessionWrapUp;
 }
+
+export type SessionUpdate =
+  | Partial<Omit<Session, "id" | "createdAt">>
+  | ((session: Session) => Session);

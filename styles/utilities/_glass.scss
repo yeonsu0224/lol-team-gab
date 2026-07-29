@@ -1,14 +1,9 @@
-@use "../abstracts/index.scss" as *;
+@use "../abstracts" as *;
 
-// design-system.md §1 — Glass Surface 유틸리티
-.glass-soft {
-  @include glass-surface($glass-surface-soft, $glass-blur-sm, $color-border-subtle);
-}
-
-.glass {
+.glass-surface {
   @include glass-surface;
 }
 
-.glass-strong {
-  @include glass-surface($glass-surface-strong, $glass-blur-lg);
+.glass-surface-strong {
+  @include glass-surface($glass-surface-strong);
 }

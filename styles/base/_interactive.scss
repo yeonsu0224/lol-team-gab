@@ -1,0 +1,14 @@
+@use "../abstracts" as *;
+
+:where(a, button, input, select, textarea, [role="button"]) {
+  @include interactive-transition;
+}
+
+:where(button, [role="button"]):not(:disabled) {
+  cursor: pointer;
+}
+
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+  color: $color-text-disabled;
+}

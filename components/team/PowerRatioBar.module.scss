@@ -1,0 +1,51 @@
+@use "abstracts" as *;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.blueLabel {
+  @include text-style("label-md");
+
+  color: $color-blue-300;
+}
+
+.redLabel {
+  @include text-style("label-md");
+
+  color: #eb7081;
+}
+
+.caption {
+  @include text-style("caption");
+
+  color: $color-text-muted;
+}
+
+.bar {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border-radius: $radius-pill;
+  border: 1px solid $color-border-subtle;
+}
+
+.blueFill {
+  height: 100%;
+  background: linear-gradient(90deg, #0397ab, #62d5f5);
+  transition: width 200ms ease;
+}
+
+.redFill {
+  height: 100%;
+  background: linear-gradient(90deg, #eb7081, #91343f);
+  transition: width 200ms ease;
+}

@@ -1,80 +1,120 @@
 @use "abstracts" as *;
 
 .page {
-  display: flex;
-  flex-direction: column;
-  gap: $space-10;
-  padding-block: $space-16;
+  min-height: 100svh;
+  width: min(100%, 1120px);
+  margin-inline: auto;
+  padding: $space-12 $space-4 $space-20;
+
+  @include respond-to($breakpoint-md) {
+    padding-inline: $space-6;
+  }
+
+  @include respond-to($breakpoint-lg) {
+    padding-inline: $space-8;
+  }
 }
 
 .hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: $space-3;
+  padding: $space-12 0 $space-10;
   text-align: center;
+
+  @include respond-to($breakpoint-md) {
+    padding-block: $space-16 $space-12;
+  }
 }
 
-.badge {
-  @include text-style("caption");
+.eyebrow {
+  @include text-style("label-md");
 
-  padding: 2px $space-3;
-  border: 1px solid $color-border-strong;
-  border-radius: $radius-pill;
-  color: $color-gold-300;
-  text-transform: uppercase;
+  margin-bottom: $space-3;
+  color: $color-blue-300;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .title {
   @include text-style("display-xl");
 
-  background: $gradient-gold;
-  -webkit-background-clip: text;
-  background-clip: text;
   color: transparent;
+  background: $gradient-gold;
+  background-clip: text;
 }
 
-.subtitle {
-  @include text-style("body-md");
+.description {
+  @include text-style("body-lg");
 
+  max-width: 560px;
+  margin: $space-5 auto 0;
   color: $color-text-secondary;
 }
 
-.createPanel {
-  @include glass-surface;
+.startPanel {
+  @include glass-surface($glass-surface-strong);
 
-  display: flex;
-  flex-direction: column;
-  gap: $space-4;
-  max-width: 560px;
-  width: 100%;
-  margin-inline: auto;
+  display: grid;
+  gap: $space-6;
   padding: $space-6;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
+
+  @include respond-to($breakpoint-md) {
+    grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.3fr);
+    align-items: end;
+    padding: $space-8;
+  }
 }
 
-.panelTitle {
-  @include text-style("heading-md");
+.sectionEyebrow {
+  @include text-style("caption");
+
+  margin-bottom: $space-2;
+  color: $color-blue-300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  @include text-style("heading-lg");
 
   color: $color-text-primary;
 }
 
-.createRow {
+.sectionDescription {
+  @include text-style("body-sm");
+
+  margin-top: $space-2;
+  color: $color-text-secondary;
+}
+
+.createForm {
   display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.label {
+  @include text-style("label-md");
+
+  color: $color-text-secondary;
+}
+
+.inputRow {
+  display: flex;
+  flex-direction: column;
   gap: $space-3;
 
-  @media (max-width: $breakpoint-sm) {
-    flex-direction: column;
+  @include respond-to($breakpoint-sm) {
+    flex-direction: row;
   }
 }
 
-.nameInput {
+.input {
   @include text-style("body-md");
 
   flex: 1;
-  min-height: 44px;
-  padding: 0 $space-4;
+  min-width: 0;
+  min-height: 48px;
+  padding-inline: $space-4;
   border: 1px solid $color-border-default;
   border-radius: $radius-md;
   color: $color-text-primary;
@@ -84,37 +124,32 @@
     color: $color-text-muted;
   }
 
-  &:focus-visible {
-    border-color: $color-border-focus;
+  @media (hover: hover) {
+    &:hover {
+      border-color: $color-border-strong;
+      background: $color-bg-soft;
+    }
   }
 }
 
 .primaryButton {
   @include text-style("label-md");
+  @include hover-lift;
+  @include hover-brighten;
 
-  min-height: 44px;
-  padding: 0 $space-5;
-  border: 1px solid rgba(248, 237, 199, 0.48);
+  min-height: 48px;
+  padding-inline: $space-6;
+  border: 1px solid $color-gold-300;
   border-radius: $radius-md;
   color: $color-text-inverse;
   background: $gradient-gold;
   box-shadow: $shadow-gold;
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
 }
 
 .errorBanner {
   @include text-style("body-sm");
 
+  grid-column: 1 / -1;
   padding: $space-3 $space-4;
   border: 1px solid $status-error-border;
   border-radius: $radius-md;
@@ -122,61 +157,98 @@
   background: $status-error-bg;
 }
 
-.listSection {
+.sessions {
+  margin-top: $space-12;
+}
+
+.sectionHeader {
   display: flex;
-  flex-direction: column;
+  align-items: end;
+  justify-content: space-between;
   gap: $space-4;
-  max-width: 720px;
-  width: 100%;
-  margin-inline: auto;
+  margin-bottom: $space-5;
 }
 
-.empty {
-  @include text-style("body-sm");
+.countBadge {
+  @include text-style("caption");
 
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-pill;
+  color: $color-text-secondary;
+  background: $glass-surface-soft;
+}
+
+.emptyState {
+  @include text-style("body-md");
+
+  padding: $space-8;
+  border: 1px dashed $color-border-default;
+  border-radius: $radius-lg;
   color: $color-text-muted;
+  text-align: center;
 }
 
-.sessionGrid {
+.sessionList {
   display: grid;
-  grid-template-columns: 1fr;
   gap: $space-4;
 
   @include respond-to($breakpoint-md) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 .sessionCard {
-  @include glass-surface($glass-surface-soft, $glass-blur-sm, $color-border-subtle);
+  @include glass-surface($glass-surface-default);
+  @include hover-surface-lift;
 
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: $space-2;
-  width: 100%;
-  min-height: 44px;
-  padding: $space-5;
+  align-items: stretch;
+  min-width: 0;
   border-radius: $radius-lg;
-  text-align: left;
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease;
+}
 
-  &:hover {
-    transform: translateY(-2px);
-    border-color: $color-border-strong;
-  }
+.sessionLink {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: $space-2;
+  min-width: 0;
+  padding: $space-5;
 }
 
 .sessionName {
-  @include text-style("body-lg");
+  @include text-style("heading-md");
 
+  overflow: hidden;
   color: $color-text-primary;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sessionMeta {
-  @include text-style("caption");
+  @include text-style("body-sm");
 
   color: $color-text-secondary;
+}
+
+.deleteButton {
+  @include text-style("label-md");
+  @include hover-brighten;
+
+  align-self: center;
+  min-height: 44px;
+  margin-right: $space-3;
+  padding-inline: $space-3;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  color: $status-error;
+  background: transparent;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: $status-error-border;
+      background: $status-error-bg;
+    }
+  }
 }

@@ -1,0 +1,30 @@
+@use "abstracts" as *;
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  @include respond-to($breakpoint-md) {
+    flex-direction: row;
+    align-items: start;
+    justify-content: space-between;
+  }
+}
+
+.title {
+  @include text-style("heading-xl");
+
+  color: $color-text-primary;
+}
+
+.description {
+  @include text-style("body-sm");
+
+  margin-top: $space-2;
+  color: $color-text-secondary;
+}
+
+.action {
+  flex: 0 0 auto;
+}

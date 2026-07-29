@@ -1,0 +1,38 @@
+@use "abstracts" as *;
+
+.tabs {
+  display: flex;
+  gap: $space-2;
+  overflow-x: auto;
+  padding: $space-1;
+}
+
+.tab {
+  @include text-style("label-md");
+  @include interactive-transition;
+
+  min-height: 40px;
+  padding-inline: $space-4;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-pill;
+  color: $color-text-secondary;
+  background: $glass-surface-soft;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &:not(:disabled) {
+    @include hover-emphasis-subtle;
+  }
+}
+
+.active {
+  color: $color-gold-300;
+  border-color: $color-border-strong;
+  background: $glass-surface-default;
+  box-shadow: $shadow-gold;
+}

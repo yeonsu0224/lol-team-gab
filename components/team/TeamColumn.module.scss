@@ -1,0 +1,66 @@
+@use "abstracts" as *;
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  padding: $space-4;
+  border: 1px solid;
+  border-radius: $radius-lg;
+}
+
+// Readable team grouping (spec D-12) — tint + colored header, no heavy glow.
+.blue {
+  border-color: $team-blue-border;
+  background: $team-blue-surface;
+}
+
+.red {
+  border-color: $team-red-border;
+  background: $team-red-surface;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  padding-bottom: $space-3;
+  border-bottom: 1px solid $color-border-subtle;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $space-2;
+}
+
+.title {
+  @include text-style("heading-md");
+}
+
+.blue .title {
+  color: $color-blue-100;
+}
+
+.red .title {
+  color: #ffd0d6;
+}
+
+.synergy {
+  @include text-style("caption");
+
+  color: $color-text-secondary;
+}
+
+.avg {
+  @include text-style("body-sm");
+
+  color: $color-text-secondary;
+}
+
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}

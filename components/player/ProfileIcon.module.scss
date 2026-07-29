@@ -1,0 +1,21 @@
+@use "abstracts" as *;
+
+.icon {
+  border-radius: 50%;
+  border: 1px solid rgba(248, 237, 199, 0.22);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.fallback {
+  @include text-style("heading-md");
+
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid $color-border-default;
+  color: $color-gold-300;
+  background: $glass-surface-soft;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}

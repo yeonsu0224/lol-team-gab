@@ -1,0 +1,18 @@
+@use "abstracts" as *;
+
+.panel {
+  border-radius: $radius-lg;
+  padding: $space-5;
+
+  @include respond-to($breakpoint-md) {
+    padding: $space-6;
+  }
+}
+
+.default {
+  @include glass-surface($glass-surface-default);
+}
+
+.soft {
+  @include glass-surface($glass-surface-soft, $glass-blur-sm, $color-border-subtle);
+}

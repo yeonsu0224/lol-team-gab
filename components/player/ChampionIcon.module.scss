@@ -1,0 +1,23 @@
+@use "abstracts" as *;
+
+.icon {
+  @include interactive-transition;
+
+  border-radius: $radius-md;
+  border: 1px solid $color-border-subtle;
+  object-fit: cover;
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-1px);
+      border-color: $color-border-strong;
+    }
+  }
+}
+
+.fallback {
+  display: inline-block;
+  border-radius: $radius-md;
+  border: 1px solid $color-border-subtle;
+  background: $glass-surface-soft;
+}

@@ -1,0 +1,23 @@
+@use "abstracts" as *;
+
+.placeholder {
+  @include text-style("body-md");
+
+  display: grid;
+  min-height: 240px;
+  margin-top: $space-8;
+  place-items: center;
+  align-content: center;
+  gap: $space-3;
+  padding: $space-8;
+  border: 1px dashed $color-border-default;
+  border-radius: $radius-lg;
+  color: $color-text-secondary;
+  text-align: center;
+  background: $glass-surface-soft;
+}
+
+.marker {
+  color: $color-gold-300;
+  font-size: 28px;
+}

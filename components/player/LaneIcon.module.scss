@@ -1,0 +1,11 @@
+@use "abstracts" as *;
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  color: $color-blue-300;
+}

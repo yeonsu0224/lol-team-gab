@@ -1,0 +1,118 @@
+@use "abstracts" as *;
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.inputRow {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  @include respond-to($breakpoint-sm) {
+    flex-direction: row;
+  }
+}
+
+.input {
+  @include text-style("body-md");
+  @include interactive-transition;
+
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding-inline: $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  background: $glass-surface-soft;
+
+  &::placeholder {
+    color: $color-text-muted;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.warning {
+  @include text-style("caption");
+
+  color: $color-gold-300;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.state {
+  @include text-style("body-sm");
+
+  color: $color-text-muted;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.result {
+  @include text-style("body-md");
+  @include interactive-transition;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: $space-3 $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  background: $glass-surface-soft;
+  cursor: pointer;
+
+  &:not(:disabled) {
+    @include hover-surface-lift;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.resultName {
+  display: inline-flex;
+  align-items: baseline;
+  gap: $space-1;
+}
+
+.resultTag {
+  @include text-style("body-sm");
+
+  color: $color-text-muted;
+}
+
+.resultAction {
+  @include text-style("label-md");
+
+  color: $color-blue-300;
+}

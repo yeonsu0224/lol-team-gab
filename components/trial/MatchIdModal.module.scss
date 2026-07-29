@@ -1,0 +1,56 @@
+@use "abstracts" as *;
+
+.fetchRow {
+  display: flex;
+  align-items: flex-end;
+  gap: $space-3;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.hint {
+  @include text-style("caption");
+
+  color: $color-text-muted;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-md;
+  background: $glass-surface-soft;
+}
+
+.who {
+  @include text-style("body-sm");
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat {
+  @include text-style("caption");
+
+  color: $color-text-muted;
+}
+
+.select {
+  @include text-style("body-sm");
+
+  min-height: 40px;
+  padding-inline: $space-2;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-sm;
+  color: $color-text-primary;
+  background: $color-bg-soft;
+  cursor: pointer;
+}
