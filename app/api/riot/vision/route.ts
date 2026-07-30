@@ -1,58 +1,22 @@
 import { NextResponse } from "next/server";
 
 import { ApiError, apiErrorResponse } from "@/lib/api/errors";
-import { generateGeminiVision, parseGeminiJson } from "@/lib/gemini/client";
-
-interface VisionDraft {
-  participants: Array<{
-    name: string | null;
-    kills: number | null;
-    deaths: number | null;
-    assists: number | null;
-    damageDealt: number | null;
-  }>;
-}
-
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+import { generateGemini } from "@/lib/gemini/client";
 
 export async function POST(request: Request) {
   try {
-    const { mimeType, data } = await readImage(request);
-    const prompt = [
-      "리그 오브 레전드 점수판 이미지에서 참가자 행을 읽으세요.",
-      "각 참가자의 이름, kills, deaths, assists, damageDealt를 추출하세요.",
-      "확인할 수 없는 값은 추측하지 말고 null로 두세요.",
-      '반드시 {"participants":[{"name":string|null,"kills":number|null,"deaths":number|null,"assists":number|null,"damageDealt":number|null}]} JSON만 반환하세요.',
-    ].join("\n");
-    const draft = parseGeminiJson<VisionDraft>(
-      await generateGeminiVision(prompt, { mimeType, data }),
-    );
-    if (!Array.isArray(draft.participants)) {
-      throw new ApiError(502, "GEMINI_INVALID_RESPONSE", "참가자 초안을 확인하지 못했습니다.");
+    const body = await request.json() as { image?: string; mimeType?: string };
+    if (!body.image || !body.mimeType) {
+      throw new ApiError("분석할 이미지가 필요합니다.", 400, "IMAGE_REQUIRED");
     }
-    return NextResponse.json({ draft });
-  } catch (error) {
-    return apiErrorResponse(error);
+    const raw = await generateGemini([
+      {
+        text: "LoL 점수판에서 플레이어 이름, 챔피언, 라인, KDA, 챔피언 피해량을 추출해 JSON {players:[{riotId,championName,role,kda,damage}]}만 반환해.",
+      },
+      { inlineData: { mimeType: body.mimeType, data: body.image } },
+    ]);
+    return NextResponse.json(JSON.parse(raw.replace(/^```json\s*|\s*```$/g, "")));
+  } catch (cause) {
+    return apiErrorResponse(cause);
   }
-}
-
-async function readImage(request: Request): Promise<{ mimeType: string; data: string }> {
-  const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.includes("multipart/form-data")) {
-    throw new ApiError(415, "IMAGE_REQUIRED", "multipart/form-data 이미지가 필요합니다.");
-  }
-  const file = (await request.formData()).get("image");
-  if (!(file instanceof File)) {
-    throw new ApiError(400, "IMAGE_REQUIRED", "image 파일을 첨부해 주세요.");
-  }
-  if (!file.type.startsWith("image/")) {
-    throw new ApiError(415, "INVALID_IMAGE_TYPE", "이미지 파일만 업로드할 수 있습니다.");
-  }
-  if (file.size === 0 || file.size > MAX_IMAGE_BYTES) {
-    throw new ApiError(413, "INVALID_IMAGE_SIZE", "이미지는 8MB 이하여야 합니다.");
-  }
-  return {
-    mimeType: file.type,
-    data: Buffer.from(await file.arrayBuffer()).toString("base64"),
-  };
 }

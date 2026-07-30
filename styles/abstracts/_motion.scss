@@ -1,31 +1,38 @@
-$ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-$ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
-$duration-micro: 180ms;
-$duration-fast: 220ms;
-$duration-base: 320ms;
-$duration-slow: 420ms;
-$stagger-step: 60ms;
+@use "tokens" as *;
 
-@keyframes fadeOut {
-  to { opacity: 0; }
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
+@keyframes tg-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
+@keyframes tg-slide-left {
+  from { opacity: 0; transform: translateX(-28px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
+@keyframes tg-slide-right {
+  from { opacity: 0; transform: translateX(28px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes gradientShift {
+@keyframes tg-gradient {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
+}
+
+@keyframes tg-pulse {
+  50% { opacity: 0.55; transform: scale(0.98); }
+}
+
+@keyframes tg-sparkle {
+  50% { box-shadow: 0 0 24px rgb(240 213 140 / 55%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

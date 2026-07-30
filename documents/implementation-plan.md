@@ -1,16 +1,27 @@
 # 내전 총무 — 구현 계획
 
-> **문서 버전:** v2.0.1  
-> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v3.0.2, [feedback.md](./feedback.md), [design-system.md](./design-system.md)  
-> **상태:** 3차 반복 — Phase 0~8 구현 완료 · 실 API/브라우저 QA 대기  
+> **문서 버전:** v3.0.1  
+> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v4.0.2, [feedback.md](./feedback.md), [design-system.md](./design-system.md) v0.6.2  
+> **상태:** 4차 반복 — Phase 0~9 재구현·자동 검증 완료, 실 API/브라우저 QA 대기  
 > **다음 단계:** [tasks.md](./tasks.md) Phase별 Task 재분해
 
 ---
 
 ## 1. 목적
 
-[spec.md](./spec.md) v3.0.1에 정의된 MVP를 **Next.js + TypeScript + SCSS**로 **처음부터 재구현**한다.  
-2차 구현 코드는 삭제되었고, 본 문서는 **어떤 순서로, 어떤 구조로** 다시 만들지 정한다. 개별 Task의 완료 조건·검증은 **작업 정의**(`tasks.md`)에서 분리한다.
+[spec.md](./spec.md) v4.0에 정의된 MVP를 **Next.js + TypeScript + 전역 SCSS**로 **처음부터 재구현**한다.  
+3차 구현 코드는 삭제되었고, 본 문서는 **어떤 순서로, 어떤 구조로** 다시 만들지 정한다. 개별 Task의 완료 조건·검증은 **작업 정의**(`tasks.md`)에서 분리한다.
+
+### 4차에서 새로 넣는 것 (feedback "3차 시도 최종 피드백")
+
+- CSS Modules를 제거하고 `tg-` 접두사 BEM 전역 SCSS로 전환한다.
+- AI를 말풍선 요약에서 우측 사이드바 챗봇으로 확장한다(예시 질문 3개, 후속 질문, 주목 선수).
+- 팀 제안·시험 결과 저장 후 2~3초 분석 전환 화면을 제공한다.
+- 태그 없는 입력은 로컬 최근 등록 선수만 검색하고, 이전 플레이어 모달을 제공한다.
+- OP 기준을 강화하고 OP가 없을 때 내부 1~5티어를 기본으로 한다.
+- 시험 입력에 승리팀 컬러 토글·챔피언·실제 라인을 추가하고 양 팀을 좌측 정렬한다.
+- 마무리는 세션명·승리팀·MVP·최다 꿀벌을 순차 공개한 뒤 전체 결과를 보여준다.
+- 개발자 이스터에그 태그는 `lib/constants/easterEggs.ts`에 하드코딩하며, 카드 UI만 조회하고 점수·배정 로직은 건드리지 않는다.
 
 ### 3차에서 새로 넣는 것 (feedback "2차 시도")
 
@@ -433,12 +444,28 @@ unrated =
 | 총무 프로필 | 대시보드 Riot ID 검색으로 지정. `lib/storage/userProfile.ts`(displayName·riotId·myPuuid), `lib/domain/sessionStatus.ts`(상태 파생) |
 | 대치 정렬 | 좌 블루/우 레드 컬럼 유지, 블루 내용 우측·레드 내용 좌측 정렬. 카드 폭은 두 팀 모두 100%(`teamList` grid에 `justify-content` 금지), 블루는 `playerCard`·`badges` 모두 `row-reverse`로 요소 순서 거울 배치. 팀 제안·재밸런스·게임 결과 공통 (D-16) |
 | 팀 제안 개편 | 하단 버튼 구역, 팀 박스별 MiniAddModal(블루 좌/레드 우), BalanceReasonPopover(우상단 hover) (F-04) |
-| 참가자 등록 개편 | 좌5/우5 순차, 안내 소형 텍스트, PlayerHoverCard(hover 상세), CTA 그라디언트 애니메이션 (F-02) |
+| 참가자 등록 개편 | 좌5/우5 순차, 안내 소형 텍스트, PlayerHoverCard(hover 상세), CTA 그라디언트 애니메이션, 원격 검색 후보 소환사 아이콘·대표 티어 미리보기 (F-02) |
 | 시험 판 개편 | 판 탭 우상단 고정, RecentMatchesModal(현재 세션 내 내 플레이어 우선, 없으면 참가자 선택 → 자동 채움), 4판 전 종료 버튼 (F-05) |
 | 재밸런스 강조 | 교체 팀원 border 강조 + 들어온/나간 표시 (F-06) |
 | 마무리 강화 | 최다 승 팀(동률 시 마지막 판 승자) 컬러 대표 박스, 결과 컬러 칩, 성과 StarRating(별점 1~5) 하나 → `wrapUp`·대시보드 반영. 피드백은 텍스트만 (F-10, F-12) |
 
 **검증:** 단계 전환·슬라이드 인 동작, `prefers-reduced-motion` 폴백, 대시보드 상태·평점, 블루 우측 정렬·카드 100% 폭·뱃지 거울 순서, 최근 경기 선택 로드, 별점 저장·표시.
+
+---
+
+### Phase 9 — 4차 UX·구조 개편 (D-17~D-20)
+
+- 전역 스타일 기반을 먼저 전환한다. `*.module.scss`는 만들지 않고 `styles/globals.scss`에서 화면 partial을 로드하며 모든 클래스는 `tg-` BEM 네이밍을 사용한다.
+- localStorage 최근 플레이어 저장소와 이전 플레이어 모달을 구현한 뒤 Riot ID 검색에서 정확한 `게임명#태그`와 로컬 게임명 후보를 분리한다.
+- 내부 등급은 OP 이상치 탐지 후 비OP 1~5분위로 산출하도록 도메인 로직과 테스트를 교체한다.
+- 공통 `AnalysisTransition`을 팀 제안과 시험 저장 흐름에 연결하고 중복 제출·실패·reduced-motion 상태를 검증한다.
+- AI는 `AssistantSidebar`와 대화 API 계약으로 재구성한다. 구조화된 현재 화면 데이터, 최근 대화, 모드만 서버에 보내며 예시 질문과 주목 선수의 근거를 응답 스키마로 받는다.
+- 시험 입력 모델에 `championId`와 `playedRole`을 추가하고 수동·경기 ID·최근 경기·이미지 입력 경로가 같은 폼으로 합쳐지게 한다.
+- 재밸런스 카드의 프로필 위치와 칩 정렬을 팀 방향에 맞춰 고정한다.
+- 마무리 `ResultReveal` 상태 머신과 자동 MVP·최다 꿀벌 selector를 순수 함수로 구현한다.
+- `lib/constants/easterEggs.ts`에 표시 전용 이스터에그 레지스트리를 두고, 플레이어 카드에서만 lookup한다. 도메인·AI 페이로드는 import하지 않는다.
+
+**검증:** 숨김 스크롤바 상태에서도 키보드/휠 스크롤 가능, 전역 클래스 충돌 없음, 태그 없는 검색의 로컬/원격 분리, OP 없음→1~5티어, 분석 화면 2~3초·오류 즉시 노출, AI 후속 질문, 시험 챔피언/라인 저장, 결과 인트로 건너뛰기와 공동 꿀벌, 이스터에그 태그가 점수/배정에 영향 없음.
 
 ---
 
@@ -471,7 +498,7 @@ sequenceDiagram
   participant Dom as lib_domain
   participant LS as localStorage
   participant R as rebalance_page
-  participant AI as FloatingAssistant
+  participant AI as AssistantSidebar
   participant S as summary_route
 
   loop round 1 to 3
@@ -484,7 +511,7 @@ sequenceDiagram
     R->>Dom: personalScore_powerRatio_teamBalance_trades
     R->>LS: nextTeamProposal
     AI->>S: structured_payload
-    S-->>AI: gemini_summary_bubble
+    S-->>AI: summary_players_suggestions
   end
   Note over R: round3 후 targetRound=4
   U->>LS: finish_wrapUp
@@ -578,4 +605,6 @@ sequenceDiagram
 | v1.0 | 2026-07-29 | **2차 반복 재구현 계획** — spec v2.1 기준. Gemini·플로팅·`/finish`·F~OP·전력 비율·라인 아이콘·`unrated`·보조 모달·트레이드·후원. OpenAI/`/summary` 제거. Phase·구조·env·매핑 전면 갱신 |
 | v1.0.1 | 2026-07-29 | 팀 컬럼: **가독성=MVP 기본**, 2차 신규는 51/49 비율·헤더 평균. “2차만 화려” 프레이밍 제거 |
 | v2.0.1 | 2026-07-30 | Phase 8 대치 정렬 항목 보강(구현 피드백): 카드 100% 폭 유지 규칙과 블루팀 뱃지 행 거울 순서 명시 |
+| v3.0 | 2026-07-30 | spec v4.0 기준 4차 재구현 계획. Phase 9 신설: 전역 SCSS 클래스, 숨김 스크롤바, 최근 플레이어 저장소, OP 이상치+1~5티어, 분석 전환, AI 사이드바 챗봇, 시험 챔피언/라인, 결과 공개 인트로 |
+| v3.0.1 | 2026-07-30 | F-02 원격 검색 응답에 소환사 아이콘·대표 티어 프리뷰를 포함하고 후보 카드에서 등록 전 표시 |
 | v2.0 | 2026-07-29 | **3차 반복 계획** — spec v3.0 기준. **Phase 8**(모션·대시보드·대치·마무리 강화) 신설. 구조에 `dashboard/`·`motion/`·`_motion.scss`·`userProfile`·`sessionStatus` 추가. 매핑에 D-14/D-15/D-16·F-12·F-05 A'(최근 경기 선택) 추가 |

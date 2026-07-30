@@ -1,43 +1,39 @@
 import { NextResponse } from "next/server";
 
-import { ApiError, apiErrorResponse, parseJsonBody } from "@/lib/api/errors";
-import { generateGeminiText, parseGeminiJson } from "@/lib/gemini/client";
-import type { CommentMode } from "@/lib/types";
-
-interface SummaryRequest {
-  mode?: CommentMode;
-  context: unknown;
-}
+import { ApiError, apiErrorResponse } from "@/lib/api/errors";
+import { generateGemini } from "@/lib/gemini/client";
 
 export async function POST(request: Request) {
   try {
-    const body = await parseJsonBody<SummaryRequest>(request);
-    if (!body.context || typeof body.context !== "object") {
-      throw new ApiError(400, "INVALID_CONTEXT", "요약할 구조화 데이터가 필요합니다.");
+    const body = await request.json() as {
+      mode?: "normal" | "friend";
+      surface?: string;
+      context?: unknown;
+      messages?: Array<{ role: "user" | "assistant"; content: string }>;
+      question?: string;
+    };
+    const prompt = [
+      "너는 LoL 내전 총무를 돕는 한국어 분석 어시스턴트다.",
+      "반드시 JSON으로 답한다: {summary:string, notablePlayers:[{riotId:string,reason:string}], suggestions:string[], answer?:string}.",
+      "suggestions는 현재 맥락에 맞는 짧은 예시 질문 정확히 3개다.",
+      "notablePlayers는 구조화 데이터에 근거한 0~2명이며 unrated는 성과 후보에서 제외한다.",
+      body.mode === "friend"
+        ? "찐친 모드지만 혐오·욕설·인신공격은 금지한다."
+        : "일반 모드이므로 부정적 개인 평가는 금지하고 칭찬·중립적으로 쓴다.",
+      `화면: ${body.surface ?? "unknown"}`,
+      `질문: ${body.question ?? "현재 화면을 요약해줘"}`,
+      `최근 대화: ${JSON.stringify(body.messages?.slice(-6) ?? [])}`,
+      `구조화 데이터: ${JSON.stringify(body.context ?? {})}`,
+    ].join("\n");
+    const raw = await generateGemini([{ text: prompt }]);
+    let value: unknown;
+    try {
+      value = JSON.parse(raw.replace(/^```json\s*|\s*```$/g, ""));
+    } catch {
+      throw new ApiError("AI 응답 형식을 해석하지 못했습니다.", 502, "GEMINI_INVALID_RESPONSE");
     }
-    const mode: CommentMode = body.mode === "friend" ? "friend" : "normal";
-    const prompt = buildPrompt(mode, body.context);
-    const result = parseGeminiJson<{ summary?: unknown }>(await generateGeminiText(prompt));
-    if (typeof result.summary !== "string" || !result.summary.trim()) {
-      throw new ApiError(502, "GEMINI_INVALID_RESPONSE", "요약 문장을 확인하지 못했습니다.");
-    }
-    return NextResponse.json({ summary: result.summary.trim(), mode });
-  } catch (error) {
-    return apiErrorResponse(error);
+    return NextResponse.json(value);
+  } catch (cause) {
+    return apiErrorResponse(cause);
   }
-}
-
-function buildPrompt(mode: CommentMode, context: unknown): string {
-  const tone =
-    mode === "friend"
-      ? "친한 친구끼리 보는 가벼운 말투를 쓰되 욕설, 혐오, 인신공격은 하지 마세요."
-      : "중립적이고 격려하는 말투를 사용하고 부정적인 개인 평가나 범인 지목을 하지 마세요.";
-  return [
-    "리그 오브 레전드 내전의 구조화 데이터를 한국어 2~4문장으로 요약하세요.",
-    tone,
-    "unrated=true인 참가자는 기대 이상/이하나 성과 평가에서 반드시 제외하세요.",
-    "내부 점수와 계산식은 노출하지 말고 팀 평균, 전력 비율, 이동, 꿀벌, 성과 등급처럼 사용자가 이해할 표현만 쓰세요.",
-    '반드시 {"summary":"..."} JSON 객체만 반환하세요.',
-    `데이터: ${JSON.stringify(context)}`,
-  ].join("\n");
 }

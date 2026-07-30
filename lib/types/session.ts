@@ -1,23 +1,9 @@
 export type TeamSide = "blue" | "red";
-export type RoundNumber = 1 | 2 | 3;
-export type PlayRound = RoundNumber | 4;
-export type CommentMode = "normal" | "friend";
-export type SessionStatus = "preparing" | "in_progress" | "completed";
 export type MainRole = "TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY";
-export type TierSource = "solo" | "flex" | "past_season" | "manual";
+export type RoundNumber = 1 | 2 | 3;
+export type InternalTier = "OP" | 1 | 2 | 3 | 4 | 5;
 export type PerformanceGrade = "F" | "D" | "C" | "B" | "A" | "OP";
-export type HoneyBeeBadge = "none" | "bee" | "glitterBee" | "rainbowBee";
-export type UnratedReason =
-  | "no_history"
-  | "insufficient_sample"
-  | "missing_stats"
-  | "manual_tier";
-
-export interface UserProfile {
-  displayName?: string;
-  riotId?: string;
-  myPuuid?: string;
-}
+export type CommentMode = "normal" | "friend";
 
 export interface TierDisplay {
   tier: string;
@@ -29,34 +15,41 @@ export interface TierDisplay {
 export interface RecentStats {
   games: number;
   wins: number;
-  kda?: number;
-  damageDealt?: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  damageDealt: number;
 }
 
-export interface ChampionMastery {
-  championId: number;
-  championLevel: number;
-  championPoints: number;
-}
-
-export interface RiotParticipantData {
-  tier?: string;
-  rank?: string;
-  lp?: number;
-  winRate?: number;
+export interface Participant {
+  riotId: string;
+  puuid: string;
   profileIconId?: number;
-  recentStats?: RecentStats;
-  masteries?: ChampionMastery[];
-  mainRole?: MainRole;
-  preMainRoleKda?: number;
-  preMainRoleDamage?: number;
-  preMainRoleGames?: number;
-}
-
-export interface SynergyFactors {
-  duoPartners: string[];
-  mainRole?: MainRole;
-  topChampions: number[];
+  summonerLevel?: number;
+  preTier: TierDisplay;
+  preLpValue: number;
+  currentLpValue: number;
+  personalScore: number;
+  internalTierBadge: InternalTier;
+  honeyBeeStreak: number;
+  honeyBeeBadge: "none" | "bee" | "glitterBee" | "rainbowBee";
+  honeyBeeHistory: boolean[];
+  trialPerformanceByRound?: Partial<Record<RoundNumber, TrialPerformance>>;
+  personalScoreDeltaByRound?: Partial<Record<2 | 3 | 4, number>>;
+  tierSource: "solo" | "flex" | "past_season" | "manual";
+  riotData: {
+    recentStats?: RecentStats;
+    masteries?: Array<{ championId: number; championPoints: number }>;
+    mainRole?: MainRole;
+    preMainRoleKda?: number;
+    preMainRoleDamage?: number;
+    preMainRoleGames?: number;
+  };
+  synergyFactors: {
+    duoPartners: string[];
+    mainRole?: MainRole;
+    topChampions: number[];
+  };
 }
 
 export interface TrialPerformance {
@@ -66,43 +59,10 @@ export interface TrialPerformance {
   tierExpectScore: number | null;
   trialScore: number;
   unrated: boolean;
-  unratedReason?: UnratedReason;
+  unratedReason?: "no_history" | "insufficient_sample" | "missing_stats" | "manual_tier";
   roundHoneyBee: boolean;
   roundBelowExpect: boolean;
   performanceGrade: PerformanceGrade | null;
-}
-
-export interface Participant {
-  riotId: string;
-  puuid: string;
-  preTier: TierDisplay;
-  preLpValue: number;
-  currentLpValue: number;
-  personalScore: number;
-  internalTierBadge: "OP" | 1 | 2 | 3 | 4;
-  honeyBeeStreak: number;
-  honeyBeeBadge: HoneyBeeBadge;
-  honeyBeeHistory: boolean[];
-  trialPerformanceByRound?: Partial<Record<RoundNumber, TrialPerformance>>;
-  personalScoreDeltaByRound?: Partial<Record<PlayRound, number>>;
-  tierSource: TierSource;
-  riotData: RiotParticipantData;
-  synergyFactors: SynergyFactors;
-}
-
-export interface PlayerTrialStat {
-  puuid: string;
-  kda: number;
-  damageDealt: number;
-}
-
-export interface TrialResult {
-  round: RoundNumber;
-  matchId?: string;
-  winnerTeam: TeamSide;
-  blueTeam: Participant[];
-  redTeam: Participant[];
-  playerStats: PlayerTrialStat[];
 }
 
 export interface TeamChange {
@@ -117,6 +77,8 @@ export interface TeamProposal {
   targetRound?: 2 | 3 | 4;
   blueTeam: Participant[];
   redTeam: Participant[];
+  blueTeamName?: string;
+  redTeamName?: string;
   blueAvgTier: TierDisplay;
   redAvgTier: TierDisplay;
   tierDiffDivisions: number;
@@ -127,6 +89,23 @@ export interface TeamProposal {
   changes?: TeamChange[];
 }
 
+export interface TrialPlayerStat {
+  puuid: string;
+  kda: number;
+  damageDealt: number;
+  championId?: number;
+  playedRole?: MainRole;
+}
+
+export interface TrialResult {
+  round: RoundNumber;
+  matchId?: string;
+  winnerTeam: TeamSide;
+  blueTeam: Participant[];
+  redTeam: Participant[];
+  playerStats: TrialPlayerStat[];
+}
+
 export interface RoundRecord {
   round: RoundNumber;
   trialResult: TrialResult;
@@ -135,7 +114,7 @@ export interface RoundRecord {
 }
 
 export interface SessionWrapUp {
-  endedAtRound: PlayRound;
+  endedAtRound: 1 | 2 | 3 | 4;
   winnerTeam?: TeamSide;
   mvpPuuid?: string;
   performanceRating?: 1 | 2 | 3 | 4 | 5;
@@ -155,4 +134,19 @@ export interface Session {
   wrapUp?: SessionWrapUp;
 }
 
-export type NewSession = Pick<Session, "name"> & Partial<Pick<Session, "participants">>;
+export type NewSession = Partial<Pick<Session, "name" | "participants">>;
+
+export interface UserProfile {
+  displayName?: string;
+  riotId?: string;
+  myPuuid?: string;
+}
+
+export interface RecentPlayer {
+  riotId: string;
+  puuid: string;
+  gameName: string;
+  tagLine: string;
+  profileIconId?: number;
+  lastRegisteredAt: string;
+}

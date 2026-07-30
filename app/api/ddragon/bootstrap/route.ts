@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { apiErrorResponse } from "@/lib/api/errors";
-import { getChampionsByKey } from "@/lib/riot/ddragon/champions";
-import { getDataDragonVersion } from "@/lib/riot/ddragon/version";
+import { getDataDragonBootstrap } from "@/lib/riot/ddragon/bootstrap";
 
 export async function GET() {
   try {
-    const version = await getDataDragonVersion();
-    const championsByKey = await getChampionsByKey(version);
-    return NextResponse.json({ version, championsByKey });
-  } catch (error) {
-    return apiErrorResponse(error);
+    return NextResponse.json(await getDataDragonBootstrap());
+  } catch (cause) {
+    return apiErrorResponse(cause);
   }
 }

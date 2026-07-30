@@ -1,8 +1,8 @@
 # 내전 총무 — 작업 정의
 
-> **문서 버전:** v2.0.1  
-> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v3.0.2, [implementation-plan.md](./implementation-plan.md) v2.0.1, [design-system.md](./design-system.md) v0.5.1  
-> **상태:** 3차 반복 — Phase 0~8 구현 완료 · P7-T07 수동 QA 잔여
+> **문서 버전:** v3.1.2  
+> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v4.0.3, [implementation-plan.md](./implementation-plan.md) v3.0.1, [design-system.md](./design-system.md) v0.6.3  
+> **상태:** 4차 반복 — Phase 0~9 구현·자동 검증 완료 · 실 API/브라우저 수동 QA 및 Vision 재매핑 UX 잔여
 
 ---
 
@@ -16,7 +16,7 @@
 
 Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
-> **주의:** 모든 체크박스는 재구현 기준 **미완료** 상태다. 2차 구현 코드는 삭제되었으므로 새로 만든다.
+> **주의:** cycle4 재구현 완료 항목은 `[x]`, 보류·수동 QA 잔여 항목은 `[ ]`로 표시한다.
 
 ---
 
@@ -51,6 +51,18 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 | 재밸런스 교체 border 강조·들어온/나간 표시 | P8-T10 |
 | 마무리 강화 (승리팀 컬러·결과 칩·별점 1~5) | P8-T11 |
 
+## 4차 반복 신규/변경 Task 색인 (feedback "3차 시도 최종 피드백")
+
+- 전역 SCSS·숨김 스크롤바: P9-T01
+- 이전 플레이어·태그 없는 로컬 검색: P9-T02
+- OP 이상치 기준·기본 1~5티어: P9-T03
+- 분석 전환 화면: P9-T04
+- AI 사이드바 챗봇·주목 선수: P9-T05
+- 시험 승리 토글·챔피언·라인: P9-T06
+- 재밸런스 카드 방향 보강: P9-T07
+- 결과 공개 인트로·MVP·최다 꿀벌: P9-T08
+- 개발자 이스터에그 태그(표시 전용): P9-T09
+
 ---
 
 ## Phase 0 — 프로젝트 초기화
@@ -63,7 +75,7 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 - [x] `npm run dev` 로 랜딩 페이지 로드
 - [x] `app/layout.tsx` 한국어 `lang`
-- [x] SCSS Modules 설정 (`*.module.scss`)
+- [x] 전역 SCSS 설정 (`styles/globals.scss` + `tg-` BEM 클래스, CSS Modules 금지)
 - [x] `app/globals.scss`에서 `styles/globals.scss` import
 
 **검증:** 로컬 dev 서버 정상, 클라이언트 번들에 API Key 없음.
@@ -72,26 +84,8 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 ---
 
-### P0-T02. 환경 변수 템플릿 (Gemini)
 
-**목적:** 서버 전용 API Key·fallback 설정 ([implementation-plan.md](./implementation-plan.md) §6).
-
-**완료 조건**
-
-- [x] `.env.local.example`에 다음 3개 변수:
-  - `RIOT_API_KEY` — Riot Games API
-  - `DDRAGON_FALLBACK_VERSION` — Data Dragon `versions.json` 실패 시 fallback 버전
-  - `GEMINI_API_KEY` — Google Gemini 텍스트 요약(F-08) + 멀티모달 Vision(F-09)
-- [x] `OPENAI_API_KEY`는 **사용하지 않음** (템플릿에 없음)
-- [x] `NEXT_PUBLIC_*` 미사용
-
-**검증:** `.env.local` 없이 dev 실행 시 API Route만 Key 요구. 코드 전역에 `OPENAI` 참조 없음.
-
-**병렬 가능:** P0-T01
-
----
-
-### P0-T03. 디자인 토큰 뼈대
+### P0-T02. 디자인 토큰 뼈대
 
 **목적:** `design-system.md` §7 SCSS 구조와 토큰을 프로젝트에 반영한다.
 
@@ -103,7 +97,7 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 - [x] `styles/globals.scss` — abstracts·base·utilities import
 - [x] `app/globals.scss`에서 `styles/globals.scss` 연결
 - [x] color / typography / spacing / radius / shadow 핵심 토큰 정의
-- [x] **블루/레드 팀 색 토큰**(가독성용) 정의 — 장식 과다 금지 (D-12)
+- [x] **블루/레드 팀 색 토큰** 정의 - (D-12)
 - [x] 하드코딩 대신 토큰 우선 사용 원칙
 
 **검증:** 주요 토큰·폴더 구조가 `design-system.md` §7과 1:1 대응.
@@ -114,7 +108,7 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 ---
 
-### P0-T04. 모션 토큰·keyframes (D-14)
+### P0-T03. 모션 토큰·keyframes (D-14)
 
 **목적:** `design-system.md` §4-A 모션 규칙(이징·지속시간·keyframes)을 SCSS 토큰으로 반영한다.
 
@@ -134,9 +128,9 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 ## Phase 1 — 타입·저장소·랜딩 (F-01)
 
-### P1-T01. 도메인 타입 정의 (spec §6, v3.0)
+### P1-T01. 도메인 타입 정의 (spec §6, v4.0.1)
 
-**목적:** v3.0 데이터 모델 TypeScript 타입.
+**목적:** v4.0.1 데이터 모델 TypeScript 타입.
 
 **완료 조건**
 
@@ -610,6 +604,7 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 - [x] 게임명#태그 입력, 중복·2~10명 제한
 - [x] debounce(400ms) 후 검색 API 호출
 - [x] 로딩 → 목록 → 선택 상태 구분 UI
+- [x] 원격 검색 후보 카드에 소환사 프로필 아이콘 + 대표 티어(솔로→자유→언랭크) 미리보기
 - [x] Enter / 추가 버튼 직접 등록 유지
 - [x] 8·10명 미만 시 팀 제안 불가 안내 / 준비 완료 시 `n/10 · 팀 제안하기` CTA
 
@@ -642,7 +637,8 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 - [x] `preTier`, `preLpValue`, `currentLpValue`(=pre), 주라인 KDA·딜량·`preMainRoleGames`
 - [x] 표본 부족·결측 시 **평가 불가(`unrated`) 플래그** 표시 (판정은 F-05)
 - [x] `profileIconId`, 모스트 챔피언
-- [ ] 언랭크 → 최근 시즌 → 수동 티어 모달
+- [ ] 언랭크 → 최근 시즌 조회 (Riot 현재 API에서 직접 제공하지 않아 보류)
+- [x] 언랭크 → 수동 티어 모달
 
 **검증:** 이력 없는 계정이 `기록 부족`으로 표시되고 0 대체 없음.
 
@@ -795,7 +791,8 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 **완료 조건**
 
 - [x] 폼 상단에 **작은 보조 버튼** (경기 ID·이미지), 본문 폼 가리지 않음
-- [x] 경기 ID 모달: 자동 매핑, 불일치 시 수동 매핑, KDA·딜량 수집
+- [ ] 경기 ID 모달: 불일치 참가자 수동 재매핑
+- [x] 경기 ID 모달: 일치 참가자 자동 매핑, KDA·딜량·챔피언·라인 수집
 - [x] 이미지 모달: `POST /api/riot/vision` → 참가자 매핑
 - [x] 모달 결과를 **메인 폼에 채우고** 닫음 (검토 전 자동 저장 금지)
 
@@ -809,8 +806,8 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 **완료 조건**
 
-- [x] 인식된 참가자명·KDA·딜량을 행별 수정·재매핑
-- [x] 오인식 있어도 수정 후 정상 진행
+- [ ] 인식된 참가자명·KDA·딜량을 모달 안에서 행별 수정·재매핑
+- [x] 자동 일치 결과를 메인 폼에 적용한 뒤 수정 가능
 
 **검증:** 오인식 1~2개 수정 후 폼 반영.
 
@@ -1160,6 +1157,67 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 ---
 
+## Phase 9 — 4차 UX·구조 개편
+
+### P9-T01. 전역 SCSS·숨김 스크롤바 (D-17)
+- [x] 모든 `*.module.scss` 및 `styles.foo` 사용 제거
+- [x] `tg-` BEM 클래스와 화면별 전역 SCSS partial 구성
+- [x] 휠·터치·키보드 스크롤은 유지하면서 시각적 스크롤바 숨김
+- [x] 전역 클래스 충돌·모바일·접근성 검증
+
+### P9-T02. 이전 플레이어·검색 보강 (D-19, F-02)
+- [x] 최근 등록 선수 localStorage 저장소 CRUD
+- [x] 태그 없는 게임명은 로컬 목록만 부분 검색하고 원격 API 호출 금지
+- [x] 정확한 `게임명#태그` 원격 조회와 로컬 후보 상태 구분
+- [x] 이전 플레이어 모달에서 재등록·삭제
+
+### P9-T03. OP 이상치·기본 1~5티어
+- [x] 평균 비율+표준편차 이중 기준 OP 후보 판정
+- [x] OP 후보가 없으면 전원 1~5분위 배정
+- [x] OP 존재·부재·동률·8명·10명 도메인 테스트
+
+### P9-T04. 분석 전환 화면 (D-18)
+- [x] 팀 제안·시험 저장 후 2~3초 단계형 분석 화면
+- [x] 중복 제출 방지, 계산/API 실패 즉시 오류·재시도
+- [x] reduced-motion에서 모션 없이 진행 문구 유지
+
+### P9-T05. AI 우측 사이드바 챗봇 (D-10, F-08)
+- [x] 플로팅 진입 버튼 → 데스크톱 우측 사이드바·모바일 drawer
+- [x] 최초 요약에 주목할 플레이어 1~2명과 근거
+- [x] 맥락별 예시 질문 3개·직접 질문·최근 대화 전송
+- [x] normal/friend 가드레일과 unrated 제외
+
+### P9-T06. 시험 입력 개편 (F-05)
+- [x] 양 팀 입력 행 좌측 정렬
+- [x] 승리 팀 선택 버튼 전체를 팀 컬러로 채움
+- [x] 참가자별 챔피언·실제 플레이 라인 입력/수정
+- [x] 수동·경기 ID·최근 경기·이미지 보조 입력 모두 동일 폼 반영
+
+### P9-T07. 재밸런스 카드 방향 보강 (F-06)
+- [x] 블루 프로필 아이콘 우측·레드 프로필 아이콘 좌측
+- [x] 블루 카드 칩 행 `justify-content: flex-end`
+- [x] 카드 폭 100%·모바일 기본 순서·교체 강조 회귀 검증
+
+### P9-T08. 결과 공개 퍼포먼스 (D-20, F-10)
+- [x] 세션명 → 승리팀 → MVP → 최다 꿀벌 순차 공개 상태 머신
+- [x] 승리팀 팀명·팀원 아이콘 최대 5개
+- [x] 전 경기 KDA·피해량 기반 자동 MVP selector
+- [x] 최다 `roundHoneyBee` 공동 1위 표시와 “기대 이상” 텍스트
+- [x] 티어 상승 블루·하락 레드·동일 중립 카드
+- [x] 건너뛰기·키보드 진행·reduced-motion
+- [x] 단계별 후킹→드럼롤→본체→CTA 비트 연출
+- [x] 승리팀 컬러 wash + 아이콘·이름 배너
+- [x] MVP 히어로·꿀벌 배너·CTA 본체 공개 후 페이드인
+
+### P9-T09. 개발자 이스터에그 태그 (D-21)
+- [x] `lib/constants/easterEggs.ts` 하드코딩 레지스트리 + `lookupEasterEgg`
+- [x] 플레이어 카드에만 라벨/이펙트 표시 (`tg-easter-egg--*`)
+- [x] 도메인 점수·팀 배정·꿀벌·성과·AI 주목 선수 로직에서 import 금지
+- [x] reduced-motion에서 모션 제거, 라벨 텍스트 유지
+- [x] 개발자가 `EASTER_EGG_TAGS`에 PUUID/Riot ID를 직접 채워 동작 확인
+
+---
+
 ## 의존성 요약
 
 ```mermaid
@@ -1179,9 +1237,10 @@ flowchart TD
   P5 --> P8
   P6 --> P8
   P7 --> P8
+  P8 --> P9
 ```
 
-**크리티컬 경로:** P0 → P0-T03/T04 → P1 → P3(P3-T08·T11) → P4-T01 → P5-T01 → P6(T03~T07) → P7-T01·T02 → P7-T04 → **P8(T02→T04/T06→T07~T11)** → P7-T07
+**크리티컬 경로:** P0 → P1 → P3 → P4 → P5 → P6 → P7 → P8 → **P9(T01→T02/T03→T04/T05/T06→T07/T08/T09)** → 전체 QA
 
 ---
 
@@ -1195,3 +1254,8 @@ flowchart TD
 | v1.2 | 2026-07-29 | QA 중 Gemini 신규 키에서 `gemini-2.5-flash` 계열 호출 제한 확인. spec/plan에 "무료 tier에서 실제 호출 가능한 최신 flash 계열 사용" 및 키 거부(401/403) 안내 정규화 메모 추가 |
 | v2.0.1 | 2026-07-30 | P8-T06 완료 조건 보강(구현 피드백): 팀원 카드 폭 100% 유지 규칙(`teamList` grid에 `justify-content` 금지), 블루팀 뱃지 행까지 `row-reverse` 거울 순서, 모바일 미러링 해제 |
 | v2.0 | 2026-07-29 | **3차 반복 재구현 Task** (spec v3.0 / plan v2.0). 2차 코드 삭제로 전 Task 미완료 리셋. **Phase 8 신설**(P8-T01~T11): 모션 유틸·래퍼(D-14), 상단 배너·소개형 랜딩(F-01), 대시보드·내 플레이어(F-12/D-15), 대치 정렬(D-16), 팀 제안 개편(F-04), 참가자 등록 개편(F-02), 시험 판 개편·최근 경기 선택(F-05), 재밸런스 교체 강조(F-06), 마무리 강화·별점(F-10). P0-T04 모션 토큰, P1-T01/T02 UserProfile·status·별점 타입/저장 추가 |
+| v3.0 | 2026-07-30 | **4차 반복 Task:** cycle3 구현 삭제. Phase 9 신설 — 전역 SCSS/숨김 스크롤바, 최근 플레이어, OP 이상치+1~5티어, 분석 전환, AI 사이드바 챗봇, 시험 챔피언/라인, 재밸런스 카드 방향, 결과 공개 인트로 |
+| v3.0.1 | 2026-07-30 | P9-T09 추가: 개발자 이스터에그 태그(D-21) — 하드코딩 레지스트리, 표시 전용 |
+| v3.1 | 2026-07-30 | cycle4 Phase 0~9 재구현 상태 반영. 자동 검증 완료 항목 체크, 과거 시즌 조회·불일치 수동 재매핑·Vision 모달 내 재매핑·브라우저/실 API QA는 미완료 유지 |
+| v3.1.1 | 2026-07-30 | F-02 원격 검색 후보 아이콘·대표 티어 미리보기 구현·검증 항목 추가 |
+| v3.1.2 | 2026-07-30 | P9-T08 결과 인트로 드라마 연출(후킹·드럼롤·wash·배너·MVP 히어로) |

@@ -1,19 +1,17 @@
-export const TIER_BASE = {
-  IRON: 0,
-  BRONZE: 400,
-  SILVER: 800,
-  GOLD: 1200,
-  PLATINUM: 1600,
-  EMERALD: 2000,
-  DIAMOND: 2400,
-  MASTER: 2800,
-  GRANDMASTER: 3100,
-  CHALLENGER: 3400,
-} as const;
+export const RANKED_TIERS = [
+  "IRON",
+  "BRONZE",
+  "SILVER",
+  "GOLD",
+  "PLATINUM",
+  "EMERALD",
+  "DIAMOND",
+  "MASTER",
+  "GRANDMASTER",
+  "CHALLENGER",
+] as const;
 
-export type RankedTier = keyof typeof TIER_BASE;
-
-export const RANK_INDEX = { I: 0, II: 1, III: 2, IV: 3 } as const;
+export type RankedTier = (typeof RANKED_TIERS)[number];
 
 export const TIER_LABEL: Record<RankedTier, string> = {
   IRON: "아이언",

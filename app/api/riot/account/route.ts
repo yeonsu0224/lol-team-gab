@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { apiErrorResponse, requiredSearchParam } from "@/lib/api/errors";
-import { getAccountByRiotId } from "@/lib/riot/account";
+import { ApiError, apiErrorResponse } from "@/lib/api/errors";
+import { getAccount } from "@/lib/riot/api";
 
 export async function GET(request: Request) {
   try {
-    const riotId = requiredSearchParam(new URL(request.url), "riotId");
-    return NextResponse.json(await getAccountByRiotId(riotId));
-  } catch (error) {
-    return apiErrorResponse(error);
+    const { searchParams } = new URL(request.url);
+    const gameName = searchParams.get("gameName")?.trim();
+    const tagLine = searchParams.get("tagLine")?.trim();
+    if (!gameName || !tagLine) throw new ApiError("gameName과 tagLine이 필요합니다.", 400, "INVALID_REQUEST");
+    return NextResponse.json(await getAccount(gameName, tagLine));
+  } catch (cause) {
+    return apiErrorResponse(cause);
   }
 }

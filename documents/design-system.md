@@ -1,7 +1,7 @@
 # Design System — Hextech Glass
 
-> **문서 버전:** v0.5.1  
-> **상태:** 3차 반복 UX 반영 (모션 시스템 · 상단 배너 · 대시보드 · 대치 정렬 · hover 플로팅 · 별점)
+> **문서 버전:** v0.6.3  
+> **상태:** 4차 반복 UX 반영 (전역 SCSS · 숨김 스크롤바 · AI 사이드바 · 분석 전환 · 결과 공개)
 
 리그 오브 레전드의 어두운 청색·금색 계열에서 영감을 받은 컬러 그라디언트와 글래스모피즘을 사용한다. 다만 Riot의 실제 클라이언트를 복제하지 않고, 내전 팀 편성과 스탯 비교에 적합한 독자적인 인터페이스를 구성한다.
 
@@ -9,6 +9,65 @@
 
 ```text
 Dark Navy / Hextech Gold / Arcane Blue / Glass / Competitive
+```
+
+### 0-A. 4차 스타일 아키텍처
+
+- 시각 토큰과 Hextech Glass 스타일은 유지한다.
+- CSS Modules(`*.module.scss`, `styles.foo`)는 사용하지 않는다.
+- `styles/globals.scss`가 `styles/components/`, `styles/pages/`의 SCSS partial을 불러온다.
+- 전역 클래스 충돌을 방지하기 위해 모든 제품 클래스는 `tg-` 접두사와 BEM 네이밍을 사용한다.
+- 상태 클래스는 `is-active`, `is-loading`, `is-blue`, `is-red`; JS hook이 필요하면 `data-*` 속성을 우선한다.
+
+```scss
+.tg-team-card {}
+.tg-team-card__identity {}
+.tg-team-card__badges {}
+.tg-team-card.is-blue {}
+```
+
+스크롤은 유지하되 시각적 스크롤바만 숨긴다. 포커스 가능한 콘텐츠와 키보드 탐색을 막는 `overflow: hidden`은 페이지 루트에 사용하지 않는다.
+
+### 0-B. 4차 신규 패턴
+
+- `tg-assistant-sidebar`: 우측 고정 패널. 요약, 주목 선수 1~2명, 예시 질문 3개, 대화 입력을 포함한다.
+- `tg-analysis-transition`: 2~3초 분석 단계 문구와 저강도 모션. reduced-motion에서는 문구만 전환한다.
+- `tg-result-reveal`: 세션 인트로 → 승리팀 → MVP → 기대 이상 플레이어 순차 공개. beat(`hook`/`drum`/`reveal`/`cta`)에 따라 요소 노출.
+  - `.tg-result-reveal.is-blue|is-red`: 승리팀 공개 시 전면 컬러 wash
+  - `.tg-result-reveal__hook` / `__title` / `__detail` / `__drum`: 후킹·본체·보조·드럼롤 점
+  - `.tg-result-reveal__banner` / `__banner-item`: 승리팀·꿀벌 아이콘+이름 가로 배너
+  - `.tg-result-reveal__mvp`: MVP 단일 히어로(큰 아이콘+이름)
+  - `.tg-result-reveal__cta`: 본체 공개 후 페이드인하는 다음/건너뛰기
+  - reduced-motion에서는 연출 클래스 없이 내용·CTA를 즉시 표시
+- `tg-winner-toggle.is-blue/is-red`: 선택 시 버튼 배경 전체를 팀 컬러로 채운다.
+- `tg-search-candidate`(구현은 `tg-player-card` 재사용 가능): 원격 Riot ID 후보의 **소환사 원형 아이콘 → 게임명#태그·대표 티어 → 등록 액션** 순서. 티어가 없으면 `언랭크 · 수동 티어 입력 필요`를 중립색으로 표시한다.
+- `tg-easter-egg` / `tg-easter-egg--glow|rainbow|sparkle`: 개발자 이스터에그 태그(D-21). 카드 뱃지 행에만 붙이며 점수 배지와 시각적으로 구분한다. reduced-motion에서는 라벨만 남긴다.
+
+```scss
+.tg-easter-egg {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  min-height: 22px;
+  padding: 0 $space-2;
+  border-radius: $radius-pill;
+  color: $color-gold-100;
+  border: 1px solid $color-border-strong;
+  background: rgb(200 155 60 / 12%);
+  font-size: 0.72rem;
+}
+
+.tg-easter-egg--sparkle { /* 저강도 반짝임 */ }
+.tg-easter-egg--glow { /* 은은한 외곽 glow */ }
+.tg-easter-egg--rainbow { /* 느린 그라디언트 시프트 */ }
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-easter-egg--sparkle,
+  .tg-easter-egg--glow,
+  .tg-easter-egg--rainbow {
+    animation: none;
+  }
+}
 ```
 
 ## 1. 컬러 토큰
@@ -1560,4 +1619,8 @@ CSS Modules 내부에서도 BEM과 유사한 명확한 역할명을 사용한다
 | v0.3 | 2026-07-28 | MVP UI 카탈로그 · Chrome · hover/interactive |
 | v0.4 | 2026-07-29 | 구현 반영: `readyBadgeLink`, RiotIdSearch·ReasonPanel·VisionReviewPanel 매핑, 컴포넌트 폴더 구조 동기화 |
 | v0.5.1 | 2026-07-30 | D-16 대치 정렬 구현 규칙 보강: `teamList`(grid)에 `justify-content` 금지 — 카드 폭 100% 유지, `justify-content`는 flex 행(`teamHeader`·`badges`)에만. 블루팀은 `playerCard`·`badges` 모두 `row-reverse`로 요소 순서 거울 배치, 모바일 1열에서 해제 |
+| v0.6 | 2026-07-30 | 4차 스타일 아키텍처: CSS Modules 제거, `tg-` BEM 전역 SCSS, 스크롤 동작을 유지하는 숨김 스크롤바, AI 사이드바·분석 전환·결과 공개·승리팀 컬러 토글 패턴 추가 |
+| v0.6.1 | 2026-07-30 | D-21 이스터에그 태그 클래스(`.tg-easter-egg--*`)와 reduced-motion 규칙 추가 |
+| v0.6.2 | 2026-07-30 | F-02 원격 검색 후보 카드에 소환사 프로필 아이콘·대표 티어·등록 액션 배치 규칙 추가 |
+| v0.6.3 | 2026-07-30 | D-20 결과 인트로: wash·배너·MVP 히어로·beat 노출 클래스(`tg-result-reveal__*`) |
 | v0.5 | 2026-07-29 | **3차 반복(feedback "2차 시도"):** §4-A 모션 시스템(이징·지속시간·keyframes fadeOut/fadeInUp/slideInLeft·Right/gradientShift·reduced-motion), TopBanner·소개형 Hero·Dashboard(Greeting·SessionCard 상태칩/평점)·StarRating·플로팅 모달 패턴(PlayerHoverCard·MiniAddModal·BalanceReasonPopover·RecentMatchesModal), 대치 정렬(D-16) 레이아웃, §8 모션 가이드·파일 매핑 갱신 |

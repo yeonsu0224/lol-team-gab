@@ -7,32 +7,31 @@ import {
   parseUserProfile,
   saveUserProfile,
   USER_PROFILE_EVENT,
-  USER_PROFILE_STORAGE_KEY,
+  USER_PROFILE_KEY,
 } from "./userProfile";
 
 export function useUserProfile() {
   const raw = useSyncExternalStore<string | null>(
-    (onStoreChange) => {
+    (notify) => {
       const onStorage = (event: StorageEvent) => {
-        if (event.key === USER_PROFILE_STORAGE_KEY) onStoreChange();
+        if (event.key === USER_PROFILE_KEY) notify();
       };
       window.addEventListener("storage", onStorage);
-      window.addEventListener(USER_PROFILE_EVENT, onStoreChange);
+      window.addEventListener(USER_PROFILE_EVENT, notify);
       return () => {
         window.removeEventListener("storage", onStorage);
-        window.removeEventListener(USER_PROFILE_EVENT, onStoreChange);
+        window.removeEventListener(USER_PROFILE_EVENT, notify);
       };
     },
-    () => window.localStorage.getItem(USER_PROFILE_STORAGE_KEY) ?? "{}",
+    () => window.localStorage.getItem(USER_PROFILE_KEY) ?? "{}",
     () => null,
   );
-  const profile = useMemo(() => parseUserProfile(raw), [raw]);
 
   return {
-    profile,
+    profile: useMemo(() => parseUserProfile(raw), [raw]),
     hydrated: raw !== null,
-    save(next: UserProfile) {
-      return saveUserProfile(next);
+    save(profile: UserProfile) {
+      return saveUserProfile(profile);
     },
   };
 }

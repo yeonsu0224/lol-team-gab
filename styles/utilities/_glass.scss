@@ -1,9 +1,0 @@
-@use "../abstracts" as *;
-
-.glass-panel {
-  border: 1px solid $color-border-default;
-  border-radius: $radius-lg;
-  background: $glass-surface-default;
-  box-shadow: $shadow-md;
-  backdrop-filter: blur(16px);
-}

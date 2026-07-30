@@ -13,27 +13,23 @@ import {
 } from "./sessionStore";
 
 export function useSessions() {
-  // `null` marks "storage not read yet", which is what both the server render
-  // and the hydration render see. Deriving state from this snapshot instead of
-  // reading localStorage keeps server and client markup identical.
   const raw = useSyncExternalStore<string | null>(
-    (onStoreChange) => {
+    (notify) => {
       const onStorage = (event: StorageEvent) => {
-        if (event.key === SESSION_STORAGE_KEY) onStoreChange();
+        if (event.key === SESSION_STORAGE_KEY) notify();
       };
       window.addEventListener("storage", onStorage);
-      window.addEventListener(SESSION_STORE_EVENT, onStoreChange);
+      window.addEventListener(SESSION_STORE_EVENT, notify);
       return () => {
         window.removeEventListener("storage", onStorage);
-        window.removeEventListener(SESSION_STORE_EVENT, onStoreChange);
+        window.removeEventListener(SESSION_STORE_EVENT, notify);
       };
     },
     () => window.localStorage.getItem(SESSION_STORAGE_KEY) ?? "[]",
     () => null,
   );
-  const hydrated = raw !== null;
 
-  const { sessions, error } = useMemo(() => {
+  const snapshot = useMemo(() => {
     try {
       return { sessions: parseSessions(raw), error: null };
     } catch (cause) {
@@ -45,16 +41,15 @@ export function useSessions() {
   }, [raw]);
 
   return {
-    sessions,
-    error,
-    hydrated,
-    refresh() {
-      window.dispatchEvent(new Event(SESSION_STORE_EVENT));
-    },
+    ...snapshot,
+    hydrated: raw !== null,
     create(input?: NewSession) {
       return createSession(input);
     },
-    update(id: string, update: Partial<Omit<Session, "id" | "createdAt">>) {
+    update(
+      id: string,
+      update: Partial<Omit<Session, "id" | "createdAt">> | ((current: Session) => Session),
+    ) {
       return updateSession(id, update);
     },
     remove(id: string) {

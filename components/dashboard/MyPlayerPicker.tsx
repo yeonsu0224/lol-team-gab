@@ -2,70 +2,63 @@
 
 import { useState } from "react";
 
-import { searchAccounts, type AccountResult } from "@/lib/player/client";
+import { searchAccounts } from "@/lib/player/client";
 import { useUserProfile } from "@/lib/storage/useUserProfile";
-import styles from "@/app/dashboard/dashboard.module.scss";
 
 export function MyPlayerPicker() {
   const { profile, save } = useUserProfile();
-  // `null` keeps the field mirroring the saved Riot ID until the user edits it.
   const [draft, setDraft] = useState<string | null>(null);
-  const query = draft ?? profile.riotId ?? "";
-  const [results, setResults] = useState<AccountResult[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const query = draft ?? profile.riotId ?? "";
 
-  async function search() {
+  async function submit() {
     setLoading(true);
     setError("");
     try {
-      setResults(await searchAccounts(query));
+      const account = (await searchAccounts(query))[0];
+      if (!account) throw new Error("계정을 찾지 못했습니다.");
+      save({
+        displayName: account.gameName,
+        riotId: `${account.gameName}#${account.tagLine}`,
+        myPuuid: account.puuid,
+      });
+      setDraft(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "계정을 검색하지 못했습니다.");
+      setError(cause instanceof Error ? cause.message : "계정을 찾지 못했습니다.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <section className={styles.profile} aria-labelledby="profile-title">
-      <div className={styles.profileHeader}>
+    <section className="tg-panel tg-stack">
+      <div className="tg-row tg-row--between">
         <div>
-          <h2 id="profile-title">내 플레이어</h2>
-          <p className={styles.muted}>세션 참가자와 독립적으로 Riot ID를 지정합니다.</p>
+          <h2>내 플레이어</h2>
+          <p className="tg-muted">최근 경기 기본 조회에 사용할 Riot ID입니다.</p>
         </div>
         {profile.myPuuid && (
-          <button className={styles.button} type="button" onClick={() => {
-            save({});
-            setDraft("");
-            setResults([]);
-          }}>지정 해제</button>
+          <button className="tg-button" type="button" onClick={() => { save({}); setDraft(""); }}>
+            지정 해제
+          </button>
         )}
       </div>
       {profile.riotId && <strong>현재 지정: {profile.riotId}</strong>}
-      <div className={styles.search}>
-        <input className={styles.input} aria-label="내 Riot ID" placeholder="게임명#KR1" value={query} onChange={(event) => setDraft(event.target.value)} />
-        <button className={styles.button} type="button" disabled={!query.trim() || loading} onClick={() => void search()}>
-          {loading ? "검색 중…" : "계정 검색"}
+      <div className="tg-row">
+        <input
+          className="tg-input"
+          style={{ flex: 1 }}
+          aria-label="내 Riot ID"
+          placeholder="게임명#태그"
+          value={query}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <button className="tg-button" type="button" disabled={!query.includes("#") || loading} onClick={() => void submit()}>
+          {loading ? "검색 중…" : "나로 지정"}
         </button>
       </div>
-      {error && <p role="alert">{error}</p>}
-      <div className={styles.results}>
-        {results.map((account) => (
-          <div className={styles.result} key={account.puuid}>
-            <span>{account.gameName}#{account.tagLine}</span>
-            <button className={styles.button} type="button" onClick={() => {
-              save({
-                displayName: account.gameName,
-                riotId: `${account.gameName}#${account.tagLine}`,
-                myPuuid: account.puuid,
-              });
-              setDraft(null);
-              setResults([]);
-            }}>나로 지정</button>
-          </div>
-        ))}
-      </div>
+      {error && <div className="tg-notice tg-notice--error" role="alert">{error}</div>}
     </section>
   );
 }

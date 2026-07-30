@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { apiErrorResponse } from "@/lib/api/errors";
-import { getMatch } from "@/lib/riot/matches";
+import { getMatch } from "@/lib/riot/api";
 
 export async function GET(
   _request: Request,
@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { id } = await params;
     return NextResponse.json(await getMatch(id));
-  } catch (error) {
-    return apiErrorResponse(error);
+  } catch (cause) {
+    return apiErrorResponse(cause);
   }
 }

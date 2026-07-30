@@ -1,66 +1,30 @@
-import {
-  RANK_INDEX,
-  TIER_BASE,
-  TIER_LABEL,
-  type RankedTier,
-} from "../constants/lpTable.ts";
-import type { TierDisplay } from "../types/session.ts";
+import { RANKED_TIERS, TIER_LABEL, type RankedTier } from "@/lib/constants/lpTable";
+import type { TierDisplay } from "@/lib/types";
 
-const TIERS = Object.keys(TIER_BASE) as RankedTier[];
-const DIVISIONAL = new Set<RankedTier>([
-  "IRON",
-  "BRONZE",
-  "SILVER",
-  "GOLD",
-  "PLATINUM",
-  "EMERALD",
-  "DIAMOND",
-]);
-const RANKS = ["I", "II", "III", "IV"] as const;
+const RANKS = ["IV", "III", "II", "I"] as const;
 
-export function tierToLpValue(tier: RankedTier, rank: string, lp: number): number {
-  const safeLp = Math.max(0, Math.round(lp));
-  if (!DIVISIONAL.has(tier)) return TIER_BASE[tier] + safeLp;
-  const rankIndex = RANK_INDEX[rank as keyof typeof RANK_INDEX];
-  if (rankIndex === undefined) throw new Error(`지원하지 않는 랭크 구간입니다: ${rank}`);
-  return TIER_BASE[tier] + (4 - rankIndex) * 100 + safeLp;
+export function tierToLpValue(tier: string, rank = "IV", lp = 0): number {
+  const tierIndex = RANKED_TIERS.indexOf(tier.toUpperCase() as RankedTier);
+  if (tierIndex < 0) return 0;
+  if (tierIndex >= 7) return tierIndex * 400 + 100 + Math.max(0, lp);
+  const rankIndex = RANKS.indexOf(rank.toUpperCase() as (typeof RANKS)[number]);
+  return tierIndex * 400 + (Math.max(0, rankIndex) + 1) * 100 + Math.max(0, Math.min(99, lp));
 }
 
 export function lpValueToTier(value: number): TierDisplay {
-  const rounded = Math.max(0, Math.round(value));
-  const eliteTier = [...TIERS]
-    .reverse()
-    .find((candidate) => !DIVISIONAL.has(candidate) && rounded >= TIER_BASE[candidate]);
-  const tier =
-    eliteTier ??
-    [...TIERS]
-      .filter((candidate) => DIVISIONAL.has(candidate))
-      .reverse()
-      .find((candidate) => rounded >= TIER_BASE[candidate] + 100) ??
-    "IRON";
-  const offset = rounded - TIER_BASE[tier];
-
-  if (!DIVISIONAL.has(tier)) {
-    return {
-      tier,
-      rank: "I",
-      lp: offset,
-      label: `${TIER_LABEL[tier]}${offset ? ` · ${offset}LP` : ""}`,
-    };
+  const safe = Math.max(100, Math.round(value));
+  const tierIndex = Math.min(RANKED_TIERS.length - 1, Math.floor((safe - 100) / 400));
+  const tier = RANKED_TIERS[tierIndex];
+  if (tierIndex >= 7) {
+    const lp = safe - tierIndex * 400 - 100;
+    return { tier, rank: "", lp, label: `${TIER_LABEL[tier]} ${lp}LP` };
   }
-
-  const boundedOffset = Math.min(Math.max(offset, 100), 499);
-  const divisionFromBottom = Math.min(4, Math.floor(boundedOffset / 100));
-  const rank = RANKS[4 - divisionFromBottom];
-  const lp = boundedOffset % 100;
-  return {
-    tier,
-    rank,
-    lp,
-    label: `${TIER_LABEL[tier]} ${romanToNumber(rank)} · ${lp}LP`,
-  };
+  const within = safe - tierIndex * 400 - 100;
+  const rank = RANKS[Math.min(3, Math.floor(within / 100))];
+  const lp = within % 100;
+  return { tier, rank, lp, label: `${TIER_LABEL[tier]} ${romanToNumber(rank)} · ${lp}LP` };
 }
 
-function romanToNumber(rank: (typeof RANKS)[number]): number {
-  return ({ I: 1, II: 2, III: 3, IV: 4 } as const)[rank];
+function romanToNumber(rank: string): number {
+  return ({ I: 1, II: 2, III: 3, IV: 4 } as Record<string, number>)[rank] ?? 4;
 }

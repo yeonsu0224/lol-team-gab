@@ -1,9 +1,4 @@
 @use "abstracts/motion";
-@use "base/reset";
-@use "base/fonts";
-@use "base/root";
-@use "base/interactive";
-@use "base/accessibility";
-@use "utilities/glass";
-@use "utilities/layout";
-@use "utilities/visually-hidden";
+@use "base/base";
+@use "components/ui";
+@use "components/product";
