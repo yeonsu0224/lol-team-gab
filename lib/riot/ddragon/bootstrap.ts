@@ -14,7 +14,11 @@ export async function getDataDragonBootstrap() {
   return {
     version,
     championsByKey: Object.fromEntries(
-      Object.values(champions.data).map((champion) => [champion.key, champion]),
+      Object.values(champions.data)
+        // Data Dragon 16.15+에는 모드 전용 Jade 변형이 일반 챔피언과
+        // 같은 이름으로 포함된다. 내전 기록에는 실제 챔피언 ID만 제공한다.
+        .filter((champion) => !champion.id.startsWith("Jade_"))
+        .map((champion) => [champion.key, champion]),
     ),
   };
 }

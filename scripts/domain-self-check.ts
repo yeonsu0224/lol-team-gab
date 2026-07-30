@@ -90,4 +90,13 @@ const noGames = refreshParticipantScores(participants.map((item) => ({
 })));
 assert.ok(noGames.every((item) => Number.isFinite(item.personalScore)));
 
+// D-06 수동 내부평가는 자동 점수에 최대 ±10%p만 보정한다.
+const manualBoosted = refreshParticipantScores(participants.map((item, index) => ({
+  ...item,
+  manualScoreAdjustment: index === 3 ? 10 : 0,
+})));
+const manualNeutral = refreshParticipantScores(participants);
+assert.ok(manualBoosted[3].personalScore > manualNeutral[3].personalScore);
+assert.ok(manualBoosted[3].personalScore - manualNeutral[3].personalScore <= 0.1 + 1e-9);
+
 console.log("Domain self-checks passed.");

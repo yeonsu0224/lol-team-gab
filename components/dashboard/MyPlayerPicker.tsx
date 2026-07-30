@@ -22,6 +22,7 @@ export function MyPlayerPicker() {
         displayName: account.gameName,
         riotId: `${account.gameName}#${account.tagLine}`,
         myPuuid: account.puuid,
+        profileIconId: account.profileIconId,
       });
       setDraft(null);
     } catch (cause) {

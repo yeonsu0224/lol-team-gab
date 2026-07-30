@@ -1,27 +1,39 @@
 # 내전 총무 — 구현 계획
 
-> **문서 버전:** v3.0.1  
-> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v4.0.2, [feedback.md](./feedback.md), [design-system.md](./design-system.md) v0.6.2  
-> **상태:** 4차 반복 — Phase 0~9 재구현·자동 검증 완료, 실 API/브라우저 QA 대기  
-> **다음 단계:** [tasks.md](./tasks.md) Phase별 Task 재분해
+> **문서 버전:** v4.8
+> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v5.10, [feedback.md](./feedback.md), [design-system.md](./design-system.md) v0.8.3
+> **상태:** 5차 반복 — Phase 10(고정 CTA·90:10·AI 푸시·대시보드·시험 UX·좌측 사이드 배너·오로라 배경·재밸런스 멘트/트레이드·카드 아코디언·재도전·AI 말풍선·beta)
+> **다음 단계:** [tasks.md](./tasks.md) Phase 10 Task
 
 ---
 
 ## 1. 목적
 
-[spec.md](./spec.md) v4.0에 정의된 MVP를 **Next.js + TypeScript + 전역 SCSS**로 **처음부터 재구현**한다.  
-3차 구현 코드는 삭제되었고, 본 문서는 **어떤 순서로, 어떤 구조로** 다시 만들지 정한다. 개별 Task의 완료 조건·검증은 **작업 정의**(`tasks.md`)에서 분리한다.
+[spec.md](./spec.md) v5.10의 5차 UI·로직 피드백을 **cycle4 코드베이스 위에 증분 반영**한다.
 
-### 4차에서 새로 넣는 것 (feedback "3차 시도 최종 피드백")
+### 5차에서 새로 넣는 것 (feedback "4차 시도")
 
-- CSS Modules를 제거하고 `tg-` 접두사 BEM 전역 SCSS로 전환한다.
-- AI를 말풍선 요약에서 우측 사이드바 챗봇으로 확장한다(예시 질문 3개, 후속 질문, 주목 선수).
-- 팀 제안·시험 결과 저장 후 2~3초 분석 전환 화면을 제공한다.
-- 태그 없는 입력은 로컬 최근 등록 선수만 검색하고, 이전 플레이어 모달을 제공한다.
-- OP 기준을 강화하고 OP가 없을 때 내부 1~5티어를 기본으로 한다.
-- 시험 입력에 승리팀 컬러 토글·챔피언·실제 라인을 추가하고 양 팀을 좌측 정렬한다.
-- 마무리는 세션명·승리팀·MVP·최다 꿀벌을 순차 공개한 뒤 전체 결과를 보여준다.
-- 개발자 이스터에그 태그는 `lib/constants/easterEggs.ts`에 하드코딩하며, 카드 UI만 조회하고 점수·배정 로직은 건드리지 않는다.
+- 주요 CTA를 하단 고정 액션 바로 노출한다(스크롤 없이 클릭).
+- 시험판 LP 누적을 **90:10**으로 완화한다.
+- 모션을 ≈1.4× 늦추고 패널→팀→카드 순차 등장한다.
+- AI 사이드바: 메인 푸시, 타이핑·MD 렌더, 로딩 중 중복 입력 금지, 내전/LoL 전용 토픽 가드, 고민 표정.
+- ReasonPanel 아코디언 제거 → `/scoring` + i 링크.
+- 플레이어 카드: 게임명만, 티어 그라디언트 배경, 블루 칩 `flex-end`.
+- 대시보드: 우측 상단 내 플레이어 아이콘, 내전 이름 필수, 상태 카드 컬러, 마무리 진입=완료.
+- 참가자: 좌5/우5 높이 버그 수정, 태그 없는 검색 시 #KR1 안내.
+- 시험: 라인 중복 금지, 챔피언 초상화 선택, 소환사 아이콘, 입력 축소·보조 입력 강조, Vision 수동 재매핑.
+- **F-13 좌측 사이드 배너:** 개발자 포트폴리오 광고를 공통 크롬으로 좌측 여백에 고정한다. 본문 폭을 밀지 않고, 여백이 부족한 화면(<1500px)에서는 숨긴다. 이미지·링크는 `lib/constants/sideBanner.ts`로 분리해 교체 가능하게 둔다.
+- **D-23 오로라 배경:** React Bits Aurora 셰이더를 `ogl`로 직접 포팅한다. shadcn CLI(`npx shadcn add`)는 Tailwind + `components.json`을 요구하므로 **사용하지 않는다** — 전역 SCSS 아키텍처(§2.3)와 충돌한다. 컴포넌트만 `components/motion/AuroraBackground.tsx`로 옮기고 스타일은 `.tg-aurora`로 작성한다.
+- **시험 판 챔피언 선택:** 이름 검색을 추가한다. Data Dragon 16.15+의 `Jade_*` 모드 전용 변형은 서버 bootstrap에서 제외하고, 클라이언트도 오래된 캐시에 대비해 이름 중복을 방어한다.
+- **결과 인트로 추가 피드백:** 각 비트 대기를 1~2초로 늦추고 MVP 실수치를 노출한다. MVP 다음에 기대치 대비 최악 플레이어를 별도 Stage로 공개하며, 기대 이상 최다 플레이어에는 누적 LP 기준 티어 엠블럼과 실력 문구를 붙인다.
+- **시각·에셋 피드백:** 결과 인트로는 후킹·CTA 자리를 고정하고 MVP/범인 아이콘을 키운다. 라인 아이콘은 `public/icons` PNG, 꿀벌은 `bee.jpg` 원형, 후원은 `tossQR.png`. 티어별 카드 색과 성과 등급 칩을 더 뚜렷하게 구분하고 칩 행 높이를 맞춘다.
+- **총무 내부 평가:** 참가자 등록에서 티어 과대/적정/과소와 -10~+10%p 수동 보정을 입력한다. 자동 70/20/10 점수 뒤에 제한적으로 더하며, 태그 자체는 이중 반영하지 않는다. 카드 순서는 티어→소환사→모스트→정보로 통일한다.
+- **플레이어 카드 상세:** hover 플로팅은 가독성 문제로 폐기하고 **▼ 아코디언**으로 카드 안 상세를 연다. 팀 교체 클릭과 토글은 `stopPropagation`으로 분리한다.
+- **재밸런스 멘트·트레이드 UI:** 교체 인원이 있으면 「팀원 n명을 교체했습니다.」, 없으면 「황금밸런스의 판입니다. 팀원 변경은 불필요!」. 트레이드는 아바타↔아바타 목록과 카드 `.is-changed` 금색 강조·트레이드 칩으로 표시한다. 「이전 팀으로 재도전」은 구성만 복원하고 성적은 남긴다.
+- **AI 플로팅 힌트·beta:** 사이드바 닫힘 시 「AI 분석을 들어보세요!」 말풍선. 점수판 이미지 경로에 teal `beta` 표식.
+- **마무리 화면 피드백:** 종료 안내 단계(Stage 0)에는 공개할 결과가 없으므로 드럼롤을 없애 대기 없이 노출한다. 마무리 화면에는 StepNav가 없어 진입하면 빠져나갈 수 없으므로 되돌아갈 버튼을 인트로·총합 결과 양쪽에 둔다. 팀 박스 stagger는 헤더 때문에 `nth-child`가 어긋나므로 `nth-of-type`으로 센다.
+- **팀 화면 피드백:** 팀 대치 구도에는 **가운데 VS 마크**(`.tg-versus`)를 두고, 블루팀 헤더는 **역순·우측 정렬**로 미러링을 완성한다. (과거 hover 플로팅 z-index 규칙은 아코디언 전환으로 대체됨.)
+- **결과창 템포·배경 연출 3차 피드백:** 비트 대기와 요소 모션을 모두 **절반 속도(길이 2배)** 로 늘린다. 승리팀 전면 컬러 wash는 삭제하고, 색 강조는 **오로라 배경 테마 전환**에 맡긴다. 배경은 레이아웃 루트에 있으므로 페이지가 context 대신 모듈 스토어(`lib/motion/auroraTheme.ts`)로 테마를 지정하고, 색 보간은 리렌더 없이 렌더 루프에서 처리한다.
 
 ### 3차에서 새로 넣는 것 (feedback "2차 시도")
 
@@ -33,9 +45,9 @@
 | 진입 | 랜딩 → 세션 | **소개형 랜딩 + 상단 배너(중앙 로고)** → **대시보드(F-12)** |
 | 홈 | (세션 목록만) | **대시보드** — 총무 인사·내 플레이어·세션 그리드(상태·평점) (D-15) |
 | 팀 UI | 가독성·비율·평균 | **블루팀 우측 정렬 대치**(D-16), 하단 버튼 구역, 팀 박스 미니 모달, 근거 우상단 hover |
-| 참가자 등록 | 간략 카드·본캐 경고 | 좌5/우5 순차, 안내 소형 텍스트, **hover 상세 모달**, CTA **그라디언트** |
+| 참가자 등록 | 간략 카드·본캐 경고 | 좌5/우5 순차, 안내 소형 텍스트, **카드 아코디언 상세**, CTA **그라디언트** |
 | 시험 입력 | 수동·경기ID·이미지·폼 유지 | 판 탭 우상단 고정, **참가자 최근 경기 목록 선택**, 4판 전 종료 버튼 |
-| 재밸런스 | 팀 중심·트레이드·증감 | 교체 **border 강조 + 들어온/나간 표시** |
+| 재밸런스 | 팀 중심·트레이드·증감 | **교체 n명/황금밸런스 멘트** · **트레이드 ↔ 목록** · **금색 카드 강조** |
 | 마무리 | 총평·평가·피드백·후원 | **승리팀 컬러 대표 박스**·결과 컬러 칩·**별점 1~5** → 대시보드 반영 |
 
 ### 이전 반복(2차) 기준 — 유지
@@ -114,7 +126,8 @@ flowchart LR
 |------|------|
 | 프레임워크 | Next.js (App Router) |
 | 언어 | TypeScript (strict) |
-| 스타일 | SCSS Modules (`*.module.scss`) |
+| 스타일 | 전역 SCSS + `tg-` BEM (4차부터 CSS Modules 미사용) |
+| 배경 모션 | `ogl` WebGL 셰이더 — 오로라 배경 (D-23) |
 | 상태 | React state + localStorage (전역 상태 라이브러리 MVP 제외) |
 | AI | Google Gemini (텍스트 + 멀티모달 Vision) |
 | ID | `crypto.randomUUID()` |
@@ -127,6 +140,8 @@ UI 구현은 [design-system.md](./design-system.md)를 기준으로 한다.
 - Hextech Glass 토큰·공용 컴포넌트 규칙 준수
 - **블루/레드 팀 컬럼**은 Phase 5부터 **가독성 우선**으로 팀 색을 적용한다 (D-12 기본). 2차 “특별 꾸밈”이 아니라 MVP 기본이다
 - 장식용 과도한 그라디언트·글로우·애니메이션은 쓰지 않는다. 텍스트·뱃지 대비를 해치지 않는다
+  - **예외:** 팀 제안 CTA 활성 그라디언트, **D-23 오로라 배경**(콘텐츠 뒤 `z-index: -1`, 0.35× 속도, reduced-motion 정지), 결과 인트로(D-20) 드라마 연출
+- 화면 전체에 색을 입혀야 하는 연출은 본문 위 컬러 wash가 아니라 **오로라 배경 테마 전환**으로 처리한다
 - 라인 아이콘·꿀벌·성과 등급·`기록 부족`은 색만으로 구분하지 않고 아이콘+텍스트를 병행한다
 - 플로팅 어시스턴트는 핵심 콘텐츠를 가리지 않는 우측 하단 고정 레이어로 둔다
 
@@ -176,7 +191,7 @@ team_gap/
 │   ├── layout/                   # TopBanner, BackLink, PageHeader, StepNav
 │   ├── motion/                   # FadeStage, Stagger, TeamSlideIn (D-14 래퍼)
 │   ├── dashboard/                # DashboardGreeting, SessionGrid, SessionCard, MyPlayerPicker
-│   ├── player/                   # RiotIdSearch, PlayerCard(간략), PlayerHoverCard, LaneIcon
+│   ├── player/                   # RiotIdSearch, PlayerCard(간략+아코디언), LaneIcon
 │   ├── team/                     # TeamColumn(대치 정렬), PowerRatioBar, TradeList, MiniAddModal, BalanceReasonPopover
 │   ├── trial/                    # TrialForm, AssistModal(MatchId/RecentMatches/Vision), VisionReview
 │   ├── assistant/                # FloatingAssistant, bubble, mode toggle
@@ -292,7 +307,7 @@ team_gap/
 | `constants/performanceGrade.ts` | D-11 | F~OP 임계값 |
 | `constants/donation.ts` | F-11 | 계좌·후원 링크 |
 | `winRate.ts` | F-03 | `adjustedWinRate` |
-| `personalScore.ts` | D-06 | 70/20/10, OP 2-pass |
+| `personalScore.ts` | D-06 | 자동 70/20/10 + 총무 -10~+10%p 보정, OP 2-pass |
 | `badges.ts` | D-06 | OP +25%, 1~4 |
 | `teamBalance.ts` | D-06 | 라이벌 페어, 2^k |
 | `powerRatio.ts` | D-12 | 합 100 정규화 (반올림 보정) |
@@ -444,9 +459,9 @@ unrated =
 | 총무 프로필 | 대시보드 Riot ID 검색으로 지정. `lib/storage/userProfile.ts`(displayName·riotId·myPuuid), `lib/domain/sessionStatus.ts`(상태 파생) |
 | 대치 정렬 | 좌 블루/우 레드 컬럼 유지, 블루 내용 우측·레드 내용 좌측 정렬. 카드 폭은 두 팀 모두 100%(`teamList` grid에 `justify-content` 금지), 블루는 `playerCard`·`badges` 모두 `row-reverse`로 요소 순서 거울 배치. 팀 제안·재밸런스·게임 결과 공통 (D-16) |
 | 팀 제안 개편 | 하단 버튼 구역, 팀 박스별 MiniAddModal(블루 좌/레드 우), BalanceReasonPopover(우상단 hover) (F-04) |
-| 참가자 등록 개편 | 좌5/우5 순차, 안내 소형 텍스트, PlayerHoverCard(hover 상세), CTA 그라디언트 애니메이션, 원격 검색 후보 소환사 아이콘·대표 티어 미리보기 (F-02) |
+| 참가자 등록 개편 | 좌5/우5 순차, 안내 소형 텍스트, **카드 아코디언 상세**, CTA 그라디언트 애니메이션, 원격 검색 후보 소환사 아이콘·대표 티어 미리보기 (F-02) |
 | 시험 판 개편 | 판 탭 우상단 고정, RecentMatchesModal(현재 세션 내 내 플레이어 우선, 없으면 참가자 선택 → 자동 채움), 4판 전 종료 버튼 (F-05) |
-| 재밸런스 강조 | 교체 팀원 border 강조 + 들어온/나간 표시 (F-06) |
+| 재밸런스 강조 | 교체 n명/황금밸런스 배너 · 트레이드 ↔ 목록 · `.is-changed` 금색 카드 (F-06) |
 | 마무리 강화 | 최다 승 팀(동률 시 마지막 판 승자) 컬러 대표 박스, 결과 컬러 칩, 성과 StarRating(별점 1~5) 하나 → `wrapUp`·대시보드 반영. 피드백은 텍스트만 (F-10, F-12) |
 
 **검증:** 단계 전환·슬라이드 인 동작, `prefers-reduced-motion` 폴백, 대시보드 상태·평점, 블루 우측 정렬·카드 100% 폭·뱃지 거울 순서, 최근 경기 선택 로드, 별점 저장·표시.
@@ -607,4 +622,6 @@ sequenceDiagram
 | v2.0.1 | 2026-07-30 | Phase 8 대치 정렬 항목 보강(구현 피드백): 카드 100% 폭 유지 규칙과 블루팀 뱃지 행 거울 순서 명시 |
 | v3.0 | 2026-07-30 | spec v4.0 기준 4차 재구현 계획. Phase 9 신설: 전역 SCSS 클래스, 숨김 스크롤바, 최근 플레이어 저장소, OP 이상치+1~5티어, 분석 전환, AI 사이드바 챗봇, 시험 챔피언/라인, 결과 공개 인트로 |
 | v3.0.1 | 2026-07-30 | F-02 원격 검색 응답에 소환사 아이콘·대표 티어 프리뷰를 포함하고 후보 카드에서 등록 전 표시 |
+| v4.7 | 2026-07-30 | spec v5.9: 카드 상세 아코디언, 재밸런스 황금밸런스/교체 n명 멘트, 트레이드 ↔·금색 강조. design-system v0.8.2 |
+| v4.8 | 2026-07-30 | spec v5.10: 이전 팀 재도전, AI 플로팅 말풍선, 점수판 beta. design-system v0.8.3 |
 | v2.0 | 2026-07-29 | **3차 반복 계획** — spec v3.0 기준. **Phase 8**(모션·대시보드·대치·마무리 강화) 신설. 구조에 `dashboard/`·`motion/`·`_motion.scss`·`userProfile`·`sessionStatus` 추가. 매핑에 D-14/D-15/D-16·F-12·F-05 A'(최근 경기 선택) 추가 |

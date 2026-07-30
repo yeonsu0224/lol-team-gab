@@ -26,7 +26,8 @@ export interface TrialDraft {
   }>>;
 }
 
-// D-06: personalScore = normLp×0.70 + normKda×0.20 + adjustedWinRate×0.10
+// D-06: base = normLp×0.70 + normKda×0.20 + adjustedWinRate×0.10
+// personalScore = clamp(base + manualScoreAdjustment / 100, 0, 1)
 // OP 2-pass: (1) 전원 정규화로 1차 산출 → (2) OP 판정 → (3) OP 제외 재정규화로 최종 산출 → (4) 비OP 5분위 뱃지.
 export function refreshParticipantScores(participants: readonly Participant[], useCurrentLp = false): Participant[] {
   if (!participants.length) return [];
@@ -37,11 +38,17 @@ export function refreshParticipantScores(participants: readonly Participant[], u
     return adjustedWinRate(recent?.wins ?? 0, recent?.games ?? 0);
   });
 
-  const firstPass = composeScores(normalize(lp), normalizeNullable(kda), win);
+  const firstPass = applyManualAdjustments(
+    composeScores(normalize(lp), normalizeNullable(kda), win),
+    participants,
+  );
   const opIndexes = detectOpIndexes(firstPass);
   const domain = participants.map((_, index) => index).filter((index) => !opIndexes.has(index));
 
-  const finalScores = composeScores(normalizeDomain(lp, domain), normalizeNullableDomain(kda, domain), win);
+  const finalScores = applyManualAdjustments(
+    composeScores(normalizeDomain(lp, domain), normalizeNullableDomain(kda, domain), win),
+    participants,
+  );
   const badges = tiersFromScores(finalScores, opIndexes);
   return participants.map((item, index) => ({ ...item, personalScore: finalScores[index], internalTierBadge: badges[index] }));
 }
@@ -54,6 +61,13 @@ function adjustedWinRate(wins: number, games: number): number {
 function composeScores(normLp: number[], normKda: Array<number | null>, win: number[]): number[] {
   const kdaFallback = averagePresent(normKda);
   return normLp.map((value, index) => value * 0.7 + (normKda[index] ?? kdaFallback) * 0.2 + win[index] * 0.1);
+}
+
+function applyManualAdjustments(scores: number[], participants: readonly Participant[]): number[] {
+  return scores.map((score, index) => {
+    const adjustment = Math.max(-10, Math.min(10, participants[index]?.manualScoreAdjustment ?? 0));
+    return Math.max(0, Math.min(1, score + adjustment / 100));
+  });
 }
 
 export function assignInternalTiers(scores: number[]): InternalTier[] {
@@ -187,7 +201,8 @@ export function replayTrialRounds(session: Session, drafts: readonly TrialDraft[
         ? Math.max(-200, Math.min(200, Math.round((ratio - 1) * 200))) + (won ? 25 : -25)
         : won ? 50 : -50;
       const adjustedTrialLp = participant.currentLpValue + performanceDelta;
-      const currentLpValue = Math.max(0, Math.round(participant.currentLpValue * 0.7 + adjustedTrialLp * 0.3));
+      // D-02: 직전 LP 90% + 시험 조정 LP 10% (한 판 성적은 약하게만 반영)
+      const currentLpValue = Math.max(0, Math.round(participant.currentLpValue * 0.9 + adjustedTrialLp * 0.1));
 
       const roundHoneyBee = outcome?.roundHoneyBee ?? false;
       const statPresent = Boolean(outcome?.statPresent);

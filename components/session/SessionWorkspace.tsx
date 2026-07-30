@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { AssistantSidebar } from "@/components/assistant/AssistantSidebar";
+import { ActionBar } from "@/components/layout/ActionBar";
 import { StepNav } from "@/components/layout/StepNav";
 import { AnalysisTransition } from "@/components/motion/AnalysisTransition";
 import { ReasonPanel } from "@/components/shared/ReasonPanel";
@@ -18,6 +19,7 @@ import {
 } from "@/lib/domain/sessionWorkflow";
 import {
   ClientApiError,
+  championIconUrl,
   loadBootstrap,
   loadParticipant,
   profileIconUrl,
@@ -40,7 +42,7 @@ import type {
   TeamProposal,
   TeamSide,
 } from "@/lib/types";
-import { PlayerCard, roleLabel } from "./PlayerCard";
+import { PlayerCard, displayGameName, roleLabel } from "./PlayerCard";
 import { TrialAssist, type MatchPayload } from "./TrialAssist";
 
 type View = "players" | "team" | "trial" | "rebalance";
@@ -80,7 +82,7 @@ export function SessionWorkspace({ sessionId, view }: { sessionId: string; view:
       <StepNav sessionId={sessionId} active={view} />
       {view === "players" && <PlayersView session={session} bootstrap={bootstrap} save={save} />}
       {view === "team" && <TeamView session={session} bootstrap={bootstrap} save={save} />}
-      {view === "trial" && <TrialView session={session} save={save} />}
+      {view === "trial" && <TrialView session={session} bootstrap={bootstrap} save={save} />}
       {view === "rebalance" && <RebalanceView session={session} bootstrap={bootstrap} save={save} />}
       {view !== "players" && (
         <AssistantSidebar
@@ -119,26 +121,46 @@ function PlayersView({
   const [transition, setTransition] = useState(false);
   const ready = session.participants.length === 8 || session.participants.length === 10;
 
+  const [tagHint, setTagHint] = useState(false);
+
   useEffect(() => {
     const value = query.trim();
-    if (!value.includes("#")) return;
+    if (!value) {
+      const timer = window.setTimeout(() => {
+        setRemoteAccounts([]);
+        setTagHint(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
     const timeout = window.setTimeout(() => {
       setLoading(true);
-      void searchAccounts(value)
-        .then(setRemoteAccounts)
-        .catch((cause) => { setRemoteAccounts([]); setError(messageOf(cause)); })
+      const remoteQuery = value.includes("#") ? value : `${value}#KR1`;
+      void searchAccounts(remoteQuery)
+        .then((accounts) => {
+          setRemoteAccounts(accounts);
+          setTagHint(!value.includes("#") && accounts.length === 0);
+          setError("");
+        })
+        .catch((cause) => {
+          setRemoteAccounts([]);
+          setTagHint(!value.includes("#"));
+          if (value.includes("#")) setError(messageOf(cause));
+        })
         .finally(() => setLoading(false));
     }, 450);
     return () => window.clearTimeout(timeout);
   }, [query]);
 
+  const localAccounts = !query.includes("#") && query.trim()
+    ? recent
+        .filter(({ gameName }) => gameName.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+        .map(({ puuid, gameName, tagLine, profileIconId }) => ({ puuid, gameName, tagLine, profileIconId }))
+    : [];
   const accounts = query.includes("#")
     ? remoteAccounts
-    : query.trim()
-      ? recent
-          .filter(({ gameName }) => gameName.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
-          .map(({ puuid, gameName, tagLine, profileIconId }) => ({ puuid, gameName, tagLine, profileIconId }))
-      : [];
+    : localAccounts.length
+      ? localAccounts
+      : remoteAccounts;
 
   async function add(account: AccountResult, manualTier?: { tier: string; rank: string; lp: number }) {
     if (session.participants.some(({ puuid }) => puuid === account.puuid)) {
@@ -175,6 +197,19 @@ function PlayersView({
     });
   }
 
+  function updateEvaluation(
+    puuid: string,
+    patch: Partial<Pick<Participant, "manualScoreAdjustment" | "tierAssessment">>,
+  ) {
+    const participants = refreshParticipantScores(
+      session.participants.map((participant) =>
+        participant.puuid === puuid ? { ...participant, ...patch } : participant,
+      ),
+    );
+    // 팀 제안 이후 점수를 바꾸면 기존 제안과 판 기록이 새 점수와 불일치하므로 초기화한다.
+    save({ participants, preTeamProposal: undefined, rounds: [] });
+  }
+
   function propose() {
     if (!ready) return;
     const participants = refreshParticipantScores(session.participants);
@@ -191,60 +226,67 @@ function PlayersView({
   }
 
   return (
-    <section className="tg-panel tg-stack">
-      <div className="tg-row tg-row--between">
-        <div>
-          <h1>참가자 등록 · 전력 분석</h1>
-          <p className="tg-muted">{session.participants.length}/10명 · 8명 또는 10명에서 팀 제안 가능</p>
+    <section className="tg-stack">
+      <div className="tg-panel tg-stack">
+        <div className="tg-row tg-row--between">
+          <div>
+            <h1>참가자 등록 · 전력 분석</h1>
+            <p className="tg-muted">{session.participants.length}/10명 · 8명 또는 10명에서 팀 제안 가능</p>
+          </div>
+          <button className="tg-button" type="button" onClick={() => setRecentOpen(true)}>이전 플레이어</button>
         </div>
-        <button className="tg-button" type="button" onClick={() => setRecentOpen(true)}>이전 플레이어</button>
-      </div>
-      <p className="tg-muted">부캐라면 본캐 계정을 입력하세요. 원격 검색은 정확한 게임명#태그가 필요합니다.</p>
-      <div className="tg-row">
-        <input
-          className="tg-input"
-          style={{ flex: 1 }}
-          value={query}
-          onChange={(event) => { setQuery(event.target.value); setError(""); }}
-          placeholder="게임명#태그 또는 이전 플레이어 게임명"
-          aria-label="Riot ID 검색"
-        />
-        <span>{loading ? "검색 중…" : ""}</span>
-      </div>
-      {!query.includes("#") && query.trim() && !accounts.length && (
-        <p className="tg-muted">이전 등록 후보가 없습니다. 원격 조회하려면 #태그까지 입력해 주세요.</p>
-      )}
-      {accounts.length > 0 && (
-        <div className="tg-grid">
-          {accounts.map((account) => (
-            <SearchAccountCandidate
-              key={account.puuid}
-              account={account}
-              bootstrap={bootstrap}
-              actionLabel="등록"
-              onSelect={() => void add(account)}
-            />
-          ))}
+        <p className="tg-muted">부캐라면 본캐 계정을 입력하세요. 태그가 없으면 #KR1로 원격 검색을 시도합니다.</p>
+        <div className="tg-row">
+          <input
+            className="tg-input"
+            style={{ flex: 1 }}
+            value={query}
+            onChange={(event) => { setQuery(event.target.value); setError(""); setTagHint(false); }}
+            placeholder="게임명 또는 게임명#태그"
+            aria-label="Riot ID 검색"
+          />
+          <span>{loading ? "검색 중…" : ""}</span>
         </div>
-      )}
+        {tagHint && (
+          <p className="tg-muted">플레이어 태그가 #KR1이 아닐 경우 자동검색이 작동하지 않을 수 있습니다. 본 플레이어의 정확한 태그를 확인 해 주세요.</p>
+        )}
+        {!query.includes("#") && query.trim() && !accounts.length && !tagHint && !loading && (
+          <p className="tg-muted">이전 등록 후보가 없습니다. 태그를 포함해 검색해 보세요.</p>
+        )}
+        {accounts.length > 0 && (
+          <div className="tg-grid">
+            {accounts.map((account) => (
+              <SearchAccountCandidate
+                key={account.puuid}
+                account={account}
+                bootstrap={bootstrap}
+                actionLabel="등록"
+                onSelect={() => void add(account)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
       {error && <div className="tg-notice tg-notice--error" role="alert">{error}</div>}
       {message && <div className="tg-notice tg-notice--success">{message}</div>}
-      <div className="tg-grid tg-grid--2">
-        <div className="tg-grid">
-          {session.participants.slice(0, 5).map((participant) => (
-            <PlayerCard key={participant.puuid} participant={participant} bootstrap={bootstrap} onRemove={() => remove(participant.puuid)} />
-          ))}
-        </div>
-        <div className="tg-grid">
-          {session.participants.slice(5, 10).map((participant) => (
-            <PlayerCard key={participant.puuid} participant={participant} bootstrap={bootstrap} onRemove={() => remove(participant.puuid)} />
-          ))}
-        </div>
+      <div className="tg-player-register">
+        {session.participants.map((participant) => (
+          <PlayerCard
+            key={participant.puuid}
+            participant={participant}
+            bootstrap={bootstrap}
+            onRemove={() => remove(participant.puuid)}
+            registrationDetails
+            onEvaluationChange={(patch) => updateEvaluation(participant.puuid, patch)}
+          />
+        ))}
       </div>
-      <ReasonPanel reasons={["랭크 LP를 70%로 가장 크게 반영합니다.", "주 라인 KDA 20%와 최근 승률 10%를 보조로 사용합니다.", "기록이 부족한 값은 0점으로 처리하지 않고 중립값으로 보완합니다."]} />
-      <button className={`tg-button ${ready ? "tg-button--ready" : ""}`} type="button" disabled={!ready} onClick={propose}>
-        {ready ? "팀 제안하기" : `${session.participants.length}/8명 이상 필요`}
-      </button>
+      <ReasonPanel reasons={["랭크 LP를 70%로 가장 크게 반영합니다.", "주 라인 KDA 20%와 최근 승률 10%를 보조로 사용합니다.", "총무 내부 평가는 티어·전적에 잡히지 않는 센스를 -10~+10%p 범위에서 보정합니다.", "기록이 부족한 값은 0점으로 처리하지 않고 중립값으로 보완합니다."]} />
+      <ActionBar>
+        <button className={`tg-button ${ready ? "tg-button--ready" : ""}`} type="button" disabled={!ready} onClick={propose}>
+          {ready ? "팀 제안하기" : `${session.participants.length}/8명 이상 필요`}
+        </button>
+      </ActionBar>
       {recentOpen && (
         <div className="tg-modal-backdrop" role="presentation" onMouseDown={() => setRecentOpen(false)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
@@ -394,18 +436,19 @@ function TeamView({
         <p className="tg-muted">카드 두 장을 차례로 선택하면 팀을 교체합니다.</p>
         <PowerRatio proposal={proposal} />
       </header>
-      <div className="tg-grid tg-grid--2">
+      <div className="tg-versus">
         <TeamBoard side="blue" proposal={proposal} bootstrap={bootstrap} selected={selected?.puuid} onSelect={select} onRemove={removeMember} onAdd={() => setEditSide("blue")} />
+        <span className="tg-versus__mark" aria-hidden>VS</span>
         <TeamBoard side="red" proposal={proposal} bootstrap={bootstrap} selected={selected?.puuid} onSelect={select} onRemove={removeMember} onAdd={() => setEditSide("red")} />
       </div>
-      <section className="tg-panel tg-row tg-row--between">
+      <section className="tg-panel">
         <div><strong>밸런스 근거</strong><p className="tg-muted">평균 티어 차이 {proposal.tierDiffDivisions}구간 · 전력 비율과 역할 분포를 함께 봤습니다.</p></div>
-        <div className="tg-row">
-          <Link className="tg-button" href={`/session/${session.id}/finish`}>내전 종료하기</Link>
-          <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>이 구성으로 시험 판</Link>
-        </div>
       </section>
       <ReasonPanel reasons={["서로 비슷한 전력의 라이벌을 반대 팀에 배치합니다.", "내부 1~5/OP 뱃지는 설명용이며 팀 배정 점수를 바꾸지 않습니다.", "수동 교체 후 전력 비율과 평균 티어를 다시 계산합니다."]} />
+      <ActionBar>
+        <Link className="tg-button" href={`/session/${session.id}/finish`}>내전 종료하기</Link>
+        <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>이 구성으로 시험 판</Link>
+      </ActionBar>
       {editSide && (
         <div className="tg-modal-backdrop" onMouseDown={() => setEditSide(null)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
@@ -433,9 +476,11 @@ function TeamView({
 
 function TrialView({
   session,
+  bootstrap,
   save,
 }: {
   session: Session;
+  bootstrap: DataDragonBootstrap | null;
   save: (patch: Partial<Omit<Session, "id" | "createdAt">> | ((current: Session) => Session)) => void;
 }) {
   const router = useRouter();
@@ -444,8 +489,21 @@ function TrialView({
   const [forms, setForms] = useState<Record<RoundNumber, TrialForm>>(() => initialTrialForms(session));
   const [message, setMessage] = useState("");
   const [transition, setTransition] = useState(false);
+  const [champPickerFor, setChampPickerFor] = useState<string | null>(null);
+  const [championQuery, setChampionQuery] = useState("");
+  const [visionMap, setVisionMap] = useState<Array<{ riotId?: string; role?: string; kda?: string; damage?: number; championName?: string }> | null>(null);
   const proposal = proposalForRound(session, round);
   const form = forms[round];
+  const champions = bootstrap
+    ? uniqueCurrentChampions(Object.values(bootstrap.championsByKey))
+    : [];
+  const normalizedChampionQuery = normalizeChampionSearch(championQuery);
+  const visibleChampions = normalizedChampionQuery
+    ? champions.filter((champion) =>
+        normalizeChampionSearch(champion.name).includes(normalizedChampionQuery)
+        || normalizeChampionSearch(champion.id).includes(normalizedChampionQuery)
+      )
+    : champions;
 
   const finishTransition = useCallback(() => {
     router.push(`/session/${session.id}/rebalance?round=${Math.min(4, round + 1)}`);
@@ -515,25 +573,51 @@ function TrialView({
     setMessage(`${rows.length}명의 경기 기록을 채웠습니다. 저장 전에 확인해 주세요.`);
   }
 
-  function applyVision(players: Array<{ riotId?: string; role?: string; kda?: string; damage?: number }>) {
+  function applyVision(players: Array<{ riotId?: string; role?: string; kda?: string; damage?: number; championName?: string }>) {
+    const unmatched = players.filter((row) => {
+      const name = row.riotId?.split("#")[0]?.trim().toLocaleLowerCase();
+      return !session.participants.some(({ riotId }) => Boolean(name && riotId.split("#")[0].trim().toLocaleLowerCase() === name));
+    });
+    if (unmatched.length) {
+      setVisionMap(players);
+      setMessage("일부 플레이어를 자동 매칭하지 못했습니다. 수동으로 연결해 주세요.");
+      return;
+    }
     const stats = { ...form.stats };
-    let matched = 0;
     players.forEach((row) => {
       const name = row.riotId?.split("#")[0]?.trim().toLocaleLowerCase();
       const participant = session.participants.find(({ riotId }) =>
         Boolean(name && riotId.split("#")[0].trim().toLocaleLowerCase() === name)
       );
       if (!participant) return;
-      matched += 1;
+      const champion = row.championName
+        ? champions.find((item) => item.name === row.championName || item.id === row.championName)
+        : undefined;
       stats[participant.puuid] = {
         ...stats[participant.puuid],
         kda: row.kda ?? stats[participant.puuid].kda,
         damage: row.damage != null ? row.damage.toLocaleString("ko-KR") : stats[participant.puuid].damage,
         playedRole: matchRole(row.role) || stats[participant.puuid].playedRole,
+        championId: champion?.key ?? stats[participant.puuid].championId,
       };
     });
     patchForm({ stats });
-    setMessage(`${matched}명의 이미지 분석 결과를 채웠습니다. 나머지는 직접 확인해 주세요.`);
+    setMessage(`${players.length}명의 이미지 분석 결과를 채웠습니다.`);
+  }
+
+  function bindVisionRow(index: number, puuid: string) {
+    if (!visionMap) return;
+    const row = visionMap[index];
+    const champion = row.championName
+      ? champions.find((item) => item.name === row.championName || item.id === row.championName)
+      : undefined;
+    patchStat(puuid, {
+      kda: row.kda ?? form.stats[puuid]?.kda ?? "",
+      damage: row.damage != null ? row.damage.toLocaleString("ko-KR") : form.stats[puuid]?.damage ?? "",
+      playedRole: matchRole(row.role) || form.stats[puuid]?.playedRole || "",
+      championId: champion?.key ?? form.stats[puuid]?.championId ?? "",
+    });
+    setVisionMap((current) => current?.filter((_, itemIndex) => itemIndex !== index) ?? null);
   }
 
   function saveRound() {
@@ -551,29 +635,31 @@ function TrialView({
   }
 
   return (
-    <section className="tg-panel tg-stack">
-      <header className="tg-row tg-row--between">
-        <div><h1>시험 판 결과 입력</h1><p className="tg-muted">양 팀 모두 입력 스캔을 위해 좌측 정렬합니다.</p></div>
+    <section className="tg-stack">
+      <div className="tg-panel tg-stack">
+        <header className="tg-row tg-row--between">
+          <div><h1>시험 판 결과 입력</h1><p className="tg-muted">양 팀 모두 입력 스캔을 위해 좌측 정렬합니다.</p></div>
+          <div className="tg-row">
+            {([1, 2, 3] as const).map((item) => (
+              <button className={`tg-button ${round === item ? "tg-button--primary" : ""}`} type="button" key={item} onClick={() => setRound(item)}>
+                {item}판 {session.rounds.some((record) => record.round === item) ? "✓" : ""}
+              </button>
+            ))}
+          </div>
+        </header>
         <div className="tg-row">
-          {([1, 2, 3] as const).map((item) => (
-            <button className={`tg-button ${round === item ? "tg-button--primary" : ""}`} type="button" key={item} onClick={() => setRound(item)}>
-              {item}판 {session.rounds.some((record) => record.round === item) ? "✓" : ""}
+          {(["blue", "red"] as const).map((side) => (
+            <button
+              className={`tg-button tg-winner-toggle ${side === "blue" ? "is-blue" : "is-red"} ${form.winnerTeam === side ? "is-selected" : ""}`}
+              type="button"
+              key={side}
+              onClick={() => patchForm({ winnerTeam: side })}
+            >
+              {side === "blue" ? "블루팀 승리" : "레드팀 승리"}
             </button>
           ))}
+          <button className="tg-button" type="button" onClick={fillDummy}>가상 데이터 채우기</button>
         </div>
-      </header>
-      <div className="tg-row">
-        {(["blue", "red"] as const).map((side) => (
-          <button
-            className={`tg-button tg-winner-toggle ${side === "blue" ? "is-blue" : "is-red"} ${form.winnerTeam === side ? "is-selected" : ""}`}
-            type="button"
-            key={side}
-            onClick={() => patchForm({ winnerTeam: side })}
-          >
-            {side === "blue" ? "블루팀 승리" : "레드팀 승리"}
-          </button>
-        ))}
-        <button className="tg-button" type="button" onClick={fillDummy}>가상 데이터 채우기</button>
       </div>
       <TrialAssist
         session={session}
@@ -585,23 +671,55 @@ function TrialView({
         onMatch={applyMatch}
         onVision={applyVision}
       />
-      <div className="tg-grid tg-grid--2">
+      <div className="tg-grid tg-grid--2 tg-trial-form">
         {(["blue", "red"] as const).map((side) => {
           const team = side === "blue" ? proposal.blueTeam : proposal.redTeam;
+          const takenRoles = new Set(
+            team
+              .map(({ puuid }) => form.stats[puuid]?.playedRole)
+              .filter((role): role is MainRole => Boolean(role)),
+          );
           return (
             <section className={`tg-team-board is-${side}`} style={{ textAlign: "left" }} key={side}>
               <h2>{side === "blue" ? "블루팀" : "레드팀"}</h2>
               {team.map((participant) => {
                 const stat = form.stats[participant.puuid];
+                const avatar = bootstrap ? profileIconUrl(bootstrap.version, participant.profileIconId) : undefined;
+                const champ = stat?.championId && bootstrap?.championsByKey[stat.championId];
                 return (
-                  <div className="tg-grid" style={{ gridTemplateColumns: "minmax(130px,1fr) repeat(4,minmax(90px,.7fr))" }} key={participant.puuid}>
-                    <strong>{participant.riotId}</strong>
+                  <div className="tg-grid" style={{ gridTemplateColumns: "auto minmax(90px,1fr) repeat(3,minmax(70px,.7fr))" }} key={participant.puuid}>
+                    <span className="tg-row">
+                      {avatar
+                        ? <Image className="tg-player-card__avatar" src={avatar} alt="" width={36} height={36} unoptimized />
+                        : <span className="tg-player-card__avatar" />}
+                      <strong>{displayGameName(participant.riotId)}</strong>
+                    </span>
                     <input className="tg-input" aria-label={`${participant.riotId} KDA`} value={stat?.kda ?? ""} placeholder="12/4/9" onChange={(event) => patchStat(participant.puuid, { kda: event.target.value })} />
                     <input className="tg-input" aria-label={`${participant.riotId} 피해량`} value={stat?.damage ?? ""} placeholder="20,170" onChange={(event) => patchStat(participant.puuid, { damage: event.target.value })} />
-                    <input className="tg-input" aria-label={`${participant.riotId} 챔피언 ID`} value={stat?.championId ?? ""} placeholder="챔피언 ID" onChange={(event) => patchStat(participant.puuid, { championId: event.target.value })} />
-                    <select className="tg-select" aria-label={`${participant.riotId} 플레이 라인`} value={stat?.playedRole ?? ""} onChange={(event) => patchStat(participant.puuid, { playedRole: event.target.value as MainRole | "" })}>
+                    <button className="tg-button" type="button" onClick={() => {
+                      setChampionQuery("");
+                      setChampPickerFor(participant.puuid);
+                    }}>
+                      {champ && bootstrap
+                        ? <Image src={championIconUrl(bootstrap.version, champ.image.full)} alt={champ.name} width={28} height={28} unoptimized />
+                        : "챔피언"}
+                    </button>
+                    <select
+                      className="tg-select"
+                      aria-label={`${participant.riotId} 플레이 라인`}
+                      value={stat?.playedRole ?? ""}
+                      onChange={(event) => patchStat(participant.puuid, { playedRole: event.target.value as MainRole | "" })}
+                    >
                       <option value="">라인</option>
-                      {(["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"] as const).map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}
+                      {(["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"] as const).map((role) => (
+                        <option
+                          key={role}
+                          value={role}
+                          disabled={takenRoles.has(role) && stat?.playedRole !== role}
+                        >
+                          {roleLabel(role)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 );
@@ -611,11 +729,62 @@ function TrialView({
         })}
       </div>
       {message && <div className="tg-notice">{message}</div>}
-      <ReasonPanel title={`${round}판 평가 근거`} reasons={["직전 누적 LP를 주축으로 이번 판 성과를 반영합니다.", "KDA와 챔피언 피해량이 모두 있을 때 개인 성과 등급을 계산합니다.", "이전 기록이 부족한 참가자는 기대 이상·이하 판정을 생략합니다."]} />
-      <div className="tg-row tg-row--between">
+      <ReasonPanel title={`${round}판 평가 근거`} reasons={["직전 누적 LP 90%에 이번 판 성과 10%를 반영합니다.", "KDA와 챔피언 피해량이 모두 있을 때 개인 성과 등급을 계산합니다.", "이전 기록이 부족한 참가자는 기대 이상·이하 판정을 생략합니다."]} />
+      <ActionBar>
         <Link className="tg-button" href={`/session/${session.id}/finish`}>내전 종료하기</Link>
         <button className="tg-button tg-button--primary" type="button" onClick={saveRound}>{round}판 저장 · 재밸런스 보기</button>
-      </div>
+      </ActionBar>
+      {champPickerFor && bootstrap && (
+        <div className="tg-modal-backdrop" onMouseDown={() => setChampPickerFor(null)}>
+          <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
+            <div className="tg-row tg-row--between"><h2>챔피언 선택</h2><button className="tg-button" type="button" onClick={() => setChampPickerFor(null)}>닫기</button></div>
+            <input
+              className="tg-input"
+              type="search"
+              autoFocus
+              value={championQuery}
+              onChange={(event) => setChampionQuery(event.target.value)}
+              placeholder="챔피언 이름 검색"
+              aria-label="챔피언 검색"
+            />
+            <div className="tg-champion-picker">
+              {visibleChampions.map((champion) => (
+                <button
+                  className={`tg-champion-picker__item ${form.stats[champPickerFor]?.championId === champion.key ? "is-selected" : ""}`}
+                  type="button"
+                  key={champion.key}
+                  onClick={() => {
+                    patchStat(champPickerFor, { championId: champion.key });
+                    setChampPickerFor(null);
+                  }}
+                >
+                  <Image src={championIconUrl(bootstrap.version, champion.image.full)} alt="" width={36} height={36} unoptimized />
+                  <span>{champion.name}</span>
+                </button>
+              ))}
+              {!visibleChampions.length && <p className="tg-champion-picker__empty">검색 결과가 없습니다.</p>}
+            </div>
+          </section>
+        </div>
+      )}
+      {visionMap && (
+        <div className="tg-modal-backdrop" onMouseDown={() => setVisionMap(null)}>
+          <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
+            <div className="tg-row tg-row--between"><h2>점수판 수동 매칭</h2><button className="tg-button" type="button" onClick={() => setVisionMap(null)}>닫기</button></div>
+            {visionMap.map((row, index) => (
+              <div className="tg-row tg-row--between" key={`${row.riotId}-${index}`}>
+                <span>{row.riotId || row.championName || `감지 ${index + 1}`} · {row.kda} · {row.damage}</span>
+                <select className="tg-select" defaultValue="" onChange={(event) => { if (event.target.value) bindVisionRow(index, event.target.value); }}>
+                  <option value="">참가자 연결</option>
+                  {session.participants.map((participant) => (
+                    <option value={participant.puuid} key={participant.puuid}>{displayGameName(participant.riotId)}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </section>
+        </div>
+      )}
     </section>
   );
 }
@@ -639,7 +808,23 @@ function RebalanceView({
   const previous = target === 2
     ? session.preTeamProposal
     : session.rounds.find(({ round }) => round === target - 2)?.nextTeamProposal;
-  const changed = new Set(proposal.changes?.flatMap(({ outPuuid, inPuuid }) => [outPuuid, inPuuid]) ?? []);
+  const trades = (proposal.changes ?? []).filter(({ outPuuid, inPuuid }) => outPuuid && inPuuid);
+  // 같은 스왑이 양쪽으로 두 번 적힐 수 있어, 정렬한 쌍으로 한 번만 센다.
+  const uniqueTrades = Array.from(
+    new Map(
+      trades.map((change) => {
+        const key = [change.outPuuid, change.inPuuid].sort().join(":");
+        return [key, change] as const;
+      }),
+    ).values(),
+  );
+  const changed = new Set(trades.flatMap(({ outPuuid, inPuuid }) => [outPuuid, inPuuid]));
+  const changedCount = changed.size;
+  const tradeLabelByPuuid = new Map<string, string>();
+  for (const change of trades) {
+    tradeLabelByPuuid.set(change.inPuuid, change.toTeam === "blue" ? "블루로 이동" : "레드로 이동");
+    tradeLabelByPuuid.set(change.outPuuid, change.toTeam === "blue" ? "레드로 이동" : "블루로 이동");
+  }
 
   function select(participant: Participant, side: TeamSide) {
     if (!selected) {
@@ -666,32 +851,96 @@ function RebalanceView({
     setSelected(null);
   }
 
+  function retryWithPreviousTeam() {
+    if (!previous) return;
+    const currentByPuuid = new Map(session.participants.map((participant) => [participant.puuid, participant]));
+    const blue = previous.blueTeam
+      .map(({ puuid }) => currentByPuuid.get(puuid))
+      .filter((participant): participant is Participant => Boolean(participant));
+    const red = previous.redTeam
+      .map(({ puuid }) => currentByPuuid.get(puuid))
+      .filter((participant): participant is Participant => Boolean(participant));
+    const next = proposalFromTeams(blue, red, target, previous);
+    save({
+      rounds: session.rounds.map((item) =>
+        item.nextTeamProposal.targetRound === target ? { ...item, nextTeamProposal: next } : item
+      ),
+    });
+    setSelected(null);
+  }
+
   return (
     <section className="tg-stack">
       <header className="tg-panel">
-        <h1>{target}판 재밸런스 제안</h1>
-        <p className="tg-muted">프로필과 칩 방향을 팀 대치 구도에 맞췄습니다.</p>
+        <div className="tg-row tg-row--between">
+          <h1>{target}판 재밸런스 제안</h1>
+          <button className="tg-button" type="button" onClick={retryWithPreviousTeam} disabled={!previous}>
+            이전 팀으로 재도전하기
+          </button>
+        </div>
+        <p className={` ${changedCount ? "is-trade" : "is-gold"}`}>
+          {changedCount
+            ? `팀원 ${changedCount/2}명을 교체했습니다.`
+            : "황금밸런스의 판입니다. 팀원 변경은 불필요!"}
+        </p>
         <PowerRatio proposal={proposal} />
       </header>
-      <div className="tg-grid tg-grid--2">
-        <TeamBoard side="blue" proposal={proposal} bootstrap={bootstrap} round={(target - 1) as RoundNumber} changed={changed} selected={selected?.puuid} onSelect={select} />
-        <TeamBoard side="red" proposal={proposal} bootstrap={bootstrap} round={(target - 1) as RoundNumber} changed={changed} selected={selected?.puuid} onSelect={select} />
+      <div className="tg-versus">
+        <TeamBoard
+          side="blue"
+          proposal={proposal}
+          bootstrap={bootstrap}
+          round={(target - 1) as RoundNumber}
+          changed={changed}
+          tradeLabelByPuuid={tradeLabelByPuuid}
+          selected={selected?.puuid}
+          onSelect={select}
+        />
+        <span className="tg-versus__mark" aria-hidden>VS</span>
+        <TeamBoard
+          side="red"
+          proposal={proposal}
+          bootstrap={bootstrap}
+          round={(target - 1) as RoundNumber}
+          changed={changed}
+          tradeLabelByPuuid={tradeLabelByPuuid}
+          selected={selected?.puuid}
+          onSelect={select}
+        />
       </div>
-      {proposal.changes?.length ? (
-        <section className="tg-panel">
-          <h2>교체된 팀원</h2>
-          {proposal.changes.filter(({ outPuuid }) => outPuuid).map((change) => {
-            const out = session.participants.find(({ puuid }) => puuid === change.outPuuid);
-            const incoming = session.participants.find(({ puuid }) => puuid === change.inPuuid);
-            return <p key={`${change.toTeam}-${change.inPuuid}`}>{out?.riotId} ↔ {incoming?.riotId} · {change.reason}</p>;
-          })}
-        </section>
-      ) : null}
-      <ReasonPanel reasons={["직전 판 결과를 누적 전력에 반영해 다시 팀을 나눴습니다.", "강조 테두리는 직전 구성에서 팀이 바뀐 참가자입니다.", "총무가 필요하면 팀 제안 화면과 같은 방식으로 수동 조정할 수 있습니다."]} />
-      <div className="tg-panel tg-row tg-row--between">
+      <section className="tg-panel tg-stack">
+        <h2>교체된 팀원</h2>
+        {uniqueTrades.length ? (
+          <ul className="tg-trade-list">
+            {uniqueTrades.map((change) => {
+              const out = session.participants.find(({ puuid }) => puuid === change.outPuuid);
+              const incoming = session.participants.find(({ puuid }) => puuid === change.inPuuid);
+              if (!out || !incoming) return null;
+              return (
+                <li className="tg-trade-list__item" key={`${change.outPuuid}-${change.inPuuid}`}>
+                  <TradePlayer participant={out} bootstrap={bootstrap} />
+                  <span className="tg-trade-list__mark" aria-hidden>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M7 7h11l-2.5-2.5M18 17H7l2.5 2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <TradePlayer participant={incoming} bootstrap={bootstrap} />
+                  <span className="tg-chip is-gold">{change.toTeam === "blue" ? "블루 ↔ 레드" : "레드 ↔ 블루"}</span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="tg-muted">이번 재밸런스에서는 팀원을 바꾸지 않았습니다. 황금밸런스를 유지합니다.</p>
+        )}
+      </section>
+      <ReasonPanel reasons={["직전 판 결과를 누적 전력에 반영해 다시 팀을 나눴습니다.", "트레이드 칩·강조 카드는 직전 구성에서 팀이 바뀐 참가자입니다.", "총무가 필요하면 팀 제안 화면과 같은 방식으로 수동 조정할 수 있습니다."]} />
+      <ActionBar>
         <Link className="tg-button" href={`/session/${session.id}/finish`}>내전 종료하기</Link>
-        {target <= 3 ? <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>{target}판 결과 입력</Link> : <Link className="tg-button tg-button--primary" href={`/session/${session.id}/finish`}>최종 결과 보기</Link>}
-      </div>
+        {target <= 3
+          ? <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>{target}판 결과 입력</Link>
+          : <Link className="tg-button tg-button--primary" href={`/session/${session.id}/finish`}>최종 결과 보기</Link>}
+      </ActionBar>
       <span className="tg-sr-only">{previous ? "직전 팀 구성과 비교됨" : ""}</span>
     </section>
   );
@@ -704,6 +953,7 @@ function TeamBoard({
   round,
   selected,
   changed,
+  tradeLabelByPuuid,
   onSelect,
   onRemove,
   onAdd,
@@ -714,6 +964,7 @@ function TeamBoard({
   round?: RoundNumber;
   selected?: string;
   changed?: Set<string>;
+  tradeLabelByPuuid?: Map<string, string>;
   onSelect?: (participant: Participant, side: TeamSide) => void;
   onRemove?: (participant: Participant, side: TeamSide) => void;
   onAdd?: () => void;
@@ -723,7 +974,13 @@ function TeamBoard({
   const name = side === "blue" ? proposal.blueTeamName || "블루팀" : proposal.redTeamName || "레드팀";
   return (
     <section className={`tg-team-board is-${side}`}>
-      <header className="tg-row tg-row--between"><h2>{name} <span className="tg-chip">평균 {average.label}</span></h2>{onAdd && <button className="tg-button" type="button" onClick={onAdd}>선수 추가</button>}</header>
+      <header className="tg-team-board__header">
+        <h2>
+          <span>{name}</span>
+          <span className="tg-chip">평균 {average.label}</span>
+        </h2>
+        {onAdd && <button className="tg-button" type="button" onClick={onAdd}>선수 추가</button>}
+      </header>
       {team.map((participant) => (
         <PlayerCard
           key={participant.puuid}
@@ -731,12 +988,33 @@ function TeamBoard({
           bootstrap={bootstrap}
           round={round}
           changed={changed?.has(participant.puuid)}
+          tradeLabel={tradeLabelByPuuid?.get(participant.puuid)}
           onClick={onSelect ? () => onSelect(participant, side) : undefined}
           onRemove={onRemove ? () => onRemove(participant, side) : undefined}
         />
       ))}
       {selected && team.some(({ puuid }) => puuid === selected) && <span className="tg-chip is-gold">교체할 반대 팀 선수를 선택하세요</span>}
     </section>
+  );
+}
+
+function TradePlayer({
+  participant,
+  bootstrap,
+}: {
+  participant: Participant;
+  bootstrap: DataDragonBootstrap | null;
+}) {
+  const src = bootstrap && participant.profileIconId != null
+    ? profileIconUrl(bootstrap.version, participant.profileIconId)
+    : undefined;
+  return (
+    <span className="tg-trade-list__player">
+      {src
+        ? <Image className="tg-player-card__avatar" src={src} alt="" width={36} height={36} unoptimized />
+        : <span className="tg-player-card__avatar" />}
+      <strong>{displayGameName(participant.riotId)}</strong>
+    </span>
   );
 }
 
@@ -811,6 +1089,29 @@ function parseKda(value: string): number | null {
 function parseNumber(value: string): number | null {
   const parsed = Number(value.replaceAll(",", "").trim());
   return value.trim() && Number.isFinite(parsed) ? parsed : null;
+}
+
+type ChampionSummary = DataDragonBootstrap["championsByKey"][string];
+
+function normalizeChampionSearch(value: string) {
+  return value.normalize("NFKC").toLocaleLowerCase("ko-KR").replace(/\s+/g, "");
+}
+
+/**
+ * 최신 Data Dragon에 섞인 모드 전용 Jade 변형을 제외한다.
+ * 서버 캐시가 갱신되기 전에도 선택 UI에 같은 이름이 두 번 나오지 않도록
+ * 정규화된 이름으로 한 번 더 방어적으로 중복을 제거한다.
+ */
+function uniqueCurrentChampions(champions: ChampionSummary[]) {
+  const unique = new Map<string, ChampionSummary>();
+  champions
+    .filter((champion) => !champion.id.startsWith("Jade_"))
+    .sort((a, b) => Number(a.key) - Number(b.key))
+    .forEach((champion) => {
+      const name = normalizeChampionSearch(champion.name);
+      if (!unique.has(name)) unique.set(name, champion);
+    });
+  return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name, "ko"));
 }
 
 function messageOf(cause: unknown) {

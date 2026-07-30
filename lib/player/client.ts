@@ -80,6 +80,8 @@ export async function loadParticipant(
     currentLpValue: preLpValue,
     personalScore: 0,
     internalTierBadge: 5,
+    manualScoreAdjustment: 0,
+    tierAssessment: "fair",
     honeyBeeStreak: 0,
     honeyBeeBadge: "none",
     honeyBeeHistory: [],
@@ -104,4 +106,8 @@ export function profileIconUrl(version: string, profileIconId?: number) {
   return profileIconId
     ? `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${profileIconId}.png`
     : undefined;
+}
+
+export function championIconUrl(version: string, imageFull: string) {
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${imageFull}`;
 }

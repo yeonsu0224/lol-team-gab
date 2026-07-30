@@ -1,7 +1,7 @@
 # Design System — Hextech Glass
 
-> **문서 버전:** v0.6.3  
-> **상태:** 4차 반복 UX 반영 (전역 SCSS · 숨김 스크롤바 · AI 사이드바 · 분석 전환 · 결과 공개)
+> **문서 버전:** v0.8.3
+> **상태:** 5차 UX — 고정 액션 바 · AI 푸시 사이드바 · 느린 순차 모션 · 티어별 카드 색 · 좌측 사이드 배너 · 오로라 배경(색 테마 전환) · 결과 인트로 3행 고정 · 카드 아코디언 상세 · AI 플로팅 말풍선 · beta 표식
 
 리그 오브 레전드의 어두운 청색·금색 계열에서 영감을 받은 컬러 그라디언트와 글래스모피즘을 사용한다. 다만 Riot의 실제 클라이언트를 복제하지 않고, 내전 팀 편성과 스탯 비교에 적합한 독자적인 인터페이스를 구성한다.
 
@@ -32,11 +32,14 @@ Dark Navy / Hextech Gold / Arcane Blue / Glass / Competitive
 
 - `tg-assistant-sidebar`: 우측 고정 패널. 요약, 주목 선수 1~2명, 예시 질문 3개, 대화 입력을 포함한다.
 - `tg-analysis-transition`: 2~3초 분석 단계 문구와 저강도 모션. reduced-motion에서는 문구만 전환한다.
-- `tg-result-reveal`: 세션 인트로 → 승리팀 → MVP → 기대 이상 플레이어 순차 공개. beat(`hook`/`drum`/`reveal`/`cta`)에 따라 요소 노출.
-  - `.tg-result-reveal.is-blue|is-red`: 승리팀 공개 시 전면 컬러 wash
+- `tg-result-reveal`: 세션 인트로 → 승리팀 → MVP → 기대치 대비 최악 → 기대 이상 플레이어 순차 공개. beat(`hook`/`drum`/`reveal`/`cta`)에 따라 요소 노출.
+  - 단계 결과 색은 전면 wash가 아니라 **오로라 배경 테마 전환**(§0-C, D-23)으로 표현한다. `.tg-result-reveal`에는 배경색을 두지 않는다.
   - `.tg-result-reveal__hook` / `__title` / `__detail` / `__drum`: 후킹·본체·보조·드럼롤 점
   - `.tg-result-reveal__banner` / `__banner-item`: 승리팀·꿀벌 아이콘+이름 가로 배너
   - `.tg-result-reveal__mvp`: MVP 단일 히어로(큰 아이콘+이름)
+  - `.tg-result-reveal__mvp.is-culprit`: 기대치 대비 최악 플레이어 히어로. 레드 border/glow
+  - `.tg-result-reveal__banner-item.is-performance`: 기대 이상 플레이어의 티어 엠블럼·실력 문구를 포함하는 확장 카드
+  - 비트 기준: hook 1.3초 → drum 1.2초 → reveal 이후 CTA 1.4초. 데이터가 없을 때만 짧게 축약
   - `.tg-result-reveal__cta`: 본체 공개 후 페이드인하는 다음/건너뛰기
   - reduced-motion에서는 연출 클래스 없이 내용·CTA를 즉시 표시
 - `tg-winner-toggle.is-blue/is-red`: 선택 시 버튼 배경 전체를 팀 컬러로 채운다.
@@ -69,6 +72,135 @@ Dark Navy / Hextech Gold / Arcane Blue / Glass / Competitive
   }
 }
 ```
+
+### 0-C. 5차 신규 패턴
+
+- `tg-action-bar`: 하단 고정 CTA 구역. 좌측에 점수 안내(`/scoring`) 아이콘, 우측에 주요 액션.
+
+**주의 — `.tg-panel` 안에 `position: fixed` 자손을 두지 않는다**
+
+`.tg-panel`은 `backdrop-filter: blur(18px)`를 쓴다. `backdrop-filter`가 `none`이 아니면 그 요소는 **`position: fixed` 자손의 컨테이닝 블록**이자 **새 스택 컨텍스트**가 된다. 따라서 패널 안에서 `.tg-action-bar`를 렌더하면 화면 하단이 아니라 **패널 하단**에 붙고, `.tg-modal-backdrop`(`inset: 0`)도 뷰포트가 아니라 패널만 덮는다.
+
+```tsx
+// ❌ 페이지 루트를 패널로 감싸면 하단 바·모달이 패널에 갇힌다
+<section className="tg-panel tg-stack">
+  ...
+  <ActionBar>...</ActionBar>
+</section>
+
+// ✅ 루트는 tg-stack, 시각적 박스는 안쪽 패널로
+<section className="tg-stack">
+  <div className="tg-panel tg-stack">...</div>
+  <ActionBar>...</ActionBar>
+</section>
+```
+
+페이지 루트는 항상 `.tg-page .tg-stack` / `.tg-stack`이며, 패널은 그 **안쪽 섹션**으로만 쓴다.
+
+**주의 — 카드 상세는 아코디언이다 (hover 플로팅 폐기)**
+
+상세 전력은 `.tg-player-card__detail`로 카드 **안쪽**에 펼친다. hover 플로팅은 가독성·스택 컨텍스트 문제가 있어 쓰지 않는다. ▼ 토글(`.tg-player-card__toggle`)만 열고 닫으며, 팀 교체 `onClick`과 충돌하지 않도록 `stopPropagation`한다.
+
+```scss
+.tg-player-card { display: grid; gap: 10px; }
+.tg-player-card__main { display: flex; align-items: center; gap: 12px; }
+.tg-player-card__detail { /* 펼쳤을 때만 렌더 */ }
+.tg-team-board.is-blue .tg-player-card__main { flex-direction: row-reverse; }
+```
+
+**주의 — stagger 지연은 `nth-child`로 세지 않는다**
+
+`.tg-team-board`의 첫 자식은 팀 헤더이므로 팀원 카드는 `nth-child(2)~(6)`이다. `nth-child(1)~(5)`로 지연을 주면 **5번째 카드만 규칙에 걸리지 않아 지연 0으로 먼저 나타난다.** 카드만 세도록 `article` 기준 `nth-of-type`을 쓴다.
+
+```scss
+// ❌ 헤더가 1번을 차지해 5번째 카드가 규칙에서 빠진다
+.tg-team-board .tg-player-card:nth-child(5) { animation-delay: ...; }
+
+// ✅ 카드(article)만 센다
+.tg-team-board article.tg-player-card:nth-of-type(5) { animation-delay: calc(#{$motion-stagger} * 5); }
+```
+
+항목 수가 가변이거나 타입이 섞이면 CSS 대신 인라인 `style={{ animationDelay }}`로 index를 넘긴다(결과 인트로 배너가 이 방식).
+
+**결과 인트로 3행 고정 (D-20)**
+
+`.tg-result-reveal__stage`는 `grid-template-rows: auto minmax(0,1fr) auto`로 **후킹 / 본체 / CTA**를 고정한다. 본체가 나타나도 기대 증진 멘트와 버튼이 밀리지 않는다. MVP·범인 히어로는 아이콘 ≈168px, 이름은 기본 타이틀의 약 50%(`clamp(1rem, 3.5vw, 2.3rem)`).
+
+**라인 아이콘 · 꿀벌 아이콘 · 성과 칩**
+
+- `.tg-lane-icon`: `public/icons/white/{top,jungle,mid,adc,sp}.png` (18×18). API 키→파일명 매핑은 `LaneIcon` 컴포넌트가 담당한다.
+- `.tg-bee-icon`: `public/bee.jpg`를 `border-radius: 50%`로 자른 원형. **플레이어 카드에서는 소환사 아이콘 우하단에** `.tg-player-card__bee`로 붙이고, AI FAB도 같은 아이콘을 쓴다. 칩 행에 두지 않는다.
+- `.tg-grade--{f,d,c,b,a,op}`: 성과 등급별 색·굵은 글자. OP는 금색 그라디언트와 약한 글로우.
+- `.tg-player-card__badges > *`: 모두 `min-height: 26px`로 상하 중앙을 맞춘다.
+
+**참가자 등록 카드 내부 평가 (D-06)**
+
+- 등록 카드의 시각 순서는 **티어 엠블럼 → 소환사 아이콘 → 정보 → 내부 평가 → 제외**다.
+- 모스트 챔피언은 별도 칸이 아니라 **소환사 아이콘 좌하단 20px 오버레이**다. 카드 높이를 늘리지 않는다.
+- `.tg-player-card__evaluation`은 정보 옆의 **78px 세로 두 칸**(과대/적정/과소 · -10~+10)이다. 본문 아래에 두지 않아 이전 카드 높이를 유지한다.
+- 등록 화면에서는 평가 칩을 중복 표시하지 않는다. 팀 제안·재밸런스에서만 과대/과소·보정 칩을 보여준다.
+- 등록 카드 좌5/우5는 하나의 `.tg-player-register` grid로 구성해 같은 행 높이를 공유한다. 모바일은 1열로 복원한다.
+
+**후원 패널 (`.tg-donation`)**
+
+마무리 화면의 개발자 후원은 설명과 토스 QR(`public/tossQR.png`)을 나란히 둔다. QR은 흰 배경 패딩으로 스캔 대비를 확보하고, 좁은 화면에서는 아래로 내려간다.
+
+- `tg-champion-picker`: 시험 판 챔피언 선택 그리드. 모달 헤더 아래에 `type="search"` 입력을 두고 한글 표시명·영문 ID를 필터링한다. 결과가 없으면 `.tg-champion-picker__empty`를 그리드 전체 열(`1 / -1`)에 표시한다.
+- Data Dragon의 `Jade_*` 항목은 리메이크 전 버전이 아니라 **모드 전용 변형**이다. 일반 챔피언과 이름이 같으므로 서버 bootstrap에서 제외하고, 클라이언트도 오래된 캐시에 대비해 정규화된 이름 중복을 제거한다.
+
+- `body.tg-assistant-open`: AI 사이드바가 열리면 본문을 좌측으로 밀고(`margin-right`) 고정 요소의 `right`를 함께 보정한다.
+- `tg-aurora`: **오로라 배경(D-23)**. React Bits Aurora 셰이더를 `ogl`로 포팅한 WebGL 레이어. 콘텐츠 뒤(`z-index: -1`)에서만 흐르고 입력을 받지 않는다.
+
+```scss
+.tg-aurora {
+  position: fixed;
+  z-index: -1;              // body 배경 위 · 본문 아래
+  top: 0;
+  right: 0;
+  left: 0;
+  height: min(72vh, 760px); // 상단 밴드
+  opacity: 0.5;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 100%) 0%, rgb(0 0 0 / 70%) 45%, transparent 100%);
+  transition: opacity 900ms $ease-emphasized;
+}
+
+/* 배경이 연출을 맡는 동안만 진하게. 높이는 그대로 둬야 캔버스 해상도가 유지된다. */
+.tg-aurora.is-focus { opacity: 0.78; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-aurora { display: none; } // WebGL 초기화도 생략
+}
+```
+
+- 기본 팔레트는 **남색 단일 색조**(`#16306b` → `$blue #2589ff` → `#1b3a7a`), 속도 0.35×. 3개 정지점은 좌→중앙→우로 보간되므로 **하나의 테마 안에서** 색상을 섞지 말고 **명도만** 바꾼다. `$teal`·`$gold`를 함께 넣으면 무지개 그라디언트가 된다.
+- **색 테마 전환:** 테마는 `default`/`blue`/`red`/`gold` 4종이며 각각 단일 색조를 지킨다. 페이지는 `lib/motion/auroraTheme.ts`의 `setAuroraTheme()`으로 지정하고 **언마운트 시 `default`로 되돌린다**. 레이아웃 루트에 있는 배경을 페이지가 제어하므로 context 대신 모듈 스토어를 쓴다.
+  - 전환은 CSS가 아니라 렌더 루프에서 처리한다. 프레임 레이트와 무관한 지수 보간(시간상수 900ms)으로 목표 색까지 이동하고, 남은 색 거리에 비례해 진폭을 최대 +0.5 더해 전환 중 한 번 일렁이게 한다.
+  - 기본이 아닌 테마가 활성이면 컴포넌트가 `.is-focus`를 붙인다(구독 리렌더). 색 보간은 리렌더 없이 매 프레임 폴링한다.
+- `.tg-panel`은 `backdrop-filter: blur(18px)` + 78% 불투명 glass이므로 오로라 위에서도 대비가 유지된다. 배경 밝기를 올릴 때는 패널 대비를 함께 확인한다.
+- `tg-side-banner`: **좌측 고정 광고 배너(F-13)**. 본문(`min(1180px, 100% - 32px)` 중앙 정렬)의 **좌측 여백 안에서만** 폭을 갖고, 여백이 부족한 화면에서는 숨긴다. 우상단에 `광고` 뱃지를 둔다.
+
+```scss
+.tg-side-banner {
+  position: fixed;
+  z-index: 25;                                          // 모달(100+)보다 낮게
+  top: 50%;
+  left: 16px;
+  display: none;                                        // 기본 숨김
+  width: min(220px, calc((100vw - 1180px) / 2 - 32px)); // 좌측 여백에만 배치
+  transform: translateY(-50%);
+}
+
+.tg-side-banner__link img { display: block; width: 100%; height: auto; }
+.tg-side-banner__badge { position: absolute; top: 8px; right: 8px; }
+
+@media (min-width: 1500px) {
+  .tg-side-banner { display: block; } // 여백 ≥ 152px일 때만 노출
+}
+```
+
+- 광고 링크는 `target="_blank"` + `rel="noopener noreferrer"`, 영역은 `<aside aria-label>`로 감싼다.
+- hover는 `@media (hover: hover)`에서 `translateY(-2px)` + border 강조만 사용한다(§8 모션 제약 준수).
 
 ## 1. 컬러 토큰
 
@@ -419,6 +551,7 @@ $motion-stagger-step: 60ms;  // 순차 등장 항목 간 지연 (40~80ms)
 | **단계 전환**(페이지·스텝 이동) | 현재 화면 박스 `fadeOut`($motion-exit) → 새 화면 등장 |
 | **콘텐츠 등장 순서** | 항상 **박스(컨테이너) → 타이틀 → 리스트/주요 콘텐츠** 순, `fadeInUp` + stagger |
 | **순차 등장(stagger)** | 항목 index × `$motion-stagger-step` 지연 누적 |
+| **stagger 선택자** | 컨테이너에 헤더 등 다른 자식이 있으면 `nth-child`가 아니라 **`nth-of-type`**(또는 인라인 `animationDelay`)을 쓴다 |
 | **팀 슬라이드 인** | 블루=`slideInLeft`, 레드=`slideInRight`. **참가자 등록 화면 제외** |
 | **팀 제안 CTA** | 활성 시 `gradientShift` (의도된 예외, 저강도 루프) |
 
@@ -883,7 +1016,7 @@ API 실패, 저장 실패, 데이터 부족 등 시스템·데이터 상태를 �
 - 키보드: `<summary>` 기본 focus 지원, focus-visible ring 유지
 - hover: 배경 `rgba(16, 32, 56, 0.48)`, 텍스트 `$color-text-primary`
 
-> **3차 변경(F-02):** **참가자 등록 화면**에서는 상세를 아코디언 대신 **hover 플로팅 모달(PlayerHoverCard)**로 표시한다. 아코디언은 다른 화면 상세에서 계속 사용한다.
+> **3차 변경(F-02) → 5차 개정:** 참가자 등록·팀 카드의 상세는 **아코디언(▼ 토글)** 이다. hover 플로팅 모달은 폐기한다.
 
 ### StepNav
 
@@ -999,7 +1132,7 @@ feedback "2차 시도"에서 상시 큰 패널 대신 **hover 플로팅 / 미니
 
 | 컴포넌트 | 용도 | 규칙 |
 |----------|------|------|
-| `PlayerHoverCard` | 참가자 등록 카드 hover 상세 (F-02) | 카드 hover/focus 시 상세 스탯·근거를 floating으로. 터치 환경은 tap 토글. `$shadow-md` |
+| `PlayerDetailAccordion` | 참가자/팀 카드 상세 (F-02) | ▼ 토글로 카드 안 상세 전력. 팀 교체 클릭과 분리 |
 | `MiniAddModal` | 팀 박스 선수 추가/교체 (F-04) | 팀 박스 버튼 클릭 시 **블루=좌 / 레드=우** 방향에 소형 모달 플로팅 |
 | `BalanceReasonPopover` | 밸런스 근거 (F-04) | 팀 제안 박스 **우상단 아이콘** hover 시 상세 근거 박스 플로팅 (상시 패널 아님) |
 | `RecentMatchesModal` | 최근 경기 선택 (F-05) | 참가자 최근 경기 목록을 모달로, 선택 시 폼 자동 채움 |
@@ -1222,8 +1355,9 @@ Panel (glass, page shell)
   searchHint (검색창 상단 소형 텍스트 — 본캐 경고 등)  ← 박스 아님
   FormPanel (glass-strong) — Riot ID 등록 + 팀 제안 CTA(그라디언트 활성)
   ManualPanel (optional) — 수동 티어
-  registeredGrid — 좌5 / 우5 2열, 좌열→우열 순차, ~50% 축소 카드
-    → PlayerCard(간략) + hover PlayerHoverCard(상세)
+  registeredGrid — 좌5 / 우5 2열, 좌열→우열 순차, 같은 행 높이
+    → PlayerCard: 티어 → 소환사(+모스트 오버레이) → 정보 → 내부 평가(옆 칸) → ▼ 아코디언 → 제외
+    → 상세는 `.tg-player-card__detail` 아코디언
 ```
 
 #### F-04/F-06 Team & Rebalance — 대치 정렬 (D-16, 3차)
@@ -1238,6 +1372,30 @@ teamBoards (중앙 기준 대치)
 actionRow (하단 버튼 구역) — [시험 판 진행] / [내전 종료하기]
 FloatingAssistant (우하단)
 ```
+
+#### F-06 Rebalance — 요약 배너 · 트레이드 강조 (5차)
+
+```text
+header
+  h1 — N판 재밸런스 제안
+  button — 이전 팀으로 재도전하기 (우상단, 구성만 복원·성적 유지)
+  .tg-rebalance-banner.is-trade | .is-gold
+    · 교체 있음: 「팀원 n명을 교체했습니다.」
+    · 교체 없음: 「황금밸런스의 판입니다. 팀원 변경은 불필요!」
+  PowerRatio
+.tg-versus — 팀 보드 (교체 카드 `.is-changed` + `.tg-trade-chip`)
+.tg-trade-list — 아바타 ↔ 아바타 + 방향 칩
+```
+
+| 클래스 | 규칙 |
+|--------|------|
+| `.tg-rebalance-banner.is-trade` | 교체 강조(경고/액센트 톤) |
+| `.tg-rebalance-banner.is-gold` | 무교체 황금밸런스 톤 |
+| `.tg-player-card.is-changed` | 금색 배경·보더·글로우 |
+| `.tg-trade-chip` | 카드 위 트레이드 아이콘 + 「블루로 / 레드로」 |
+| `.tg-trade-list__item` | 나간 선수 · ↔ SVG · 들어온 선수 · 방향 칩 |
+| `.tg-assistant-hint` | FAB 왼쪽 말풍선 「AI 분석을 들어보세요!」(사이드바 닫힘 시만) |
+| `.tg-beta` | teal 상단첨자 `beta` — 점수판 이미지 등 실험 기능 |
 
 **카드 폭 규칙 (D-16)**
 
@@ -1270,13 +1428,74 @@ FloatingAssistant (우하단)
 }
 ```
 
+**그라디언트 방향 미러링 (D-16 · 5차)**
+
+티어 그라디언트도 미러링 대상이다. 내용이 우측 정렬인데 색이 좌상단에서 시작하면 시선 방향과 어긋난다. 각도를 커스텀 프로퍼티로 빼고 블루팀에서 `360deg − 기본값`으로 뒤집는다. 티어별 규칙(9개)에 각도를 하드코딩하지 않는다.
+
+```scss
+.tg-player-card {
+  --tg-card-sheen-angle: 120deg;  // 흰 sheen
+  --tg-card-tier-angle: 135deg;   // 티어 틴트 → 좌상단 시작
+  background:
+    linear-gradient(var(--tg-card-sheen-angle), rgb(255 255 255 / 6%), transparent 55%),
+    rgb(255 255 255 / 4%);
+}
+
+// 티어 클래스는 색(틴트)만 지정한다
+.tg-player-card--gold { --tg-card-tier-tint: rgb(200 155 60 / 22%); }
+
+.tg-team-board.is-blue .tg-player-card {
+  --tg-card-sheen-angle: 240deg;  // 우상단 시작
+  --tg-card-tier-angle: 225deg;
+}
+
+@media (max-width: 760px) {
+  // 1열에서 미러링 해제 시 각도도 되돌린다
+  .tg-team-board.is-blue .tg-player-card {
+    --tg-card-sheen-angle: 120deg;
+    --tg-card-tier-angle: 135deg;
+  }
+}
+```
+
+**헤더 미러링 (D-16 · 5차)**
+
+팀 헤더도 미러링 대상이다. 블루팀에서 `블루팀 [평균 티어]` 순서로 읽히면 우측 정렬과 어긋나므로, 헤더 행과 그 안의 `h2`를 모두 `row-reverse`로 뒤집어 `[평균 티어] 블루팀`이 우측에 붙게 한다. `선수 추가` 버튼은 반대쪽(안쪽)으로 이동한다.
+
+```scss
+.tg-team-board__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; }
+}
+
+.tg-team-board.is-blue .tg-team-board__header,
+.tg-team-board.is-blue .tg-team-board__header h2 { flex-direction: row-reverse; }
+
+@media (max-width: 760px) {
+  // 방향만 되돌리고 space-between은 유지한다
+  .tg-team-board.is-blue .tg-team-board__header,
+  .tg-team-board.is-blue .tg-team-board__header h2 { flex-direction: row; }
+}
+```
+
+**VS 마크 (`.tg-versus` · 5차)**
+
+팀 대 팀 화면(팀 제안·재밸런스)은 `.tg-grid--2` 대신 `.tg-versus`(`1fr auto 1fr`)를 쓰고 가운데에 `.tg-versus__mark`(원형 `VS`)를 둔다. 보드는 위 정렬을 유지하고 마크만 `align-self: center`로 세로 중앙에 맞춘다. 장식이므로 `aria-hidden`이며, 팀 구분은 각 보드의 `h2`가 담당한다. 모바일 1열에서는 두 보드 사이 행으로 내려간다.
+
+시험 판 결과 **입력** 화면은 대치 구도가 아니라 입력 폼이므로 VS 마크를 넣지 않는다.
+
 | Panel 클래스 | surface | padding | gap |
 |--------------|---------|---------|-----|
 | `panel` | `glass-surface` | `$space-6` | `$space-6` |
 | `formPanel` / `listSection` | `$glass-surface-strong` | `$space-6` | `$space-5` |
 | `formHeader` | grid 1fr + auto (≥720px) | — | `$space-3` |
 | `registeredGrid` | 2열(≥`$breakpoint-md`), 1열(모바일) | — | `$space-3` |
-| `blueBoard` | `text-align: right`, 카드·뱃지 행 `flex-direction: row-reverse` | — | — |
+| `blueBoard` | `text-align: right`, 헤더·`h2`·카드·뱃지 행 `flex-direction: row-reverse` | — | — |
 | `teamList` | grid 1열, `justify-content` 금지(카드 100% 폭 유지) | — | `$space-2` |
 
 ### 컴포넌트 ↔ 파일 매핑 (MVP)
@@ -1293,14 +1512,15 @@ FloatingAssistant (우하단)
 | StepNav | `StepNav.module.scss` | `components/layout/StepNav` |
 | SessionCard | `page.module.scss` | `components/dashboard/SessionCard` |
 | TopBanner | `layout.module.scss` | `components/layout/TopBanner` |
+| SideBanner (F-13) | `styles/components/_product.scss` (`.tg-side-banner`) | `components/layout/SideBanner` |
+| AuroraBackground (D-23) | `styles/components/_product.scss` (`.tg-aurora`) | `components/motion/AuroraBackground` + `lib/motion/auroraTheme`(색 테마 스토어) |
 | DashboardGreeting / SessionGrid / MyPlayerPicker | `dashboard.module.scss` | `components/dashboard/*` |
 | 모션 래퍼(FadeStage/Stagger/TeamSlideIn) | `_motion.scss` + module | `components/motion/*` |
-| PlayerHoverCard | `players.module.scss` | `components/player/PlayerHoverCard` |
+| PlayerCard + Accordion | `styles/components/_product.scss` (`.tg-player-card`) | `components/session/PlayerCard` |
 | MiniAddModal / BalanceReasonPopover | `team.module.scss` | `components/team/*` |
 | RecentMatchesModal | `trial.module.scss` | `components/trial/RecentMatchesModal` |
 | StarRating | `finish.module.scss` | `components/shared/StarRating` |
 | RiotIdSearch | `RiotIdSearch.module.scss` | `components/player/RiotIdSearch` |
-| PlayerCard + Accordion | `players.module.scss` | `components/player/PlayerCard` |
 | Badge 변형 | `players.module.scss`, `_status-badges.scss` | `components/shared/Badge` |
 | ReasonPanel | `ReasonPanel` + 화면 module | `components/shared/ReasonPanel` |
 | VisionReviewPanel | trial 화면 module | `components/trial/VisionReviewPanel` |
@@ -1602,9 +1822,13 @@ CSS Modules 내부에서도 BEM과 유사한 명확한 역할명을 사용한다
 - `OP`, `꿀벌`, `범인`은 아이콘과 텍스트를 함께 표시한다.
 - **hover 마이크로 인터랙션**은 150~250ms로 제한한다.
 - **단계 전환·콘텐츠 등장**(D-14, §4-A)은 220~420ms, stagger 40~80ms를 사용한다. 이징은 `ease-in-out` 계열 cubic-bezier를 우선한다.
-- hover 전용 정보(PlayerHoverCard·Popover)는 keyboard focus·터치 대체 경로를 함께 제공한다.
+  - **예외 — 결과 인트로(D-20):** 드라마 연출이 목적이므로 위 상한을 쓰지 않는다. 요소 길이 840~1560ms, stagger 140ms를 사용한다(`.tg-result-reveal__*`). 다른 화면에 이 값을 복사하지 않는다.
+- hover 전용 정보(BalanceReasonPopover 등)는 keyboard focus·터치 대체 경로를 함께 제공한다. 플레이어 상세는 아코디언이므로 hover 전용 경로가 아니다.
 - `prefers-reduced-motion: reduce`에서는 hover transform·슬라이드 인·그라디언트 루프를 생략하고, 즉시 표시하거나 최소한의 border·background·페이드 변화만 사용한다.
-- 장식적인 무한 애니메이션은 사용하지 않는다. **예외:** 팀 제안 CTA 활성 그라디언트(§4-A, 저강도, reduced-motion에서 정지).
+- 장식적인 무한 애니메이션은 사용하지 않는다. **예외 2건:**
+  - 팀 제안 CTA 활성 그라디언트(§4-A, 저강도, reduced-motion에서 정지).
+  - **오로라 배경 `.tg-aurora`**(D-23, §0-C): 콘텐츠 뒤 레이어·0.35× 속도·상단 마스크. reduced-motion에서는 WebGL을 초기화하지 않고 레이어를 숨긴다. WebGL2 미지원 시 정적 배경으로 폴백하고, 탭이 가려지면 렌더 루프를 멈춘다.
+- **전면 컬러 wash는 쓰지 않는다.** 결과 강조처럼 화면 전체에 색을 입히고 싶을 때는 오로라 배경 테마(D-23 색 테마 전환)를 바꾼다. 본문 위에 반투명 색 레이어를 덮으면 패널·텍스트 대비가 함께 무너진다.
 
 핵심 원칙은 다음 한 문장으로 정리할 수 있습니다.
 
@@ -1623,4 +1847,18 @@ CSS Modules 내부에서도 BEM과 유사한 명확한 역할명을 사용한다
 | v0.6.1 | 2026-07-30 | D-21 이스터에그 태그 클래스(`.tg-easter-egg--*`)와 reduced-motion 규칙 추가 |
 | v0.6.2 | 2026-07-30 | F-02 원격 검색 후보 카드에 소환사 프로필 아이콘·대표 티어·등록 액션 배치 규칙 추가 |
 | v0.6.3 | 2026-07-30 | D-20 결과 인트로: wash·배너·MVP 히어로·beat 노출 클래스(`tg-result-reveal__*`) |
+| v0.7 | 2026-07-30 | 5차: `.tg-action-bar`, AI 푸시(`.tg-assistant-open`), 모션 1.4×, 티어 그라디언트 카드, 시험 입력 축소 |
+| v0.7.1 | 2026-07-30 | §0-C에 F-13 `.tg-side-banner` 좌측 광고 배너 규칙 추가(좌측 여백 폭 계산·1500px 미만 숨김·광고 뱃지) |
+| v0.7.2 | 2026-07-30 | §0-C에 D-23 `.tg-aurora` WebGL 오로라 배경 추가. §8 무한 애니메이션 예외를 2건(CTA 그라디언트·오로라 배경)으로 명시 |
+| v0.7.3 | 2026-07-30 | D-16 미러링에 **그라디언트 방향** 포함: 카드 각도를 `--tg-card-*-angle`로 분리, 블루팀은 `360deg − 기본값`(240/225deg)로 뒤집고 모바일 1열에서 복원 |
+| v0.7.4 | 2026-07-30 | §0-C 주의 추가: `.tg-panel`의 `backdrop-filter`가 fixed 자손의 컨테이닝 블록·스택 컨텍스트를 만든다. 페이지 루트를 패널로 감싸지 않는다(하단 바·모달 갇힘 버그) |
+| v0.7.5 | 2026-07-30 | §0-C에 챔피언 검색 모달·빈 결과 UI와 Data Dragon 모드 전용 `Jade_*` 중복 제외 규칙 추가 |
+| v0.7.6 | 2026-07-30 | D-20 결과 인트로 5 Stage로 확장: 느린 비트, MVP 수치, `.is-culprit` 범인 히어로, `.is-performance` 기대 이상 티어 카드 |
+| v0.7.7 | 2026-07-30 | 결과 인트로 모션 길이 2배(840~1560ms·stagger 140ms) 예외 명문화. **`.tg-result-reveal.is-blue/.is-red` 전면 wash 삭제** 후 D-23 오로라 색 테마 전환(`.tg-aurora.is-focus`)으로 대체 |
+| v0.7.8 | 2026-07-30 | §0-C 주의 추가: 카드 hover 플로팅은 **카드 자체 z-index**를 올려야 형제에 가리지 않는다(불투명 배경 + blur 병기). D-16에 **헤더 미러링**과 **`.tg-versus` VS 마크**(`1fr auto 1fr`) 추가 |
+| v0.7.9 | 2026-07-30 | stagger 지연 선택자 규칙 추가: 헤더가 있는 컨테이너는 `nth-child` 대신 **`nth-of-type`** (팀 박스 5번째 카드가 지연 없이 먼저 나타나던 버그) |
+| v0.8.0 | 2026-07-30 | 결과 인트로 3행 고정·MVP/범인 아이콘 확대. 라인 PNG·원형 bee·토스 QR 후원. 티어별 카드 색·성과 등급 칩·칩 상하 정렬 |
+| v0.8.1 | 2026-07-30 | 참가자 등록 카드 순서를 티어→소환사→모스트→정보로 변경. 30px 모스트 챔피언과 내부 평가(과대/적정/과소·-10~+10) 소형 필드 추가 |
+| v0.8.2 | 2026-07-30 | 카드 상세 hover 플로팅 폐기 → **아코디언**. 재밸런스 트레이드 목록(↔ 아이콘)·`.is-changed` 금색 강조·황금밸런스/교체 n명 배너 |
+| v0.8.3 | 2026-07-30 | `.tg-assistant-hint` 플로팅 말풍선 · `.tg-beta` · 재밸런스 헤더 우상단 「이전 팀으로 재도전」 |
 | v0.5 | 2026-07-29 | **3차 반복(feedback "2차 시도"):** §4-A 모션 시스템(이징·지속시간·keyframes fadeOut/fadeInUp/slideInLeft·Right/gradientShift·reduced-motion), TopBanner·소개형 Hero·Dashboard(Greeting·SessionCard 상태칩/평점)·StarRating·플로팅 모달 패턴(PlayerHoverCard·MiniAddModal·BalanceReasonPopover·RecentMatchesModal), 대치 정렬(D-16) 레이아웃, §8 모션 가이드·파일 매핑 갱신 |

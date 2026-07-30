@@ -3,12 +3,17 @@
 .tg-page {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 104px 0 72px;
+  padding: 104px 0 96px;
+  transition: margin-right 420ms $ease-emphasized;
+}
+
+body.tg-assistant-open .tg-page {
+  margin-right: min(420px, 100%);
 }
 
 .tg-stack { display: grid; gap: 20px; }
-.tg-grid { display: grid; gap: 16px; }
-.tg-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tg-grid { display: grid; gap: 16px; align-content: start; }
+.tg-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 .tg-grid--auto { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .tg-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .tg-row--between { justify-content: space-between; }
@@ -21,7 +26,7 @@
   background: $glass;
   box-shadow: $shadow;
   backdrop-filter: blur(18px);
-  animation: tg-fade-up 360ms $ease-emphasized both;
+  animation: tg-fade-up $motion-enter $ease-emphasized both;
 }
 
 .tg-button {
@@ -35,7 +40,7 @@
   border-radius: $radius-pill;
   background: rgb(255 255 255 / 5%);
   cursor: pointer;
-  transition: 180ms $ease;
+  transition: $motion-fast $ease;
 }
 
 .tg-button:hover { border-color: $border-strong; transform: translateY(-1px); }
@@ -66,17 +71,32 @@
 
 .tg-chip {
   display: inline-flex;
-  min-height: 24px;
+  min-height: 26px;
   align-items: center;
-  padding: 0 9px;
+  /* 아이콘 + 텍스트 칩(라인·꿀벌)을 위한 간격. 텍스트만 있으면 영향 없다. */
+  gap: 5px;
+  padding: 4px 9px;
+  padding-top: 7px;
   border: 1px solid $border;
   border-radius: $radius-pill;
   color: $text-muted;
   font-size: 0.74rem;
+  line-height: 1;
 }
 .tg-chip.is-blue { color: #a8d2ff; border-color: rgb(37 137 255 / 45%); background: $blue-soft; }
 .tg-chip.is-red { color: #ffb3bf; border-color: rgb(239 79 103 / 45%); background: $red-soft; }
 .tg-chip.is-gold { color: $gold-light; border-color: $border-strong; }
+
+/* 실험 단계 기능 표식. 라벨 옆에 작게 붙인다. */
+.tg-beta {
+  margin-left: 6px;
+  color: $teal;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  vertical-align: super;
+}
 
 .tg-notice {
   padding: 13px 16px;
@@ -98,8 +118,77 @@
 }
 .tg-modal { width: min(620px, 100%); max-height: 85vh; overflow: auto; }
 
+.tg-action-bar {
+  position: fixed;
+  z-index: 32;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid $border;
+  background: rgb(3 7 18 / 92%);
+  backdrop-filter: blur(16px);
+}
+.tg-action-bar__info {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid $border-strong;
+  border-radius: 50%;
+  color: $gold-light;
+  font-weight: 800;
+  text-decoration: none;
+}
+.tg-action-bar__actions {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+body.tg-assistant-open .tg-action-bar,
+body.tg-assistant-open .tg-assistant-fab { right: min(420px, 100%); }
+
+.tg-trial-form { font-size: clamp(11px, 0.6vw, 13px); }
+.tg-trial-form .tg-input,
+.tg-trial-form .tg-select { min-height: 32px; padding: 4px 8px; font-size: inherit; }
+.tg-champion-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+.tg-champion-picker__item {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding: 6px;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.7rem;
+}
+.tg-champion-picker__item.is-selected { border-color: $gold; background: rgb(200 155 60 / 12%); }
+.tg-champion-picker__item img { width: 36px; height: 36px; border-radius: 6px; }
+.tg-champion-picker__empty {
+  grid-column: 1 / -1;
+  margin: 20px 0;
+  color: $text-muted;
+  text-align: center;
+}
+
 @media (max-width: 760px) {
   .tg-grid--2 { grid-template-columns: 1fr; }
   .tg-page { width: min(100% - 20px, 1180px); padding-top: 88px; }
   .tg-panel { padding: 18px; border-radius: $radius-lg; }
+  body.tg-assistant-open .tg-page { margin-right: 0; }
 }

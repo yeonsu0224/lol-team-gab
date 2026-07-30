@@ -1,8 +1,8 @@
 # 내전 총무 — 작업 정의
 
-> **문서 버전:** v3.1.2  
-> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v4.0.3, [implementation-plan.md](./implementation-plan.md) v3.0.1, [design-system.md](./design-system.md) v0.6.3  
-> **상태:** 4차 반복 — Phase 0~9 구현·자동 검증 완료 · 실 API/브라우저 수동 QA 및 Vision 재매핑 UX 잔여
+> **문서 버전:** v4.8  
+> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v5.10, [implementation-plan.md](./implementation-plan.md) v4.8, [design-system.md](./design-system.md) v0.8.3  
+> **상태:** 5차 반복 — Phase 10 진행
 
 ---
 
@@ -46,9 +46,9 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 | 대시보드·총무 프로필·세션 상태·별점 노출 | P8-T04, P8-T05 |
 | 블루팀 우측 정렬 대치 (D-16) | P8-T06 |
 | 팀 제안 개편 (하단 버튼·미니 모달·근거 hover) | P8-T07 |
-| 참가자 등록 개편 (좌5/우5·안내 텍스트·hover 모달·CTA 그라디언트) | P8-T08 |
+| 참가자 등록 개편 (좌5/우5·안내 텍스트·아코디언 상세·CTA 그라디언트) | P8-T08 |
 | 시험 판 개편 (판 탭 우상단·최근 경기 선택·종료 버튼 상시) | P8-T09 |
-| 재밸런스 교체 border 강조·들어온/나간 표시 | P8-T10 |
+| 재밸런스 교체 강조·황금밸런스 멘트·트레이드 ↔ | P8-T10, P10-T15 |
 | 마무리 강화 (승리팀 컬러·결과 칩·별점 1~5) | P8-T11 |
 
 ## 4차 반복 신규/변경 Task 색인 (feedback "3차 시도 최종 피드백")
@@ -1104,7 +1104,7 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 
 - [x] 안내 문구를 박스 밖 검색창 상단 소형 텍스트로 이동(본캐 경고 포함)
 - [x] 등록 카드 ~50% 축소, 좌5/우5 2열, 좌열→우열 순차 채움, 한 화면 노출
-- [x] `components/player/PlayerHoverCard` — hover 시 상세 플로팅 모달(아코디언 대체)
+- [x] `components/session/PlayerCard` — ▼ 아코디언으로 상세 전력 (hover 플로팅 폐기)
 - [x] 팀 제안 CTA 활성화 시 그라디언트 애니메이션(gradientShift)
 
 **검증:** spec F-02 수용 기준.
@@ -1135,6 +1135,7 @@ Task ID: `P{Phase}-T{번호}` (예: `P6-T03`)
 - [x] 교체 팀원 카드 border 강조
 - [x] 강조 카드에 들어온/나간(어느 팀에서) 표시
 - [x] `A ↔ G` 트레이드 표기와 연동
+- [x] (5차 보강) 황금밸런스/교체 n명·트레이드 ↔ 목록·금색 카드는 **P10-T15**
 
 **검증:** spec F-06 수용 기준.
 
@@ -1259,3 +1260,139 @@ flowchart TD
 | v3.1 | 2026-07-30 | cycle4 Phase 0~9 재구현 상태 반영. 자동 검증 완료 항목 체크, 과거 시즌 조회·불일치 수동 재매핑·Vision 모달 내 재매핑·브라우저/실 API QA는 미완료 유지 |
 | v3.1.1 | 2026-07-30 | F-02 원격 검색 후보 아이콘·대표 티어 미리보기 구현·검증 항목 추가 |
 | v3.1.2 | 2026-07-30 | P9-T08 결과 인트로 드라마 연출(후킹·드럼롤·wash·배너·MVP 히어로) |
+| v4.0 | 2026-07-30 | **5차 반복 Phase 10:** 고정 CTA·90:10 LP·AI 푸시/타이핑·/scoring·대시보드·시험 UX |
+| v4.0.1 | 2026-07-30 | P10-T05 추가: F-13 좌측 사이드 배너(개발자 포트폴리오 광고) |
+| v4.0.2 | 2026-07-30 | P10-T06 추가: D-23 오로라 배경(`ogl` WebGL 셰이더, reduced-motion·WebGL 폴백) |
+| v4.0.3 | 2026-07-30 | P10-T07 추가: `.tg-panel` backdrop-filter로 하단 바·모달이 패널에 갇히던 버그 수정(참가자·시험 판 루트 구조 변경) |
+| v4.0.4 | 2026-07-30 | P10-T08 추가: 챔피언 검색 및 Data Dragon 모드 전용 `Jade_*` 중복 제거 |
+| v4.1 | 2026-07-30 | P10-T09 추가: 결과 인트로 추가 피드백(느린 비트·MVP 수치·범인 Stage·기대 이상 티어) |
+| v4.2 | 2026-07-30 | P10-T10 추가: 결과창 템포 절반 속도, 전면 wash 제거, 오로라 색 테마 전환(D-23 확장) |
+| v4.3 | 2026-07-30 | P10-T11 추가: hover 플로팅 z-index·배경 블러, 팀 사이 VS 마크, 블루팀 헤더 역순 우측 정렬 |
+| v4.4 | 2026-07-30 | P10-T12 추가: Stage 0 대기 제거, 마무리 되돌아갈 경로, 팀 박스 stagger `nth-of-type` 버그 수정 |
+| v4.5 | 2026-07-30 | P10-T13 추가: 결과 인트로 3행 고정·MVP 아이콘 확대, 라인 PNG·bee·토스 QR, 티어/성과 칩 강조 |
+| v4.6 | 2026-07-30 | P10-T14 추가: 총무 내부 평가(-10~+10%p·티어 과대/적정/과소), 카드 순서 변경, 모스트 챔피언 초상화 |
+| v4.7 | 2026-07-30 | P10-T15 추가: 카드 상세 아코디언, 재밸런스 황금밸런스/교체 n명 멘트, 트레이드 ↔·금색 강조 (spec v5.9) |
+| v4.8 | 2026-07-30 | P10-T16 추가: 이전 팀 재도전, AI 플로팅 말풍선, 점수판 beta (spec v5.10) |
+
+---
+
+## Phase 10 — 5차 UX·로직 (D-02 개정 · D-22)
+
+### P10-T01. LP 90:10 · 고정 액션 바 · 모션 지연
+- [x] `sessionWorkflow` 누적 `0.9/0.1`
+- [x] `.tg-action-bar` 하단 고정 CTA
+- [x] 등장 모션 ≈1.4× duration · 순차 delay
+
+### P10-T02. AI 사이드바 보강
+- [x] 메인 푸시 레이아웃
+- [x] 타이핑 연출 · 간단 MD 렌더 · 고민 표정
+- [x] 로딩 중 중복 질문 금지 · 내전/LoL 토픽 가드
+
+### P10-T03. 점수 안내 · 플레이어 카드 · 대시보드
+- [x] `/scoring` + i 링크, ReasonPanel 아코디언 제거
+- [x] 게임명만 · 티어 그라디언트 · 블루 칩 flex-end
+- [x] 내 플레이어 아이콘 · 내전 이름 필수 · 상태 카드 컬러 · 마무리=완료
+
+### P10-T04. 참가자·시험 UX
+- [x] 좌5/우5 높이 버그 · #KR1 안내
+- [x] 라인 중복 금지 · 챔피언 초상화 선택 · 소환사 아이콘 · 입력 축소 · 보조 강조 · Vision 재매핑
+
+### P10-T05. 좌측 사이드 배너 (F-13)
+- [x] `lib/constants/sideBanner.ts` 이미지·링크·대체 텍스트 상수
+- [x] `components/layout/SideBanner.tsx` — `next/image`, 새 탭(`noopener noreferrer`), `광고` 뱃지
+- [x] `app/layout.tsx` 공통 크롬에 배치 (TopBanner 다음)
+- [x] `.tg-side-banner` — 좌측 여백 폭 계산, 1500px 미만 숨김, hover는 `@media (hover: hover)`
+- [ ] 브라우저 QA: 1920/1500/1280/모바일에서 본문 겹침·숨김 확인
+
+### P10-T06. 오로라 배경 (D-23)
+- [x] `ogl@^1.0.11` 추가 (shadcn CLI 미사용 — Tailwind 요구로 전역 SCSS와 충돌)
+- [x] `components/motion/AuroraBackground.tsx` — React Bits Aurora 셰이더 포팅, Hextech 팔레트·0.35× 속도
+- [x] `.tg-aurora` — `z-index: -1` 상단 밴드, 하단 마스크 페이드, `pointer-events: none`
+- [x] reduced-motion 시 WebGL 미초기화 · WebGL2 실패 시 정적 폴백
+- [x] `document.hidden`에서 rAF 정지, 언마운트 시 컨텍스트 반납
+- [ ] 브라우저 QA: 패널 텍스트 대비, 저사양 기기 프레임, reduced-motion 정지 확인
+
+### P10-T07. 고정 요소 갇힘 버그 수정
+- [x] 참가자·시험 판 화면 루트를 `tg-panel tg-stack` → `tg-stack`으로 변경 (패널은 안쪽 섹션)
+- [x] `.tg-action-bar`가 화면 하단에 고정되고, `.tg-modal-backdrop`이 뷰포트 전체를 덮는지 확인
+- [x] design-system §0-C에 `.tg-panel` 안 fixed 자손 금지 규칙 명시
+
+### P10-T08. 챔피언 검색 · 모드 전용 중복 제거
+- [x] 챔피언 선택 모달에 한글명·영문 ID 부분 검색 추가
+- [x] 서버 bootstrap에서 Data Dragon `Jade_*` 모드 전용 변형 제외
+- [x] 클라이언트에서 오래된 캐시 대비 `Jade_*`·정규화 이름 중복 방어
+- [x] API 확인: 16.15.1 기준 173개, `Jade_*` 0개, 중복 이름 0개
+
+### P10-T09. 결과 인트로 추가 피드백
+- [x] hook 1.3초 · drum 1.2초 · 공개 후 CTA 1.4초로 템포 조정
+- [x] MVP에 전체 판 평균 KDA·평균 챔피언 피해량·판 수 표시
+- [x] 기대치 대비 최악 플레이어 Stage 추가(미달 판 수 → 평균 성과/기대 비율)
+- [x] 범인 주 플레이 라인별 유머 문구·레드 히어로 처리
+- [x] 기대 이상 최다 플레이어에 누적 LP 기준 티어 문구·랭크 엠블럼 표시
+
+### P10-T10. 결과창 3차 피드백 — 템포 · 배경 연출
+- [x] 비트 대기 2배: hook 2.6초 · drum 2.4초 · 공개 후 CTA 2.8초 (드럼 생략/단축 분기도 함께)
+- [x] 요소 모션 2배: 후킹/본문/CTA 840ms, 제목 960ms, 히어로 1040ms, 드럼 펄스 1560ms, 배너 stagger 140ms
+- [x] `.tg-result-reveal.is-blue/.is-red` 전면 wash 제거 (페이지의 `washClass`도 삭제)
+- [x] `lib/motion/auroraTheme.ts` — `default`/`blue`/`red`/`gold` 모듈 스토어 (구독 + 폴링)
+- [x] `AuroraBackground` — 900ms 지수 보간으로 색 전환, 남은 색 거리에 비례한 진폭 스웰, `.is-focus` 불투명도 0.78
+- [x] 마무리 페이지 — 단계 공개 시 테마 지정(승리팀 컬러 / MVP·꿀벌 골드 / 범인 레드), 언마운트 시 `default` 복귀
+- [ ] 브라우저 QA: 단계 전환 색 튐 여부, 총 연출 길이 체감, reduced-motion에서 색 전환 미적용 확인
+
+### P10-T11. 팀 화면 피드백 — hover 플로팅 · VS 마크 · 헤더 역순
+- [x] `.tg-player-card:hover/:focus-within`에 `z-index: 30` — 형제 카드 스택 컨텍스트 위로 올림
+- [x] `.tg-player-card__hover` z-index 40 · `rgb(11 23 40 / 92%)` 배경 · `backdrop-filter: blur(18px)`
+- [x] `.tg-versus`(`1fr auto 1fr`) + `.tg-versus__mark` 원형 VS — 팀 제안·재밸런스 화면 적용
+- [x] VS 마크는 `aria-hidden`, `align-self: center`, 모바일 1열에서 사이 행으로 이동
+- [x] `.tg-team-board__header` 신설 — 블루팀은 헤더 행·`h2` 모두 `row-reverse`(평균 티어 → 팀명 우측 정렬)
+- [x] 모바일 1열에서 헤더 방향만 복원하고 `space-between` 유지
+- [ ] 브라우저 QA: 마지막 카드 hover 시 잘림, VS 세로 중앙 정렬, 팀명이 길 때 헤더 줄바꿈 확인
+
+### P10-T12. 마무리 진입 대기 제거 · 되돌아갈 경로 · stagger 버그
+- [x] Stage 0(종료 안내)은 드럼롤 없이 즉시 세션명·판 수·CTA 노출
+- [x] Stage 1(최종 승리 팀)도 드럼롤 제거 — 후킹 후 바로 공개
+- [x] 인트로 CTA에 `이전` 추가 (Stage 0에서는 `이전 단계로` 링크)
+- [x] 총합 결과 화면에 하단 고정 바 추가: `이전 단계로` · `결과 다시 보기` · `대시보드로`
+- [x] `previousStep()` — 팀 제안 없으면 `players`, 판 기록 없으면 `team`, 그 외 `rebalance`
+- [x] 팀 박스 stagger를 `nth-child` → `article:nth-of-type`으로 수정 (헤더 때문에 5번째 카드가 지연 0으로 먼저 등장)
+- [ ] 브라우저 QA: 팀 제안에서 5명이 순서대로 등장하는지, 마무리에서 이전 단계 복귀 확인
+
+### P10-T13. 결과 인트로 레이아웃 · 에셋 · 카드 강조
+- [x] 결과 인트로 3행 고정(후킹 / 본체 / CTA) — 본체 등장 시 멘트·버튼이 밀리지 않음
+- [x] MVP·범인 소환사 아이콘 ≈168px, 이름 ≈50% 크기
+- [x] `LaneIcon`을 `public/icons/white/*.png`로 교체 (TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY → top/jungle/mid/adc/sp)
+- [x] `BeeIcon`(`bee.jpg` 원형) — 기대 이상 칩 · AI FAB
+- [x] `DonationPanel`에 토스 QR(`tossQR.png`) 표시, 상수로 관리
+- [x] 티어별 카드 틴트·테두리 색 분리 (iron~challenger)
+- [x] 성과 등급 칩 `.tg-grade--*` 색·굵기 강조 (OP 글로우)
+- [x] 칩 행 `min-height: 26px`로 상하 중앙 정렬
+- [ ] 브라우저 QA: 결과 인트로 위치 고정, 라인 아이콘 대비, QR 스캔, 티어/성과 색 가독성
+
+### P10-T14. 총무 내부 평가 · 참가자 카드 정보 보강
+- [x] `Participant.manualScoreAdjustment?: number` (-10~+10%p)와 `tierAssessment?: overrated|fair|underrated`
+- [x] D-06 자동 점수 산출 뒤 수동 보정 적용·0~1 clamp, OP 1·2차 모두 반영
+- [x] 참가자 등록 카드에서 티어 평가·내부 보정 입력, 과대=-5·적정=0·과소=+5 기본 제안
+- [x] 평가 변경 시 점수·내부 티어 재산출, 기존 팀 제안·판 기록 초기화
+- [x] 카드 순서를 티어 엠블럼 → 소환사 아이콘 → 모스트 챔피언 → 정보로 변경
+- [x] 참가자 등록에서 첫 Champion Mastery 초상화를 30px로 표시
+- [x] `/scoring`과 참가자 근거 패널에 수동 보정 설명 추가
+- [x] domain self-check에 수동 보정 범위 검증 추가
+- [ ] 브라우저 QA: 8·10명 카드 높이, 평가 입력 후 점수 재산출, 모스트 없는 참가자 레이아웃
+
+### P10-T15. 카드 아코디언 · 재밸런스 멘트 · 트레이드 강조 (F-02, F-06)
+
+- [x] 플레이어 카드 상세를 hover 플로팅 → **▼ 아코디언** (`.tg-player-card__detail`). 팀 교체 클릭과 `stopPropagation` 분리
+- [x] 재밸런스 헤더 멘트: 교체 시 「팀원 n명을 교체했습니다.」, 무교체 시 「황금밸런스의 판입니다. 팀원 변경은 불필요!」 (`.tg-rebalance-banner`)
+- [x] 트레이드 목록: 소환사 아이콘 + ↔ SVG + 방향 칩 (`.tg-trade-list`)
+- [x] 교체 카드 `.is-changed` 금색 배경·보더·글로우 + `.tg-trade-chip`
+- [x] spec v5.9 · design-system v0.8.2 · plan v4.7 동기화
+- [ ] 브라우저 QA: 아코디언↔팀 스왑 클릭 분리, 황금밸런스/교체 n명 배너, 블루팀 미러 아코디언, 트레이드 칩
+
+### P10-T16. 이전 팀 재도전 · AI 말풍선 · 점수판 beta
+
+- [x] 「이전 팀으로 재도전하기」를 재밸런스 헤더 우상단에 배치. 직전 팀 복원·트레이드 초기화, 성적/LP/꿀벌 유지
+- [x] AI 사이드바 닫힘 시 `.tg-assistant-hint` 「AI 분석을 들어보세요!」
+- [x] 점수판 이미지 버튼·모달에 `.tg-beta`
+- [x] spec v5.10 · design-system v0.8.3 · plan/tasks v4.8 동기화
+- [ ] 브라우저 QA: 재도전 후 황금밸런스 멘트, 말풍선·사이드바 토글, beta 가시성
+

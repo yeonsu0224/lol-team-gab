@@ -15,7 +15,7 @@ export function AnalysisTransition({
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    const total = reduced ? 500 : 2400;
+    const total = reduced ? 500 : 3400;
     const step = Math.max(250, Math.floor(total / messages.length));
     const interval = window.setInterval(
       () => setIndex((current) => Math.min(messages.length - 1, current + 1)),

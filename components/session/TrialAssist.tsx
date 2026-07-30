@@ -104,17 +104,27 @@ export function TrialAssist({
 
   return (
     <>
-      <div className="tg-row">
-        <span className="tg-muted">입력 보조</span>
-        <button className="tg-button" type="button" onClick={() => setModal("match")}>경기 ID</button>
-        <button className="tg-button" type="button" onClick={() => setModal("recent")}>최근 경기</button>
-        <button className="tg-button" type="button" onClick={() => setModal("vision")}>점수판 이미지</button>
+      <div className="tg-panel tg-row tg-row--between">
+        <div>
+          <strong>입력 보조</strong>
+          <p className="tg-muted">손으로 넣기보다 경기 ID·최근 경기·점수판 이미지를 먼저 쓰세요.</p>
+        </div>
+        <div className="tg-row">
+          <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("match")}>경기 ID</button>
+          <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("recent")}>최근 경기</button>
+          <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("vision")}>
+            점수판 이미지<span className="tg-beta">beta</span>
+          </button>
+        </div>
       </div>
       {modal && (
         <div className="tg-modal-backdrop" onMouseDown={() => setModal(null)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
             <div className="tg-row tg-row--between">
-              <h2>{modal === "match" ? "경기 ID 불러오기" : modal === "recent" ? "최근 경기 선택" : "점수판 이미지 분석"}</h2>
+              <h2>
+                {modal === "match" ? "경기 ID 불러오기" : modal === "recent" ? "최근 경기 선택" : "점수판 이미지 분석"}
+                {modal === "vision" && <span className="tg-beta">beta</span>}
+              </h2>
               <button className="tg-button" type="button" onClick={() => setModal(null)}>닫기</button>
             </div>
             {modal === "match" && (
@@ -142,7 +152,8 @@ export function TrialAssist({
             )}
             {modal === "vision" && (
               <label className="tg-field">
-                <span>LoL 점수판 이미지</span>
+                <span>LoL 점수판 이미지 <span className="tg-beta">beta</span></span>
+                <span className="tg-muted">인식이 틀릴 수 있어요. 분석 후 수동 매칭으로 고칠 수 있습니다.</span>
                 <input type="file" accept="image/*" disabled={loading} onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (file) void analyzeImage(file);

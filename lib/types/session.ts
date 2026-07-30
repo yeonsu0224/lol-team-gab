@@ -4,6 +4,7 @@ export type RoundNumber = 1 | 2 | 3;
 export type InternalTier = "OP" | 1 | 2 | 3 | 4 | 5;
 export type PerformanceGrade = "F" | "D" | "C" | "B" | "A" | "OP";
 export type CommentMode = "normal" | "friend";
+export type TierAssessment = "overrated" | "fair" | "underrated";
 
 export interface TierDisplay {
   tier: string;
@@ -31,6 +32,10 @@ export interface Participant {
   currentLpValue: number;
   personalScore: number;
   internalTierBadge: InternalTier;
+  /** 총무의 정성 평가 보정값. 자동 점수에 -10~+10%p로 더한다. */
+  manualScoreAdjustment?: number;
+  /** 표시·설명용 티어 평가. 점수 영향은 manualScoreAdjustment로만 준다. */
+  tierAssessment?: TierAssessment;
   honeyBeeStreak: number;
   honeyBeeBadge: "none" | "bee" | "glitterBee" | "rainbowBee";
   honeyBeeHistory: boolean[];
@@ -140,6 +145,7 @@ export interface UserProfile {
   displayName?: string;
   riotId?: string;
   myPuuid?: string;
+  profileIconId?: number;
 }
 
 export interface RecentPlayer {

@@ -11,6 +11,7 @@ export function parseUserProfile(raw: string | null): UserProfile {
       displayName: clean(value.displayName),
       riotId: clean(value.riotId),
       myPuuid: clean(value.myPuuid),
+      profileIconId: typeof value.profileIconId === "number" ? value.profileIconId : undefined,
     };
   } catch {
     return {};
