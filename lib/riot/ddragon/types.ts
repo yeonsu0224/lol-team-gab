@@ -3,18 +3,17 @@ export interface ChampionSummary {
   key: string;
   name: string;
   title: string;
-  image: {
-    full: string;
-  };
+}
+
+export type ChampionsByKey = Record<string, ChampionSummary>;
+
+export interface DataDragonBootstrap {
+  version: string;
+  championsByKey: ChampionsByKey;
 }
 
 export interface DataDragonImageUrls {
   square: string;
   splash: string;
   loading: string;
-}
-
-export interface DataDragonBootstrap {
-  version: string;
-  championsByKey: Record<string, ChampionSummary>;
 }

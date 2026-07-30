@@ -6,10 +6,11 @@ export interface RiotAccount {
   tagLine: string;
 }
 
+// Summoner-V4 no longer returns the encrypted summoner/account IDs, so all
+// downstream lookups must key off the PUUID.
 export interface RiotSummoner {
   puuid: string;
   profileIconId: number;
-  revisionDate: number;
   summonerLevel: number;
 }
 
@@ -22,8 +23,7 @@ export interface RiotLeagueEntry {
   losses: number;
 }
 
-export interface RiotChampionMastery {
-  puuid: string;
+export interface RiotMastery {
   championId: number;
   championLevel: number;
   championPoints: number;
@@ -33,20 +33,13 @@ export interface RiotMatchParticipant {
   puuid: string;
   riotIdGameName?: string;
   riotIdTagline?: string;
-  profileIcon: number;
-  teamId: 100 | 200;
-  win: boolean;
   kills: number;
   deaths: number;
   assists: number;
   totalDamageDealtToChampions: number;
-  totalMinionsKilled: number;
-  neutralMinionsKilled: number;
-  visionScore: number;
-  championId: number;
-  championName: string;
-  teamPosition: MainRole | "";
-  individualPosition: MainRole | "";
+  teamPosition?: MainRole | "";
+  win: boolean;
+  teamId: number;
 }
 
 export interface RiotMatch {
@@ -57,25 +50,7 @@ export interface RiotMatch {
   info: {
     gameCreation: number;
     gameDuration: number;
-    gameMode: string;
     queueId: number;
     participants: RiotMatchParticipant[];
   };
-}
-
-export interface MatchParticipantSummary {
-  puuid: string;
-  riotId: string | null;
-  team: "blue" | "red";
-  win: boolean;
-  championId: number;
-  championName: string;
-  role: MainRole | null;
-  kills: number;
-  deaths: number;
-  assists: number;
-  kda: number;
-  damageDealt: number;
-  cs: number;
-  visionScore: number;
 }

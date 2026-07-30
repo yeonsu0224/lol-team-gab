@@ -25,44 +25,26 @@ $color-text-muted: #6f7f96;
 $color-text-disabled: #4d5b70;
 $color-text-inverse: #07101f;
 
-$color-border-subtle: rgba(255, 255, 255, 0.08);
-$color-border-default: rgba(182, 202, 230, 0.16);
-$color-border-strong: rgba(200, 155, 60, 0.42);
-$color-border-focus: rgba(98, 213, 245, 0.8);
+$color-border-subtle: rgb(255 255 255 / 8%);
+$color-border-default: rgb(182 202 230 / 16%);
+$color-border-strong: rgb(200 155 60 / 42%);
+$color-border-focus: rgb(98 213 245 / 80%);
 
-$glass-surface-soft: rgba(10, 22, 39, 0.52);
-$glass-surface-default: rgba(9, 20, 36, 0.68);
-$glass-surface-strong: rgba(7, 16, 30, 0.82);
-$glass-overlay: rgba(3, 7, 18, 0.72);
-$glass-blur-sm: 8px;
-$glass-blur-md: 16px;
-$glass-blur-lg: 24px;
+$glass-surface-soft: rgb(10 22 39 / 52%);
+$glass-surface-default: rgb(9 20 36 / 68%);
+$glass-surface-strong: rgb(7 16 30 / 82%);
+$glass-overlay: rgb(3 7 18 / 72%);
 
-// Team colors prioritize readable grouping over decorative glow.
-$team-blue-surface: rgba(0, 90, 130, 0.2);
-$team-blue-border: rgba(98, 213, 245, 0.42);
-$team-red-surface: rgba(145, 52, 67, 0.2);
-$team-red-border: rgba(235, 112, 129, 0.42);
-
-$status-error: #ff5c6c;
-$status-error-bg: rgba(255, 92, 108, 0.14);
-$status-error-border: rgba(255, 92, 108, 0.45);
-$status-warning: #f6c453;
-$status-warning-bg: rgba(246, 196, 83, 0.14);
-$status-warning-border: rgba(246, 196, 83, 0.42);
-$status-success: #34d399;
-$status-success-bg: rgba(52, 211, 153, 0.14);
-$status-success-border: rgba(52, 211, 153, 0.4);
-$status-info: #38bdf8;
-$status-info-bg: rgba(56, 189, 248, 0.14);
-$status-info-border: rgba(56, 189, 248, 0.4);
+$color-team-blue: #3b82f6;
+$color-team-blue-surface: rgb(30 64 175 / 18%);
+$color-team-blue-border: rgb(96 165 250 / 48%);
+$color-team-red: #ef4444;
+$color-team-red-surface: rgb(153 27 27 / 18%);
+$color-team-red-border: rgb(248 113 113 / 48%);
 
 $gradient-page:
-  radial-gradient(circle at 15% 10%, rgba(0, 90, 130, 0.28), transparent 34%),
-  radial-gradient(circle at 85% 15%, rgba(91, 33, 182, 0.18), transparent 30%),
-  radial-gradient(circle at 50% 100%, rgba(200, 155, 60, 0.12), transparent 38%),
-  linear-gradient(145deg, #030712 0%, #07101f 52%, #081527 100%);
-
-$gradient-gold: linear-gradient(135deg, #f0d98b 0%, #c89b3c 48%, #8f6422 100%);
-$gradient-blue: linear-gradient(135deg, #62d5f5 0%, #0ac8b9 50%, #005a82 100%);
-$gradient-rival: linear-gradient(135deg, #8b5cf6 0%, #0ac8b9 100%);
+  radial-gradient(circle at 15% 10%, rgb(0 90 130 / 28%), transparent 34%),
+  radial-gradient(circle at 85% 15%, rgb(91 33 182 / 18%), transparent 30%),
+  linear-gradient(145deg, $color-bg-deep 0%, $color-bg-base 52%, #081527 100%);
+$gradient-gold: linear-gradient(135deg, #f0d98b 0%, $color-gold-500 48%, #8f6422 100%);
+$gradient-blue: linear-gradient(135deg, $color-blue-300 0%, $color-blue-500 50%, $color-blue-700 100%);

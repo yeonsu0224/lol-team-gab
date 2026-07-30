@@ -5,32 +5,16 @@
 }
 
 html,
-body,
-h1,
-h2,
-h3,
-p,
-ul,
-ol {
+body {
   margin: 0;
-}
-
-ul,
-ol {
   padding: 0;
-  list-style: none;
 }
 
 button,
 input,
-select,
-textarea {
+textarea,
+select {
   font: inherit;
-}
-
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
 }
 
 img,

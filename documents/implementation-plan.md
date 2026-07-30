@@ -1,36 +1,48 @@
 # 내전 총무 — 구현 계획
 
-> **문서 버전:** v1.0.1  
-> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v2.1.1, [feedback.md](./feedback.md), [design-system.md](./design-system.md)  
-> **상태:** 2차 반복 — 명세 확정 후 재구현 대기  
+> **문서 버전:** v2.0.1  
+> **기준 문서:** [constitution.md](./constitution.md), [spec.md](./spec.md) v3.0.2, [feedback.md](./feedback.md), [design-system.md](./design-system.md)  
+> **상태:** 3차 반복 — Phase 0~8 구현 완료 · 실 API/브라우저 QA 대기  
 > **다음 단계:** [tasks.md](./tasks.md) Phase별 Task 재분해
 
 ---
 
 ## 1. 목적
 
-[spec.md](./spec.md) v2.1에 정의된 MVP를 **Next.js + TypeScript + SCSS**로 **처음부터 재구현**한다.  
-1차 구현 코드는 삭제되었고, 본 문서는 **어떤 순서로, 어떤 구조로** 다시 만들지 정한다. 개별 Task의 완료 조건·검증은 **작업 정의**(`tasks.md`)에서 분리한다.
+[spec.md](./spec.md) v3.0.1에 정의된 MVP를 **Next.js + TypeScript + SCSS**로 **처음부터 재구현**한다.  
+2차 구현 코드는 삭제되었고, 본 문서는 **어떤 순서로, 어떤 구조로** 다시 만들지 정한다. 개별 Task의 완료 조건·검증은 **작업 정의**(`tasks.md`)에서 분리한다.
 
-### 기본 UX vs 2차에서 새로 넣는 것
+### 3차에서 새로 넣는 것 (feedback "2차 시도")
 
-팀 컬럼 **가독성**(블루/레드가 한눈에 구분되고 읽기 쉬움)은 1차부터 필요한 **MVP 기본**이다.  
-1차에서 밋밋해 보였던 것은 “2차에서만 화려하게 치장한다”는 뜻이 아니라, **기본 가독성 미충족**이었고 재구현에서도 처음부터 충족한다. 장식용 과도한 그라디언트·글로우는 쓰지 않는다.
+3차의 핵심은 **모션·정보 구조·대치 구도**다. 기능은 2차와 동일하되, 정적·딱딱한 인상을 걷어낸다. 모션은 **가독성·성능·접근성**(`prefers-reduced-motion`)을 해치지 않는 선에서만 쓴다.
 
-| 영역 | 기본(항상) / 1차 미충족 보정 | 2차에서 **새로** 넣는 것 |
-|------|------------------------------|---------------------------|
-| 팀 UI | 블루/레드 **가독성 구분**, 평균 티어를 팀이랑 붙여 읽기 | **51% vs 49%** 전력 비율 |
-| AI | (요약 자체는 MVP) | OpenAI·`/summary` → **Gemini** + **플로팅 어시스턴트** |
-| 성과 | 꿀벌·기대 이하 | **F~OP 등급**, **`unrated`**(기대치 산출 불가) |
-| 주 라인 | (표시 필요) | **라인 아이콘**(자체 SVG) |
-| 시험 입력 | 수동·경기ID·이미지 | **보조=작은 버튼+모달**, placeholder, **폼 상태 유지** |
-| 재밸런스 | 다음 판 팀 제안 | **팀 중심** 레이아웃 · `A↔G` 트레이드 · 개인점수 ▲/▼ n% |
-| 마무리 | — | **`/finish`** 총평·평가·피드백 + **후원(F-11)** |
+| 영역 | 유지(2차 기준) | 3차에서 **새로** 넣는 것 |
+|------|----------------|---------------------------|
+| 모션 | (정적) | **D-14 모션 시스템** — 단계 전환 페이드·순차 등장·팀 슬라이드 인·`ease-in-out` |
+| 진입 | 랜딩 → 세션 | **소개형 랜딩 + 상단 배너(중앙 로고)** → **대시보드(F-12)** |
+| 홈 | (세션 목록만) | **대시보드** — 총무 인사·내 플레이어·세션 그리드(상태·평점) (D-15) |
+| 팀 UI | 가독성·비율·평균 | **블루팀 우측 정렬 대치**(D-16), 하단 버튼 구역, 팀 박스 미니 모달, 근거 우상단 hover |
+| 참가자 등록 | 간략 카드·본캐 경고 | 좌5/우5 순차, 안내 소형 텍스트, **hover 상세 모달**, CTA **그라디언트** |
+| 시험 입력 | 수동·경기ID·이미지·폼 유지 | 판 탭 우상단 고정, **참가자 최근 경기 목록 선택**, 4판 전 종료 버튼 |
+| 재밸런스 | 팀 중심·트레이드·증감 | 교체 **border 강조 + 들어온/나간 표시** |
+| 마무리 | 총평·평가·피드백·후원 | **승리팀 컬러 대표 박스**·결과 컬러 칩·**별점 1~5** → 대시보드 반영 |
+
+### 이전 반복(2차) 기준 — 유지
+
+| 영역 | 내용 |
+|------|------|
+| 팀 UI | 블루/레드 **가독성 구분**, 평균 티어 헤더, **51% vs 49%** 전력 비율 |
+| AI | **Gemini** + **플로팅 어시스턴트** (`/summary` 없음) |
+| 성과 | **F~OP 등급**, **`unrated`**(기대치 산출 불가) |
+| 주 라인 | **라인 아이콘**(자체 SVG) |
+| 시험 입력 | 수동·경기ID·이미지, **보조=작은 버튼+모달**, placeholder, **폼 상태 유지** |
+| 재밸런스 | **팀 중심** 레이아웃 · `A↔G` 트레이드 · 개인점수 ▲/▼ n% |
+| 마무리 | **`/finish`** 총평·평가·피드백 + **후원(F-11)** |
 
 ### MVP 핵심 E2E
 
 ```
-랜딩 → 세션 생성 → 8~10명 등록·전력 분석
+랜딩(소개) → 대시보드 → 새 내전 / 세션 재진입 → 8~10명 등록·전력 분석
   → 1판 팀 제안(스왑·전력 비율·AI 팀 색 멘트)
   → 1판 시험 입력(수동 + 보조 모달: 경기 ID / 이미지)
       → LP 누적 · (가능하면) 꿀벌·F~OP · unrated면 평가 생략
@@ -126,15 +138,16 @@ team_gap/
 ├── next.config.ts
 ├── tsconfig.json
 ├── app/
-│   ├── layout.tsx
-│   ├── page.tsx                      # 랜딩 F-01
+│   ├── layout.tsx                    # 공통 크롬 + TopBanner(중앙 로고, D-14)
+│   ├── page.tsx                      # 소개형 랜딩 F-01
+│   ├── dashboard/page.tsx            # 대시보드 F-12 (총무 인사·세션 그리드)
 │   ├── globals.scss
 │   ├── api/
 │   │   ├── riot/
 │   │   │   ├── account/route.ts
 │   │   │   ├── account/search/route.ts
 │   │   │   ├── player/route.ts
-│   │   │   ├── matches/route.ts
+│   │   │   ├── matches/route.ts      # 참가자 최근 경기 목록 (F-05 A')
 │   │   │   ├── match/[id]/route.ts
 │   │   │   ├── vision/route.ts       # Gemini 멀티모달 (F-09)
 │   │   │   └── summary/route.ts      # Gemini 텍스트 (F-08)
@@ -149,15 +162,19 @@ team_gap/
 │           ├── rebalance/page.tsx    # F-06
 │           └── finish/page.tsx       # F-10, F-11  (summary 페이지 없음)
 ├── components/
-│   ├── layout/                   # BackLink, PageHeader, StepNav
-│   ├── player/                   # RiotIdSearch, PlayerCard(간략), LaneIcon
-│   ├── team/                     # TeamColumn(가독성 팀색), PowerRatioBar, TradeList
-│   ├── trial/                    # TrialForm, AssistModal(MatchId/Vision), VisionReview
-│   ├── ai/                       # FloatingAssistant, bubble, mode toggle
-│   └── shared/                   # ReasonPanel, TierEmblem, Badge, ProfileIcon, ChampionIcon
+│   ├── layout/                   # TopBanner, BackLink, PageHeader, StepNav
+│   ├── motion/                   # FadeStage, Stagger, TeamSlideIn (D-14 래퍼)
+│   ├── dashboard/                # DashboardGreeting, SessionGrid, SessionCard, MyPlayerPicker
+│   ├── player/                   # RiotIdSearch, PlayerCard(간략), PlayerHoverCard, LaneIcon
+│   ├── team/                     # TeamColumn(대치 정렬), PowerRatioBar, TradeList, MiniAddModal, BalanceReasonPopover
+│   ├── trial/                    # TrialForm, AssistModal(MatchId/RecentMatches/Vision), VisionReview
+│   ├── assistant/                # FloatingAssistant, bubble, mode toggle
+│   └── shared/                   # ReasonPanel, TierEmblem, Badge, ProfileIcon, ChampionIcon, StarRating
 ├── lib/
-│   ├── types/                    # Session(+wrapUp), Participant, TeamProposal(+powerPct), …
+│   ├── types/                    # UserProfile, Session(+status/wrapUp), Participant, TeamProposal, …
 │   ├── storage/
+│   │   ├── sessionStore.ts
+│   │   └── userProfile.ts        # D-15 총무 프로필(내 플레이어·이름)
 │   ├── riot/
 │   │   └── ddragon/
 │   ├── gemini/                   # 서버 전용 클라이언트 래퍼(요약·비전)
@@ -176,20 +193,24 @@ team_gap/
 │   │   ├── honeyBee.ts           # D-07 + unrated
 │   │   ├── performanceGrade.ts   # D-11 (unrated → null)
 │   │   ├── teamChange.ts         # F-06 A↔G 트레이드 산출
+│   │   ├── sessionStatus.ts      # D-15 preparing/in_progress/completed 파생
 │   │   ├── synergy.ts
 │   │   └── reasonCopy.ts
 │   ├── hooks/
+│   │   └── useReducedMotion.ts   # D-14 prefers-reduced-motion
 │   └── utils/
 │       ├── normalize.ts          # null 스킵 min-max (0 대체 금지)
 │       └── parseStatNumber.ts
 └── styles/                       # design-system.md §7
     ├── abstracts/
+    │   └── _motion.scss          # D-14 이징·지속시간·keyframes 토큰
     ├── base/
     ├── utilities/
     └── globals.scss
 ```
 
 > **삭제된 경로:** `app/session/[id]/summary` — AI는 플로팅 어시스턴트로만 제공 (D-10).
+> **신규 경로:** `app/dashboard` (F-12), `components/motion/`·`components/dashboard/`, `styles/abstracts/_motion.scss` (D-14/D-15).
 
 ---
 
@@ -216,7 +237,7 @@ team_gap/
 |------|-----------|
 | `lib/types` — spec §6 데이터 모델 | Session(+`wrapUp`), Participant(+`unrated`/`performanceGrade`/`personalScoreDelta`), TeamProposal(+`bluePowerPct`/`redPowerPct`), `TeamChange` |
 | `lib/storage/sessionStore.ts` | D-01 |
-| 랜딩: 새 내전 / 세션 목록 / 재진입 | F-01 |
+| 랜딩(소개) + 대시보드(세션 생성·목록·재진입) | F-01, F-12 |
 | 세션 layout + StepNav | players → team → trial → rebalance → **finish** |
 
 **검증:** 세션 생성·새로고침 후 유지·목록에서 재진입.
@@ -243,7 +264,7 @@ team_gap/
 - Match: 20판 제한, 주 포지션 표본 수(`preMainRoleGames`) 반환
 - Rate limit: 순차 호출 + 429 retry 1회
 - Data Dragon: 버전·챔피언 캐시, fallback env, Key 미사용. 티어 엠블럼은 Data Dragon에 개별 URL이 없어 Riot 개발자 포털 공식 배포본을 로컬 정적 자산으로 사용
-- Gemini: 서버에서만 호출, `normal`/`friend` 프롬프트 분리, `unrated` 참가자는 기대 이상/이하·범인 코멘트 제외
+- Gemini: 서버에서만 호출, `normal`/`friend` 프롬프트 분리, `unrated` 참가자는 기대 이상/이하·범인 코멘트 제외. 무료 tier에서 실제 호출 가능한 최신 flash 계열 모델을 사용하고, 401/403은 키 만료·거부 안내로 정규화
 - Vision 결과는 자동 저장하지 않음 — 보조 모달에서 검토 후 메인 폼에 채움
 
 **검증:** Key 서버 전용, 잘못된 Riot ID·Gemini 실패 시 공통 에러 형식.
@@ -399,6 +420,28 @@ unrated =
 
 ---
 
+### Phase 8 — 3차 UX: 모션·대시보드·대치·마무리 강화 (D-14~D-16, F-01/F-12, feedback "2차 시도")
+
+> 3차의 델타. 기능 기반(Phase 0~7)이 선다는 전제에서 UX·모션·정보 구조를 덧입힌다. 모션 토큰은 Phase 0 디자인 토큰에 함께 넣는 것을 권장한다.
+
+| UI / 로직 | 내용 |
+|-----------|------|
+| 모션 토큰 | `styles/abstracts/_motion.scss` — `ease-in-out` 베지어·지속시간·keyframes(fadeOut/fadeInUp/slideInLeft·Right/gradientShift) (D-14) |
+| 모션 래퍼 | `components/motion/*` — FadeStage(단계 전환), Stagger(박스→타이틀→콘텐츠), TeamSlideIn(블루 좌→우/레드 우→좌). `useReducedMotion` 연동 |
+| TopBanner | 공통 크롬 상단 고정 배너(중앙 로고), 랜딩 소개형 (F-01, D-14) |
+| 대시보드 | `/dashboard` — 총무 인사, MyPlayerPicker(내 플레이어), SessionGrid/SessionCard(상태·별점) (F-12, D-15) |
+| 총무 프로필 | 대시보드 Riot ID 검색으로 지정. `lib/storage/userProfile.ts`(displayName·riotId·myPuuid), `lib/domain/sessionStatus.ts`(상태 파생) |
+| 대치 정렬 | 좌 블루/우 레드 컬럼 유지, 블루 내용 우측·레드 내용 좌측 정렬. 카드 폭은 두 팀 모두 100%(`teamList` grid에 `justify-content` 금지), 블루는 `playerCard`·`badges` 모두 `row-reverse`로 요소 순서 거울 배치. 팀 제안·재밸런스·게임 결과 공통 (D-16) |
+| 팀 제안 개편 | 하단 버튼 구역, 팀 박스별 MiniAddModal(블루 좌/레드 우), BalanceReasonPopover(우상단 hover) (F-04) |
+| 참가자 등록 개편 | 좌5/우5 순차, 안내 소형 텍스트, PlayerHoverCard(hover 상세), CTA 그라디언트 애니메이션 (F-02) |
+| 시험 판 개편 | 판 탭 우상단 고정, RecentMatchesModal(현재 세션 내 내 플레이어 우선, 없으면 참가자 선택 → 자동 채움), 4판 전 종료 버튼 (F-05) |
+| 재밸런스 강조 | 교체 팀원 border 강조 + 들어온/나간 표시 (F-06) |
+| 마무리 강화 | 최다 승 팀(동률 시 마지막 판 승자) 컬러 대표 박스, 결과 컬러 칩, 성과 StarRating(별점 1~5) 하나 → `wrapUp`·대시보드 반영. 피드백은 텍스트만 (F-10, F-12) |
+
+**검증:** 단계 전환·슬라이드 인 동작, `prefers-reduced-motion` 폴백, 대시보드 상태·평점, 블루 우측 정렬·카드 100% 폭·뱃지 거울 순서, 최근 경기 선택 로드, 별점 저장·표시.
+
+---
+
 ## 5. 데이터 흐름
 
 ### 5.1 참가자 등록·분석
@@ -505,7 +548,12 @@ sequenceDiagram
 | D-11 | 3, 6 | performanceGrade |
 | D-12 | 3, 5, 6 | TeamColumn 가독성(기본) + powerRatio(2차 추가) |
 | D-13 | 4 | LaneIcon SVG |
-| design-system | 0, 4, 5, 7 | styles/*, shared UI |
+| D-14 | 0, 8 | `_motion.scss`, components/motion/*, useReducedMotion |
+| D-15 | 1, 8 | userProfile, sessionStatus, dashboard/* |
+| D-16 | 5, 8 | TeamColumn 대치 정렬 |
+| F-12 | 8 | `/dashboard`, DashboardGreeting, SessionGrid |
+| F-05 A' | 2, 8 | matches route, RecentMatchesModal |
+| design-system | 0, 4, 5, 7, 8 | styles/*, shared UI, 모션 토큰 |
 
 **MVP 제외:** RSO, Spectator, 마무리 서버 전송, 결제 연동
 
@@ -513,8 +561,8 @@ sequenceDiagram
 
 ## 9. 완료 정의 (구현 계획)
 
-- [ ] Phase 0~7 순서대로 구현 가능한 구조가 본 문서에 확립됨
-- [ ] spec v2.1 §9 릴리스 수용 기준을 수동 검증할 수 있음 (`release-checklist.md` 갱신)
+- [ ] Phase 0~8 순서대로 구현 가능한 구조가 본 문서에 확립됨
+- [ ] spec v3.0 §9 릴리스 수용 기준을 수동 검증할 수 있음 (`release-checklist.md` 갱신)
 - [ ] `tasks.md`가 Phase별 Task로 재분해됨
 - [ ] 수동 E2E 수용 검증 통과
 
@@ -529,3 +577,5 @@ sequenceDiagram
 | v0.8 | 2026-07-29 | 1차 구현 현황 표 (코드 삭제 전) |
 | v1.0 | 2026-07-29 | **2차 반복 재구현 계획** — spec v2.1 기준. Gemini·플로팅·`/finish`·F~OP·전력 비율·라인 아이콘·`unrated`·보조 모달·트레이드·후원. OpenAI/`/summary` 제거. Phase·구조·env·매핑 전면 갱신 |
 | v1.0.1 | 2026-07-29 | 팀 컬럼: **가독성=MVP 기본**, 2차 신규는 51/49 비율·헤더 평균. “2차만 화려” 프레이밍 제거 |
+| v2.0.1 | 2026-07-30 | Phase 8 대치 정렬 항목 보강(구현 피드백): 카드 100% 폭 유지 규칙과 블루팀 뱃지 행 거울 순서 명시 |
+| v2.0 | 2026-07-29 | **3차 반복 계획** — spec v3.0 기준. **Phase 8**(모션·대시보드·대치·마무리 강화) 신설. 구조에 `dashboard/`·`motion/`·`_motion.scss`·`userProfile`·`sessionStatus` 추가. 매핑에 D-14/D-15/D-16·F-12·F-05 A'(최근 경기 선택) 추가 |

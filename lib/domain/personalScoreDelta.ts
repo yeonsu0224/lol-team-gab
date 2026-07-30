@@ -1,37 +1,17 @@
-/**
- * Percentage change of a player's personal score versus the previous round
- * (spec F-06 / D-11). Only the percentage is surfaced — never the raw score.
- * Returns `null` when the previous score is unavailable or non-positive.
- */
-export function computePersonalScoreDelta(
-  previousScore: number | null | undefined,
-  currentScore: number,
-): number | null {
-  if (
-    typeof previousScore !== "number" ||
-    !Number.isFinite(previousScore) ||
-    previousScore <= 0
-  ) {
-    return null;
-  }
-  return ((currentScore - previousScore) / previousScore) * 100;
+export function calculatePersonalScoreDelta(previous: number, current: number): number {
+  if (!Number.isFinite(previous) || !Number.isFinite(current)) return 0;
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10;
 }
 
-export interface ScoreDeltaDisplay {
-  direction: "up" | "down" | "flat";
-  percentAbs: number;
-}
-
-export function formatScoreDelta(delta: number | null): ScoreDeltaDisplay | null {
-  if (delta === null) {
-    return null;
-  }
-  const rounded = Math.round(delta * 10) / 10;
-  if (rounded === 0) {
-    return { direction: "flat", percentAbs: 0 };
-  }
-  return {
-    direction: rounded > 0 ? "up" : "down",
-    percentAbs: Math.abs(rounded),
-  };
+export function calculateScoreDeltas(
+  previous: Readonly<Record<string, number>>,
+  current: Readonly<Record<string, number>>,
+): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(current).map(([puuid, score]) => [
+      puuid,
+      calculatePersonalScoreDelta(previous[puuid] ?? score, score),
+    ]),
+  );
 }

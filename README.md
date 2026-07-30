@@ -1,6 +1,8 @@
 # 내전 총무
 
-LoL 5v5 내전 팀 밸런스 웹앱. Next.js(App Router) + TypeScript + SCSS Modules.
+LoL 8~10명 내전 팀 밸런스 웹앱. Next.js(App Router) + TypeScript + SCSS Modules.
+
+진입: 소개형 랜딩(`/`) → 대시보드(`/dashboard`) → 세션(참가자 → 팀 → 시험판 → 재밸런스 → 종료).
 
 ## 문서
 
@@ -16,6 +18,7 @@ LoL 5v5 내전 팀 밸런스 웹앱. Next.js(App Router) + TypeScript + SCSS Mod
 npm install
 cp .env.local.example .env.local   # RIOT_API_KEY, GEMINI_API_KEY 입력
 npm run dev
+npm run self-check   # 도메인 로직 자체 검증
 ```
 
 ## 환경 변수

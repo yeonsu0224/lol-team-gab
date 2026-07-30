@@ -3,22 +3,22 @@ export interface PowerRatio {
   redPowerPct: number;
 }
 
-/**
- * Normalizes two team power sums to percentages that add up to 100 (spec D-12).
- * Rounding is corrected so blue + red === 100. Display only.
- */
-export function computePowerRatio(
-  blueSum: number,
-  redSum: number,
-): PowerRatio {
-  const total = blueSum + redSum;
-  if (total <= 0) {
-    return { bluePowerPct: 50, redPowerPct: 50 };
-  }
+export function calculatePowerRatio(bluePower: number, redPower: number): PowerRatio {
+  const blue = Math.max(0, bluePower);
+  const red = Math.max(0, redPower);
+  const total = blue + red;
+  if (total === 0) return { bluePowerPct: 50, redPowerPct: 50 };
+  const bluePowerPct = Math.round((blue / total) * 100);
+  return { bluePowerPct, redPowerPct: 100 - bluePowerPct };
+}
 
-  const bluePowerPct = Math.round((blueSum / total) * 100);
-  return {
-    bluePowerPct,
-    redPowerPct: 100 - bluePowerPct,
-  };
+export function calculateTeamPowerRatio<T>(
+  blueTeam: ReadonlyArray<T>,
+  redTeam: ReadonlyArray<T>,
+  score: (player: T) => number,
+): PowerRatio {
+  return calculatePowerRatio(
+    blueTeam.reduce((sum, player) => sum + score(player), 0),
+    redTeam.reduce((sum, player) => sum + score(player), 0),
+  );
 }

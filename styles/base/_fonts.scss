@@ -1,19 +1,2 @@
-@use "../abstracts" as *;
-
-html {
-  font-family: $font-family-base;
-  font-synthesis: none;
-}
-
-body,
-button,
-input,
-select,
-textarea {
-  font-family: inherit;
-}
-
-.stat-number {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
+// Pretendard is resolved from the user's system when available. A webfont can be
+// added later without changing the typography tokens.

@@ -1,33 +1,18 @@
-import styles from "./ReasonPanel.module.scss";
-
-interface ReasonPanelProps {
-  title?: string;
-  reasons: string[];
-  tone?: "default" | "neutral";
-}
+import styles from "./Shared.module.scss";
 
 export function ReasonPanel({
-  title = "분석 근거",
+  title = "이 결과가 나온 이유",
   reasons,
-  tone = "default",
-}: ReasonPanelProps) {
-  if (reasons.length === 0) {
-    return null;
-  }
-
+}: {
+  title?: string;
+  reasons: string[];
+}) {
   return (
-    <section className={styles.panel}>
-      <h3 className={styles.title}>{title}</h3>
-      <ul className={styles.list}>
-        {reasons.map((reason, index) => (
-          <li
-            key={`${index}-${reason}`}
-            className={tone === "neutral" ? styles.neutral : styles.item}
-          >
-            {reason}
-          </li>
-        ))}
+    <details className={styles.reason}>
+      <summary>{title}</summary>
+      <ul>
+        {reasons.map((reason) => <li key={reason}>{reason}</li>)}
       </ul>
-    </section>
+    </details>
   );
 }

@@ -1,7 +1,7 @@
 # Design System — Hextech Glass
 
-> **문서 버전:** v0.4  
-> **상태:** MVP UI 구현 반영 (Chrome · 참가자 · 팀 · 시험 · 재밸런스 · 요약)
+> **문서 버전:** v0.5.1  
+> **상태:** 3차 반복 UX 반영 (모션 시스템 · 상단 배너 · 대시보드 · 대치 정렬 · hover 플로팅 · 별점)
 
 리그 오브 레전드의 어두운 청색·금색 계열에서 영감을 받은 컬러 그라디언트와 글래스모피즘을 사용한다. 다만 Riot의 실제 클라이언트를 복제하지 않고, 내전 팀 편성과 스탯 비교에 적합한 독자적인 인터페이스를 구성한다.
 
@@ -304,6 +304,76 @@ $shadow-blue:
 - 네온 광택은 선택·강조 상태에만 사용한다.
 - 중첩된 카드마다 그림자를 추가하지 않는다.
 
+## 4-A. 모션 시스템 (D-14)
+
+3차 반복에서 도입한 모션 규칙. 정적·딱딱한 인상을 걷어내되, **가독성·성능·접근성**을 최우선으로 한다. 토큰은 `styles/abstracts/_motion.scss`에 둔다.
+
+### 이징 토큰
+
+```scss
+$ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);   // 기본 전환·등장
+$ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);     // 등장(감속) 강조
+$ease-in-soft: cubic-bezier(0.4, 0, 1, 1);         // 퇴장(가속)
+```
+
+- 기본은 **`ease-in-out` 계열 cubic-bezier**를 적극 사용한다. `linear`·급격한 곡선은 지양한다.
+
+### 지속시간·지연 토큰
+
+```scss
+$motion-micro: 180ms;    // hover 마이크로 인터랙션 (§5 유지, 150~250ms)
+$motion-enter: 320ms;    // 콘텐츠 등장 (220~420ms)
+$motion-exit: 240ms;     // 단계 전환 페이드 아웃
+$motion-stagger-step: 60ms;  // 순차 등장 항목 간 지연 (40~80ms)
+```
+
+### keyframes
+
+```scss
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {   // 블루팀: 좌 → 우
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {  // 레드팀: 우 → 좌
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes gradientShift { // CTA 활성 강조 (저강도)
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+```
+
+### 적용 규칙
+
+| 상황 | 모션 |
+|------|------|
+| **단계 전환**(페이지·스텝 이동) | 현재 화면 박스 `fadeOut`($motion-exit) → 새 화면 등장 |
+| **콘텐츠 등장 순서** | 항상 **박스(컨테이너) → 타이틀 → 리스트/주요 콘텐츠** 순, `fadeInUp` + stagger |
+| **순차 등장(stagger)** | 항목 index × `$motion-stagger-step` 지연 누적 |
+| **팀 슬라이드 인** | 블루=`slideInLeft`, 레드=`slideInRight`. **참가자 등록 화면 제외** |
+| **팀 제안 CTA** | 활성 시 `gradientShift` (의도된 예외, 저강도 루프) |
+
+### 접근성 (reduced-motion)
+
+```scss
+@media (prefers-reduced-motion: reduce) {
+  // 이동·슬라이드·그라디언트 루프 생략, 즉시 표시 또는 최소 페이드만
+}
+```
+
+- 모션은 콘텐츠 접근을 지연시키지 않는다(키보드·스크린리더 흐름은 즉시 동작).
+- 클라이언트에서는 `lib/hooks/useReducedMotion.ts`로 상태를 감지해 슬라이드/루프를 끈다.
+
 ## 5. 컴포넌트 규칙
 
 > **MVP 기준:** 아래는 토큰(§1~§4) 위에 올라가는 **UI 컴포넌트·화면 패턴** 제안이다.  
@@ -558,18 +628,19 @@ Phase 4 이후 화면(F-04 팀 제안, F-05 시험 판 등)을 추가할 때도 
 
 | 화면 | href | label |
 |------|------|-------|
-| Session 하위 전체 | `/` | `랜딩으로` |
+| 랜딩·대시보드 외 전체 | `/dashboard` | `대시보드` |
 | (필요 시) 이전 단계 | 이전 step path | `참가자로`, `팀 제안으로` 등 |
 
 규칙:
 
 - 브라우저 뒤로가기에만 의존하지 않고, **항상 눈에 보이는 BackLink**를 제공한다.
-- Session layout(`app/session/[id]/layout.tsx`) 최상단에 1회 배치한다. 개별 page에서 중복 배치하지 않는다.
-- Primary Button과 같은 줄에 두지 않는다. StepNav **위**에 둔다.
+- **TopBanner 좌측 슬롯**에 1회 배치한다 (전역 크롬). 페이지 본문·session layout에 중복 배치하지 않는다.
+- 랜딩(`/`)·대시보드(`/dashboard`)에서는 목적지가 같으므로 표시하지 않는다.
+- Primary Button과 같은 줄에 두지 않는다.
 
 #### PageHeader
 
-페이지 제목·부제·우측 액션 영역. BackLink는 layout에 있을 때 **생략**한다.
+페이지 제목·부제·우측 액션 영역. BackLink는 TopBanner에 있으므로 **본문에서 생략**한다.
 
 | 영역 | typography | 설명 |
 |------|------------|------|
@@ -607,8 +678,8 @@ Phase 4 이후 화면(F-04 팀 제안, F-05 시험 판 등)을 추가할 때도 
 
 ```text
 container
+  TopBanner (좌측 BackLink → "/dashboard" · 중앙 로고)
   chrome
-    BackLink → "/"
     StepNav
   page panel
     PageHeader (title + description)
@@ -753,6 +824,8 @@ API 실패, 저장 실패, 데이터 부족 등 시스템·데이터 상태를 �
 - 키보드: `<summary>` 기본 focus 지원, focus-visible ring 유지
 - hover: 배경 `rgba(16, 32, 56, 0.48)`, 텍스트 `$color-text-primary`
 
+> **3차 변경(F-02):** **참가자 등록 화면**에서는 상세를 아코디언 대신 **hover 플로팅 모달(PlayerHoverCard)**로 표시한다. 아코디언은 다른 화면 상세에서 계속 사용한다.
+
 ### StepNav
 
 세션 진행 단계(참가자 → 팀 제안 → 시험 판 → 재밸런스) 네비게이션.
@@ -786,24 +859,52 @@ API 실패, 저장 실패, 데이터 부족 등 시스템·데이터 상태를 �
 - `nav`에 `aria-label="내전 진행 단계"` 제공.
 - 모바일에서 가로 스크롤 허용, 줄바꿈하지 않는다 (`white-space: nowrap`).
 
-### Hero (Landing)
+### TopBanner (공통 크롬, D-14)
 
-랜딩 페이지 상단 브랜드 영역.
+전 화면 상단에 고정되는 배너. **중앙 정렬 로고** 스타일 (feedback: 큰 시작 버튼 → 상단 배너).
+
+| 요소 | 스타일 |
+|------|--------|
+| position | `sticky`/`fixed` top, `z-index` chrome 레이어 |
+| layout | `1fr auto 1fr` 3열 — **좌측 슬롯에 BackLink(대시보드)**, 중앙 로고, 우측은 여백 |
+| surface | `glass-surface($glass-surface-soft, $glass-blur-sm, $color-border-subtle)`, 하단 border |
+| logo | 중앙 정렬, `$gradient-gold` text clip 또는 로고 마크 |
+| height | 컴팩트(본문 자리 침범 최소) |
+
+규칙:
+
+- 랜딩·대시보드·세션 화면 공통 상단 크롬으로 유지한다.
+- 배너는 장식이 아니라 브랜드·홈 진입점이며, 큰 CTA를 대체한다.
+
+### Hero (Landing · 소개형, F-01)
+
+랜딩은 **소개형**이다. 앱이 무엇을 하는지 전달하고 "시작하기"로 대시보드에 진입한다.
 
 | 요소 | typography / 스타일 |
 |------|---------------------|
 | `badge` | `caption`, pill, `$color-gold-300`, uppercase |
 | `title` | `display-xl`, `$gradient-gold` text clip |
 | `subtitle` | `body-md`, `$color-text-secondary` |
+| `startCta` | `primary` 버튼 → `/dashboard` |
 
 규칙:
 
 - hero는 중앙 정렬, gap `$space-3`.
 - display-xl 그라디언트 텍스트는 hero·주요 결과 점수에만 사용한다.
+- 소개 블록은 Stagger(박스→타이틀→콘텐츠) 등장.
+
+### DashboardGreeting (F-12, D-15)
+
+대시보드 상단 인사·내 플레이어 영역.
+
+| 요소 | 스타일 |
+|------|--------|
+| `greeting` | `heading-md`, "안녕하세요, 총무 {이름}님" (미지정 시 "총무님") |
+| `myPlayerPicker` | Riot ID 검색 결과 계정을 "나"(myPuuid)로 지정/해제 |
 
 ### SessionCard
 
-저장된 내전 목록의 클릭 가능 카드.
+저장된 내전 목록의 클릭 가능 카드 (대시보드 그리드).
 
 | 속성 | 값 |
 |------|-----|
@@ -813,12 +914,43 @@ API 실패, 저장 실패, 데이터 부족 등 시스템·데이터 상태를 �
 | layout | column, gap `$space-2` |
 | hover | `@include hover-surface-lift` + `$shadow-sm` |
 
-| 텍스트 | typography |
+| 텍스트 / 요소 | typography / 스타일 |
 |--------|------------|
 | `sessionName` | `body-lg`, primary |
-| `sessionMeta` | `caption`, secondary |
+| `sessionMeta` | `caption`, secondary (생성일 등) |
+| `statusChip` | 상태 칩 — `preparing`(준비중, neutral) / `in_progress`(진행중, blue) / `completed`(완료, gold) (D-15) |
+| `myRating` | 내 평점 별점(StarRating, read-only) — `wrapUp` 별점 있을 때 (F-10/F-12) |
 
-그리드: 모바일 1열 → `$breakpoint-md` 이상 2열 (`sessionGrid`).
+그리드: 모바일 1열 → `$breakpoint-md` 이상 2~3열 (`sessionGrid`). 카드 나열은 Stagger 모션 적용(D-14).
+
+### StarRating (F-10)
+
+세션 **성과** 별점 1~5 입력/표시 컴포넌트. 피드백은 별점 없이 텍스트만.
+
+| 상태 | 스타일 |
+|------|--------|
+| 입력 | 세션 성과 별 1~5 클릭·키보드 선택, 채워진 별 `$color-gold-500` (피드백은 텍스트만) |
+| 표시(read-only) | 대시보드 카드 "내 평점" 등, 비활성 |
+
+- `aria-label`로 "5점 만점에 N점" 제공, 키보드 조작 지원.
+
+### 플로팅·모달 패턴 (3차)
+
+feedback "2차 시도"에서 상시 큰 패널 대신 **hover 플로팅 / 미니 모달**로 정보 밀도를 낮춘다.
+
+| 컴포넌트 | 용도 | 규칙 |
+|----------|------|------|
+| `PlayerHoverCard` | 참가자 등록 카드 hover 상세 (F-02) | 카드 hover/focus 시 상세 스탯·근거를 floating으로. 터치 환경은 tap 토글. `$shadow-md` |
+| `MiniAddModal` | 팀 박스 선수 추가/교체 (F-04) | 팀 박스 버튼 클릭 시 **블루=좌 / 레드=우** 방향에 소형 모달 플로팅 |
+| `BalanceReasonPopover` | 밸런스 근거 (F-04) | 팀 제안 박스 **우상단 아이콘** hover 시 상세 근거 박스 플로팅 (상시 패널 아님) |
+| `RecentMatchesModal` | 최근 경기 선택 (F-05) | 참가자 최근 경기 목록을 모달로, 선택 시 폼 자동 채움 |
+
+공통 규칙:
+
+- 플로팅/모달은 `$shadow-lg`(모달)·`$shadow-md`(팝오버), Glass surface 사용.
+- 핵심 폼·콘텐츠를 가리지 않게 배치하고, ESC·바깥 클릭으로 닫는다.
+- hover 전용 정보는 keyboard focus·터치 대체 경로를 함께 제공한다(§8 접근성).
+- 등장/퇴장에 `fadeInUp`/`fadeOut`($motion-enter/$motion-exit) 적용.
 
 ### PlayerCard
 
@@ -993,34 +1125,90 @@ dl 기반 KPI 그리드. Accordion 본문·팀 패널 등에 재사용.
 
 MVP 화면별 Panel 조합. 새 화면은 아래 패턴을 따른다.
 
-#### F-01 Landing (`app/page.tsx`)
+#### F-01 Landing (`app/page.tsx`) — 소개형 (3차)
 
 ```text
+TopBanner (고정 상단, 중앙 로고)
 Hero (badge + title + subtitle)
   ↓ $space-10
-CreatePanel (glass) — nameInput + primaryButton
+IntroSection — 앱 소개 (Stagger 등장)
   ↓
-ListSection — sessionGrid → SessionCard[]
+StartCta → "/dashboard"
+```
+
+#### F-12 Dashboard (`app/dashboard/page.tsx`) — 신규 (3차)
+
+```text
+TopBanner
+DashboardGreeting — "안녕하세요, 총무 {이름}님" + MyPlayerPicker
+CreateRow — "새 내전 시작" (nameInput + primaryButton)
+ListSection — sessionGrid → SessionCard[] (statusChip + myRating, Stagger 등장)
 ```
 
 #### Session Layout (`app/session/[id]/layout.tsx`)
 
 ```text
 container
+  TopBanner (공통 크롬 · 좌측 BackLink → "/dashboard")
   chrome
-    BackLink → "/"
     StepNav
-  children (page panel)
+  children (page panel, FadeStage 전환)
 ```
 
-#### F-02/F-03 Players (`app/session/[id]/players/page.tsx`)
+#### F-02/F-03 Players (`app/session/[id]/players/page.tsx`) — 3차 개편
 
 ```text
 Panel (glass, page shell)
-  PageHeader (title + meta)   ← BackLink는 layout에 있음
-  FormPanel (glass-strong) — Riot ID 등록
+  PageHeader (title + meta)   ← BackLink는 TopBanner에 있음
+  searchHint (검색창 상단 소형 텍스트 — 본캐 경고 등)  ← 박스 아님
+  FormPanel (glass-strong) — Riot ID 등록 + 팀 제안 CTA(그라디언트 활성)
   ManualPanel (optional) — 수동 티어
-  ListSection — participantList → PlayerCard[]
+  registeredGrid — 좌5 / 우5 2열, 좌열→우열 순차, ~50% 축소 카드
+    → PlayerCard(간략) + hover PlayerHoverCard(상세)
+```
+
+#### F-04/F-06 Team & Rebalance — 대치 정렬 (D-16, 3차)
+
+```text
+teamBoards (중앙 기준 대치)
+  blueBoard (좌) — 헤더/타이틀/카드 우측 정렬, 카드 내 요소 거울 순서, slideInLeft
+  powerRatioBar (51% vs 49%)
+  redBoard (우)  — 헤더/타이틀/카드 좌측 정렬, 기본 순서, slideInRight
+    · 각 팀 박스: 평균 티어 헤더 + [선수 추가/교체] 버튼(→ MiniAddModal)
+    · 우상단: 밸런스 근거 아이콘(→ BalanceReasonPopover)
+actionRow (하단 버튼 구역) — [시험 판 진행] / [내전 종료하기]
+FloatingAssistant (우하단)
+```
+
+**카드 폭 규칙 (D-16)**
+
+대치 정렬은 **콘텐츠 정렬만** 바꾼다. `teamList`는 grid이므로 `justify-content`를 주면 auto 컬럼이 stretch되지 않아 카드가 내용 폭으로 줄어든다. 정렬은 `text-align`으로만 처리하고, `justify-content: flex-end`는 flex 행(`teamHeader`·`badges`)에만 적용한다.
+
+```scss
+// ✅ 카드가 팀 박스 안쪽 폭 100%를 유지
+.blue .teamHeader,
+.blue .teamList,
+.blue .badges { text-align: right; }
+
+.blue .teamHeader,
+.blue .badges { justify-content: flex-end; }
+
+// ❌ .teamList(grid)에 justify-content를 주면 카드 폭이 내용 폭으로 줄어든다
+```
+
+**요소 순서 미러링 (D-16)**
+
+블루팀 카드는 레드팀 카드의 거울 배치를 따른다. 카드 최상위 flex(`playerCard`)와 **뱃지 행(`badges`)** 모두 `row-reverse`를 적용해, 두 팀 모두 중앙에서 바깥쪽으로 `내부 티어 뱃지 → 라인 아이콘 → 성과·꿀벌` 순서로 읽히게 한다.
+
+```scss
+.blue .playerCard,
+.blue .badges { flex-direction: row-reverse; }
+
+@media (max-width: 47.999rem) {
+  // 1열로 쌓이면 정렬·순서 미러링 모두 해제
+  .blue .playerCard,
+  .blue .badges { flex-direction: row; }
+}
 ```
 
 | Panel 클래스 | surface | padding | gap |
@@ -1028,6 +1216,9 @@ Panel (glass, page shell)
 | `panel` | `glass-surface` | `$space-6` | `$space-6` |
 | `formPanel` / `listSection` | `$glass-surface-strong` | `$space-6` | `$space-5` |
 | `formHeader` | grid 1fr + auto (≥720px) | — | `$space-3` |
+| `registeredGrid` | 2열(≥`$breakpoint-md`), 1열(모바일) | — | `$space-3` |
+| `blueBoard` | `text-align: right`, 카드·뱃지 행 `flex-direction: row-reverse` | — | — |
+| `teamList` | grid 1열, `justify-content` 금지(카드 100% 폭 유지) | — | `$space-2` |
 
 ### 컴포넌트 ↔ 파일 매핑 (MVP)
 
@@ -1041,7 +1232,14 @@ Panel (glass, page shell)
 | Input / Select / Field | `players.module.scss`, `page.module.scss` | `components/shared/Input` |
 | Banner | `players.module.scss`, `page.module.scss` | `components/shared/Banner` |
 | StepNav | `StepNav.module.scss` | `components/layout/StepNav` |
-| SessionCard | `page.module.scss` | `components/session/SessionCard` |
+| SessionCard | `page.module.scss` | `components/dashboard/SessionCard` |
+| TopBanner | `layout.module.scss` | `components/layout/TopBanner` |
+| DashboardGreeting / SessionGrid / MyPlayerPicker | `dashboard.module.scss` | `components/dashboard/*` |
+| 모션 래퍼(FadeStage/Stagger/TeamSlideIn) | `_motion.scss` + module | `components/motion/*` |
+| PlayerHoverCard | `players.module.scss` | `components/player/PlayerHoverCard` |
+| MiniAddModal / BalanceReasonPopover | `team.module.scss` | `components/team/*` |
+| RecentMatchesModal | `trial.module.scss` | `components/trial/RecentMatchesModal` |
+| StarRating | `finish.module.scss` | `components/shared/StarRating` |
 | RiotIdSearch | `RiotIdSearch.module.scss` | `components/player/RiotIdSearch` |
 | PlayerCard + Accordion | `players.module.scss` | `components/player/PlayerCard` |
 | Badge 변형 | `players.module.scss`, `_status-badges.scss` | `components/shared/Badge` |
@@ -1343,9 +1541,11 @@ CSS Modules 내부에서도 BEM과 유사한 명확한 역할명을 사용한다
 - 마우스가 있는 환경에서는 모든 버튼·링크·입력 UI에 hover 피드백을 제공한다 (§5 인터랙티브 Hover).
 - 터치 전용 환경에서는 hover 스타일이 상태처럼 고정되지 않도록 `@media (hover: hover)`로 제한한다.
 - `OP`, `꿀벌`, `범인`은 아이콘과 텍스트를 함께 표시한다.
-- 애니메이션은 150~250ms 범위로 제한한다.
-- `prefers-reduced-motion: reduce`에서는 hover transform을 생략하고 border·background 변화만 사용한다.
-- 장식적인 무한 애니메이션은 사용하지 않는다.
+- **hover 마이크로 인터랙션**은 150~250ms로 제한한다.
+- **단계 전환·콘텐츠 등장**(D-14, §4-A)은 220~420ms, stagger 40~80ms를 사용한다. 이징은 `ease-in-out` 계열 cubic-bezier를 우선한다.
+- hover 전용 정보(PlayerHoverCard·Popover)는 keyboard focus·터치 대체 경로를 함께 제공한다.
+- `prefers-reduced-motion: reduce`에서는 hover transform·슬라이드 인·그라디언트 루프를 생략하고, 즉시 표시하거나 최소한의 border·background·페이드 변화만 사용한다.
+- 장식적인 무한 애니메이션은 사용하지 않는다. **예외:** 팀 제안 CTA 활성 그라디언트(§4-A, 저강도, reduced-motion에서 정지).
 
 핵심 원칙은 다음 한 문장으로 정리할 수 있습니다.
 
@@ -1359,3 +1559,5 @@ CSS Modules 내부에서도 BEM과 유사한 명확한 역할명을 사용한다
 |------|------|------|
 | v0.3 | 2026-07-28 | MVP UI 카탈로그 · Chrome · hover/interactive |
 | v0.4 | 2026-07-29 | 구현 반영: `readyBadgeLink`, RiotIdSearch·ReasonPanel·VisionReviewPanel 매핑, 컴포넌트 폴더 구조 동기화 |
+| v0.5.1 | 2026-07-30 | D-16 대치 정렬 구현 규칙 보강: `teamList`(grid)에 `justify-content` 금지 — 카드 폭 100% 유지, `justify-content`는 flex 행(`teamHeader`·`badges`)에만. 블루팀은 `playerCard`·`badges` 모두 `row-reverse`로 요소 순서 거울 배치, 모바일 1열에서 해제 |
+| v0.5 | 2026-07-29 | **3차 반복(feedback "2차 시도"):** §4-A 모션 시스템(이징·지속시간·keyframes fadeOut/fadeInUp/slideInLeft·Right/gradientShift·reduced-motion), TopBanner·소개형 Hero·Dashboard(Greeting·SessionCard 상태칩/평점)·StarRating·플로팅 모달 패턴(PlayerHoverCard·MiniAddModal·BalanceReasonPopover·RecentMatchesModal), 대치 정렬(D-16) 레이아웃, §8 모션 가이드·파일 매핑 갱신 |

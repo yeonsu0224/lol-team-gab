@@ -1,27 +1,10 @@
 import type { ReactNode } from "react";
 
-import styles from "./PageHeader.module.scss";
-
-interface PageHeaderProps {
-  title: string;
-  description?: string;
-  action?: ReactNode;
-}
-
-export function PageHeader({
-  title,
-  description,
-  action,
-}: PageHeaderProps) {
+export function PageHeader({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <header className={styles.header}>
-      <div>
-        <h1 className={styles.title}>{title}</h1>
-        {description ? (
-          <p className={styles.description}>{description}</p>
-        ) : null}
-      </div>
-      {action ? <div className={styles.action}>{action}</div> : null}
+    <header>
+      <h1>{title}</h1>
+      {children}
     </header>
   );
 }

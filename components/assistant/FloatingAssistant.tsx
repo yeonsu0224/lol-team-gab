@@ -2,163 +2,138 @@
 
 import { useState } from "react";
 
-import type { AssistantResult, SummaryPayload } from "@/lib/domain/summaryPayload";
-import { updateSession } from "@/lib/storage/sessionStore";
-import type { CommentMode } from "@/lib/types";
-
-import styles from "./FloatingAssistant.module.scss";
-
-interface FloatingAssistantProps {
-  sessionId: string;
-  initialMode: CommentMode;
-  buildPayload: () => SummaryPayload | null;
-}
+import { requestJson } from "@/lib/player/client";
+import type { CommentMode, Session } from "@/lib/types";
+import styles from "@/components/shared/Shared.module.scss";
 
 export function FloatingAssistant({
-  sessionId,
-  initialMode,
-  buildPayload,
-}: FloatingAssistantProps) {
+  session,
+  surface,
+  onModeChange,
+}: {
+  session: Session;
+  surface: "team" | "trial" | "rebalance" | "finish";
+  onModeChange?: (mode: CommentMode) => void;
+}) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<CommentMode>(initialMode);
+  const [mode, setMode] = useState<CommentMode>(session.commentMode ?? "normal");
+  const [summary, setSummary] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AssistantResult | null>(null);
+  const friendCandidates = session.participants.filter((participant) => {
+    const unrated =
+      participant.tierSource === "manual" ||
+      (participant.riotData.preMainRoleGames ?? 0) < 3 ||
+      participant.riotData.preMainRoleKda == null ||
+      participant.riotData.preMainRoleDamage == null;
+    return !unrated && Object.values(participant.trialPerformanceByRound ?? {})
+      .some((performance) => performance?.roundBelowExpect);
+  });
 
-  async function fetchSummary(nextMode: CommentMode) {
-    const payload = buildPayload();
-    if (!payload) {
-      setError("아직 요약할 팀 구성이 없습니다.");
-      return;
-    }
+  function selectMode(next: CommentMode) {
+    setMode(next);
+    setSummary("");
+    setError("");
+    onModeChange?.(next);
+  }
+
+  async function explain() {
     setLoading(true);
-    setError(null);
+    setError("");
     try {
-      const response = await fetch("/api/riot/summary", {
+      const result = await requestJson<{ summary: string }>("/api/riot/summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: nextMode, payload }),
+        body: JSON.stringify({ mode, context: buildSafeContext(session, surface, mode) }),
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error?.message ?? "요약을 불러오지 못했습니다.");
-      }
-      setResult({ mode: data.mode, summary: data.summary, bullets: data.bullets });
-    } catch (fetchError) {
-      setResult(null);
-      setError(
-        fetchError instanceof Error
-          ? fetchError.message
-          : "요약을 불러오지 못했습니다.",
-      );
+      setSummary(result.summary);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "설명을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
   }
 
-  function handleOpen() {
-    setOpen(true);
-    if (!result && !loading) {
-      void fetchSummary(mode);
-    }
-  }
-
-  function handleModeChange(nextMode: CommentMode) {
-    if (nextMode === mode) {
-      return;
-    }
-    setMode(nextMode);
-    try {
-      updateSession(sessionId, { commentMode: nextMode });
-    } catch {
-      // Persisting the preference is best-effort; the summary still updates.
-    }
-    void fetchSummary(nextMode);
-  }
-
   return (
-    <div className={styles.root}>
+    <aside className={styles.assistant} aria-label="Gemini 내전 도우미">
       {open ? (
-        <div className={styles.bubble} role="dialog" aria-label="AI 요약">
-          <div className={styles.header}>
-            <span className={styles.title}>AI 코치</span>
-            <button
-              type="button"
-              className={styles.close}
-              onClick={() => setOpen(false)}
-              aria-label="닫기"
-            >
-              ✕
+        <div className={styles.assistantPanel}>
+          <div className={styles.assistantHeader}>
+            <strong>🐝 내전 설명 도우미</strong>
+            <button type="button" onClick={() => setOpen(false)}>닫기</button>
+          </div>
+          <div className={styles.modeRow} aria-label="설명 모드">
+            <button className={mode === "normal" ? styles.modeActive : ""} type="button" onClick={() => selectMode("normal")}>
+              일반 모드
+            </button>
+            <button className={mode === "friend" ? styles.modeActive : ""} type="button" onClick={() => selectMode("friend")}>
+              친구 모드
             </button>
           </div>
-
-          <div className={styles.modeRow}>
-            <button
-              type="button"
-              className={`${styles.modeButton} ${mode === "normal" ? styles.modeActive : ""}`}
-              onClick={() => handleModeChange("normal")}
-              aria-pressed={mode === "normal"}
-            >
-              일반
-            </button>
-            <button
-              type="button"
-              className={`${styles.modeButton} ${mode === "friend" ? styles.modeActive : ""}`}
-              onClick={() => handleModeChange("friend")}
-              aria-pressed={mode === "friend"}
-            >
-              찐친
-            </button>
-            <button
-              type="button"
-              className={styles.refresh}
-              onClick={() => fetchSummary(mode)}
-              disabled={loading}
-            >
-              {loading ? "..." : "새로고침"}
-            </button>
-          </div>
-
-          {mode === "friend" ? (
-            <p className={styles.friendNote}>
-              찐친 모드는 장난스러운 코멘트를 허용합니다. 모욕·혐오 표현은 항상
-              금지됩니다.
+          <p className={styles.guardrail}>
+            {mode === "normal"
+              ? "격려 중심이며 개인을 탓하거나 부정적으로 평가하지 않습니다."
+              : "명시적으로 선택한 가벼운 모드입니다. 욕설·인신공격은 허용하지 않습니다."}
+          </p>
+          {summary && <p className={styles.assistantText}>{summary}</p>}
+          {mode === "friend" && friendCandidates.length > 0 && (
+            <p className={styles.guardrail}>
+              가벼운 복기 후보: {friendCandidates.map(({ riotId }) => riotId).join(", ")}
             </p>
-          ) : null}
-
-          <div className={styles.content}>
-            {loading ? (
-              <p className={styles.state}>요약을 생성하는 중…</p>
-            ) : error ? (
-              <p className={styles.errorText}>{error}</p>
-            ) : result ? (
-              <>
-                <p className={styles.summary}>{result.summary}</p>
-                {result.bullets.length > 0 ? (
-                  <ul className={styles.bullets}>
-                    {result.bullets.map((bullet, index) => (
-                      <li key={index}>{bullet}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </>
-            ) : (
-              <p className={styles.state}>요약을 불러오세요.</p>
-            )}
-          </div>
+          )}
+          {error && <p className={styles.assistantError} role="alert">{error} 근거 패널로 계속 진행할 수 있습니다.</p>}
+          <button type="button" disabled={loading} onClick={() => void explain()}>
+            {loading ? "Gemini가 설명하는 중…" : summary ? "다시 설명하기" : "설명 듣기"}
+          </button>
         </div>
       ) : (
-        <div className={styles.hint}>설명을 들어보세요</div>
+        <span className={styles.assistantHint}>설명을 들어보세요</span>
       )}
-
       <button
+        className={styles.assistantButton}
         type="button"
-        className={styles.fab}
-        onClick={open ? () => setOpen(false) : handleOpen}
-        aria-label="AI 코치 열기"
+        aria-expanded={open}
+        aria-label="Gemini 설명 도우미 열기"
+        onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden="true">🐝</span>
+        🐝
       </button>
-    </div>
+    </aside>
   );
+}
+
+function buildSafeContext(session: Session, surface: string, mode: CommentMode) {
+  const participants = session.participants.map((participant) => {
+    const performances = Object.values(participant.trialPerformanceByRound ?? {});
+    const rated = performances.filter((performance) => performance && !performance.unrated);
+    const unrated =
+      participant.tierSource === "manual" ||
+      (participant.riotData.preMainRoleGames ?? 0) < 3 ||
+      participant.riotData.preMainRoleKda == null ||
+      participant.riotData.preMainRoleDamage == null;
+    return {
+      riotId: participant.riotId,
+      tier: participant.preTier.label,
+      unrated,
+      honeyBee: unrated ? "not_evaluated" : participant.honeyBeeBadge,
+      grades: unrated ? [] : rated.map((performance) => performance?.performanceGrade).filter(Boolean),
+      belowExpect:
+        !unrated && mode === "friend" && rated.some((performance) => performance?.roundBelowExpect),
+    };
+  });
+  return {
+    surface,
+    rounds: session.rounds.map(({ round, trialResult }) => ({
+      round,
+      winnerTeam: trialResult.winnerTeam,
+    })),
+    team: session.preTeamProposal && {
+      bluePowerPct: session.preTeamProposal.bluePowerPct,
+      redPowerPct: session.preTeamProposal.redPowerPct,
+      blueAverage: session.preTeamProposal.blueAvgTier.label,
+      redAverage: session.preTeamProposal.redAvgTier.label,
+      changes: session.rounds.flatMap(({ nextTeamProposal }) => nextTeamProposal.changes ?? []),
+    },
+    participants,
+  };
 }

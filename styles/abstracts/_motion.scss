@@ -1,0 +1,31 @@
+$ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+$ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+$duration-micro: 180ms;
+$duration-fast: 220ms;
+$duration-base: 320ms;
+$duration-slow: 420ms;
+$stagger-step: 60ms;
+
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}

@@ -2,42 +2,20 @@
 
 :root {
   color-scheme: dark;
-  --color-bg-base: #{$color-bg-base};
-  --color-surface-glass: #{$glass-surface-default};
-  --color-text-primary: #{$color-text-primary};
-  --color-text-secondary: #{$color-text-secondary};
-  --color-primary: #{$color-gold-500};
-  --color-focus: #{$color-blue-300};
-  --team-blue-surface: #{$team-blue-surface};
-  --team-blue-border: #{$team-blue-border};
-  --team-red-surface: #{$team-red-surface};
-  --team-red-border: #{$team-red-border};
-}
-
-html {
-  min-width: 320px;
+  font-family: $font-family-base;
+  color: $color-text-primary;
   background: $color-bg-deep;
-  scroll-behavior: smooth;
 }
 
 body {
-  min-height: 100svh;
-  color: $color-text-primary;
+  min-width: 320px;
+  min-height: 100vh;
+  line-height: $line-height-base;
   background: $gradient-page;
   background-attachment: fixed;
-  text-rendering: optimizeLegibility;
 }
 
 a {
-  color: inherit;
+  color: $color-blue-300;
   text-decoration: none;
-}
-
-button {
-  color: inherit;
-}
-
-::selection {
-  color: $color-text-inverse;
-  background: $color-gold-300;
 }

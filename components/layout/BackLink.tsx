@@ -2,18 +2,10 @@ import Link from "next/link";
 
 import styles from "./BackLink.module.scss";
 
-interface BackLinkProps {
-  href?: string;
-  label?: string;
-}
-
-export function BackLink({
-  href = "/",
-  label = "랜딩으로",
-}: BackLinkProps) {
+export function BackLink({ href = "/dashboard", label = "대시보드" }) {
   return (
     <Link className={styles.backLink} href={href}>
-      <span aria-hidden="true">←</span>
+      <span aria-hidden>←</span>
       {label}
     </Link>
   );

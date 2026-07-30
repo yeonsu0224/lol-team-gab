@@ -2,52 +2,34 @@ import "server-only";
 
 import { ApiError } from "@/lib/api/errors";
 
-const VERSIONS_URL =
-  "https://ddragon.leagueoflegends.com/api/versions.json";
+let versionPromise: Promise<string> | undefined;
 
-let versionPromise: Promise<string> | null = null;
-
-function validVersion(value: unknown): value is string {
-  return typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value);
+export function getDataDragonVersion(): Promise<string> {
+  versionPromise ??= loadVersion();
+  return versionPromise;
 }
 
-async function resolveVersion(): Promise<string> {
+async function loadVersion(): Promise<string> {
   try {
-    const response = await fetch(VERSIONS_URL, {
-      next: { revalidate: 60 * 60 },
+    const response = await fetch("https://ddragon.leagueoflegends.com/api/versions.json", {
+      next: { revalidate: 60 * 60 * 6 },
+      signal: AbortSignal.timeout(8_000),
     });
-    if (!response.ok) {
-      throw new Error(`Data Dragon versions returned ${response.status}`);
-    }
-
-    const versions: unknown = await response.json();
-    if (!Array.isArray(versions) || !validVersion(versions[0])) {
-      throw new Error("Data Dragon versions response was invalid");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const versions = (await response.json()) as unknown;
+    if (!Array.isArray(versions) || typeof versions[0] !== "string") {
+      throw new Error("invalid versions response");
     }
     return versions[0];
-  } catch (error) {
+  } catch {
     const fallback = process.env.DDRAGON_FALLBACK_VERSION?.trim();
-    if (validVersion(fallback)) {
-      return fallback;
-    }
-
+    if (fallback) return fallback;
+    versionPromise = undefined;
     throw new ApiError(
       503,
       "DDRAGON_VERSION_UNAVAILABLE",
       "Data Dragon 버전을 확인하지 못했습니다.",
-      "ddragon",
-      undefined,
-      { cause: error },
+      { retryable: true },
     );
   }
-}
-
-export function getDataDragonVersion(): Promise<string> {
-  if (!versionPromise) {
-    versionPromise = resolveVersion().catch((error) => {
-      versionPromise = null;
-      throw error;
-    });
-  }
-  return versionPromise;
 }

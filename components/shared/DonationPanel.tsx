@@ -2,65 +2,27 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/Button";
-import { Panel } from "@/components/ui/Panel";
-import {
-  DONATION_BANK,
-  DONATION_LINKS,
-  DONATION_MESSAGE,
-} from "@/lib/constants/donation";
-
-import styles from "./DonationPanel.module.scss";
+import { DONATION } from "@/lib/constants/donation";
+import styles from "./Shared.module.scss";
 
 export function DonationPanel() {
   const [copied, setCopied] = useState(false);
 
-  async function handleCopy() {
-    const text = `${DONATION_BANK.bank} ${DONATION_BANK.account} (${DONATION_BANK.holder})`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
+  async function copy() {
+    if (!DONATION.account) return;
+    await navigator.clipboard.writeText(DONATION.account);
+    setCopied(true);
   }
 
   return (
-    <Panel tone="soft" className={styles.panel}>
-      <div className={styles.header}>
-        <span className={styles.emoji} aria-hidden="true">
-          ☕
-        </span>
-        <div>
-          <h3 className={styles.title}>개발자 커피 사주기</h3>
-          <p className={styles.message}>{DONATION_MESSAGE}</p>
-        </div>
+    <aside className={styles.donation}>
+      <h2>개발자 커피 사주기</h2>
+      <p>내전 운영에 도움이 됐다면 선택적으로 응원해 주세요.</p>
+      <div className={styles.donationRow}>
+        <span>{DONATION.bank}{DONATION.account ? ` · ${DONATION.account}` : ""}</span>
+        {DONATION.account && <button type="button" onClick={() => void copy()}>{copied ? "복사됨" : "계좌 복사"}</button>}
+        {DONATION.link && <a href={DONATION.link} target="_blank" rel="noreferrer">후원 링크</a>}
       </div>
-
-      <div className={styles.account}>
-        <span className={styles.accountText}>
-          {DONATION_BANK.bank} {DONATION_BANK.account}
-          <span className={styles.holder}> · {DONATION_BANK.holder}</span>
-        </span>
-        <Button size="sm" variant="secondary" onClick={handleCopy}>
-          {copied ? "복사됨" : "계좌 복사"}
-        </Button>
-      </div>
-
-      <div className={styles.links}>
-        {DONATION_LINKS.map((link) => (
-          <a
-            key={link.url}
-            className={styles.link}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {link.label}
-          </a>
-        ))}
-      </div>
-    </Panel>
+    </aside>
   );
 }

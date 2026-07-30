@@ -1,0 +1,147 @@
+@use "abstracts" as *;
+
+.reason {
+  display: grid;
+  gap: $space-2;
+  padding: $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-lg;
+  background: $glass-surface-soft;
+}
+
+.reason summary {
+  color: $color-gold-100;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reason ul {
+  display: grid;
+  gap: $space-2;
+  margin: 0;
+  padding-left: $space-5;
+  color: $color-text-secondary;
+}
+
+.assistant {
+  position: fixed;
+  z-index: 30;
+  right: clamp(1rem, 3vw, 2rem);
+  bottom: clamp(1rem, 3vw, 2rem);
+}
+
+.assistantButton {
+  width: 58px;
+  height: 58px;
+  border: 1px solid $color-border-strong;
+  border-radius: 50%;
+  color: $color-text-primary;
+  font-size: 1.5rem;
+  background: $gradient-gold;
+  box-shadow: $shadow-lg;
+}
+
+.assistantHint {
+  position: absolute;
+  right: 0;
+  bottom: 68px;
+  width: max-content;
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-pill;
+  color: $color-text-secondary;
+  font-size: 0.75rem;
+  background: $color-bg-elevated;
+}
+
+.assistantPanel {
+  position: absolute;
+  right: 0;
+  bottom: 70px;
+  display: grid;
+  gap: $space-3;
+  width: min(360px, calc(100vw - 2rem));
+  padding: $space-4;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-xl;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-lg;
+  animation: fadeInUp $duration-base $ease-emphasized both;
+}
+
+.assistantHeader,
+.modeRow,
+.donationRow,
+.stars {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+}
+
+.assistantPanel button,
+.donation button,
+.donation a {
+  min-height: 40px;
+  padding: 0 $space-3;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  background: $color-bg-soft;
+}
+
+.modeActive {
+  color: $color-gold-100 !important;
+  border-color: $color-border-strong !important;
+}
+
+.assistantText,
+.assistantError,
+.guardrail {
+  margin: 0;
+  color: $color-text-secondary;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.assistantError {
+  color: #ffb4b4;
+}
+
+.guardrail {
+  font-size: 0.72rem;
+}
+
+.donation {
+  display: grid;
+  gap: $space-3;
+  padding: $space-5;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-xl;
+  background: $glass-surface-soft;
+}
+
+.donation h2,
+.donation p {
+  margin: 0;
+}
+
+.star {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  color: $color-text-muted;
+  font-size: 1.8rem;
+  background: transparent;
+}
+
+.starActive {
+  color: $color-gold-500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistantPanel {
+    animation: none;
+  }
+}

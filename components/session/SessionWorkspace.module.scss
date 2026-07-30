@@ -1,0 +1,705 @@
+@use "abstracts" as *;
+
+.shell {
+  display: grid;
+  gap: $space-6;
+  padding: $space-5;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-xl;
+  background: $glass-surface-strong;
+  box-shadow: $shadow-md;
+}
+
+.header,
+.sectionHeader,
+.actionRow,
+.assistRow,
+.searchRow,
+.teamHeader,
+.modalHeader,
+.tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  flex-wrap: wrap;
+}
+
+.header h2,
+.sectionHeader h3,
+.teamHeader h3,
+.modalHeader h3 {
+  margin: 0;
+}
+
+.muted,
+.hint,
+.meta {
+  color: $color-text-secondary;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.error,
+.warning,
+.success {
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+}
+
+.error {
+  color: #ffd6d6;
+  border: 1px solid rgb(255 120 120 / 32%);
+  background: rgb(109 31 31 / 45%);
+}
+
+.warning {
+  color: $color-gold-100;
+  border: 1px solid $color-border-strong;
+  background: rgb(120 92 18 / 22%);
+}
+
+.success {
+  color: #b9f6dc;
+  border: 1px solid rgb(52 211 153 / 40%);
+  background: rgb(52 211 153 / 14%);
+}
+
+.formPanel,
+.empty,
+.statPanel {
+  padding: $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-lg;
+  background: $glass-surface-default;
+}
+
+.search {
+  position: relative;
+  flex: 1 1 24rem;
+}
+
+.searchRow {
+  align-items: stretch;
+}
+
+.input,
+.select,
+.button {
+  min-height: 44px;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  background: rgb(7 16 31 / 76%);
+}
+
+.input,
+.select {
+  width: 100%;
+  padding: 0 $space-4;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: 0 $space-4;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.buttonPrimary {
+  color: $color-text-inverse;
+  border-color: rgb(248 237 199 / 48%);
+  background: $gradient-gold;
+  box-shadow: 0 0 0 1px rgb(200 155 60 / 30%);
+}
+
+.buttonSecondary {
+  background: $color-bg-soft;
+}
+
+.buttonDanger {
+  min-height: 34px;
+  color: #ffb4b4;
+  border-color: rgb(255 107 107 / 32%);
+  background: rgb(82 27 27 / 48%);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.readyCta {
+  background-size: 200% 200%;
+  animation: gradientShift 3.6s $ease-standard infinite alternate;
+}
+
+.results {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-lg;
+}
+
+.result {
+  width: 100%;
+  padding: $space-3 $space-4;
+  border: 0;
+  border-bottom: 1px solid $color-border-subtle;
+  color: $color-text-primary;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.manualTier {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $space-2;
+  margin-top: $space-3;
+}
+
+.registrationGrid {
+  display: grid;
+  gap: $space-3;
+}
+
+.registrationColumn {
+  display: grid;
+  align-content: start;
+  gap: $space-2;
+}
+
+.playerCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  min-height: 70px;
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-lg;
+  background: $glass-surface-soft;
+}
+
+.playerCardChanged {
+  border-color: $color-gold-500;
+  box-shadow: 0 0 0 1px rgb(200 155 60 / 30%);
+}
+
+.playerCardButton {
+  width: 100%;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.identity strong,
+.identity span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity span {
+  margin-top: 2px;
+  color: $color-text-secondary;
+  font-size: 0.75rem;
+}
+
+.profile,
+.profileFallback {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border: 1px solid $color-border-strong;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profileFallback {
+  display: grid;
+  place-items: center;
+  color: $color-gold-100;
+  background: $color-bg-soft;
+}
+
+.champion {
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-md;
+}
+
+.emblem {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  object-fit: contain;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  justify-content: inherit;
+  gap: $space-1;
+  flex-wrap: wrap;
+}
+
+.badge,
+.badgeUnrated,
+.badgeGrade,
+.changeLabel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 1px $space-2;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-pill;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.badge {
+  color: $color-blue-100;
+  background: rgb(10 200 185 / 12%);
+}
+
+.badgeUnrated {
+  color: $color-text-secondary;
+  border-style: dashed;
+}
+
+.badgeGrade {
+  color: $color-gold-100;
+  border-color: $color-border-strong;
+}
+
+.changeLabel {
+  color: $color-gold-100;
+  border-color: $color-border-strong;
+}
+
+.hoverCard {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + 6px);
+  right: 0;
+  display: none;
+  width: min(310px, 85vw);
+  padding: $space-4;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-lg;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-md;
+}
+
+.playerCard:hover .hoverCard,
+.playerCard:focus-within .hoverCard {
+  display: grid;
+  gap: $space-3;
+  animation: fadeInUp $duration-base $ease-emphasized both;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-2;
+  margin: 0;
+}
+
+.detailGrid div {
+  padding: $space-2;
+  border-radius: $radius-sm;
+  background: rgb(255 255 255 / 4%);
+}
+
+.detailGrid dt {
+  color: $color-text-muted;
+  font-size: 0.7rem;
+}
+
+.detailGrid dd {
+  margin: $space-1 0 0;
+  font-size: 0.82rem;
+}
+
+.laneIcon {
+  display: inline-grid;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: $color-blue-300;
+}
+
+.laneIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.laneTooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  display: none;
+  padding: 2px 6px;
+  border-radius: $radius-sm;
+  color: $color-text-primary;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  background: $color-bg-deep;
+  transform: translateX(-50%);
+}
+
+.laneIcon:hover .laneTooltip,
+.laneIcon:focus .laneTooltip {
+  display: block;
+}
+
+.boards {
+  display: grid;
+  gap: $space-4;
+}
+
+.team {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: $space-3;
+  padding: $space-4;
+  border: 1px solid;
+  border-radius: $radius-xl;
+}
+
+.blue {
+  border-color: $color-team-blue-border;
+  background: $color-team-blue-surface;
+}
+
+.red {
+  border-color: $color-team-red-border;
+  background: $color-team-red-surface;
+}
+
+.teamList {
+  display: grid;
+  gap: $space-2;
+}
+
+.teamList > * {
+  min-width: 0;
+}
+
+.blue .teamHeader,
+.blue .teamList,
+.blue .badges {
+  text-align: right;
+}
+
+// `justify-content` is only for the flex rows; on `.teamList` (grid) it would
+// stop the auto column from stretching and shrink cards to content width.
+.blue .teamHeader,
+.blue .badges {
+  justify-content: flex-end;
+}
+
+.blue .playerCard {
+  flex-direction: row-reverse;
+  animation: slideInLeft $duration-base $ease-emphasized both;
+}
+
+// Mirrors the red team so badges read inward from the right edge.
+.blue .badges {
+  flex-direction: row-reverse;
+}
+
+.red .playerCard {
+  animation: slideInRight $duration-base $ease-emphasized both;
+}
+
+.reason {
+  position: absolute;
+  z-index: 5;
+  top: $space-3;
+  right: $space-3;
+}
+
+.reasonBox {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  display: none;
+  width: 260px;
+  padding: $space-3;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  text-align: left;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-md;
+}
+
+.reason:hover .reasonBox,
+.reason:focus-within .reasonBox {
+  display: block;
+}
+
+.ratio {
+  display: grid;
+  gap: $space-2;
+  padding: $space-3;
+  border-radius: $radius-lg;
+  background: $glass-surface-soft;
+}
+
+.ratioLabels {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 800;
+}
+
+.ratioTrack {
+  display: flex;
+  overflow: hidden;
+  height: 10px;
+  border-radius: $radius-pill;
+  background: $color-bg-deep;
+}
+
+.ratioBlue {
+  background: $color-team-blue;
+}
+
+.ratioRed {
+  background: $color-team-red;
+}
+
+.tabs {
+  justify-content: flex-end;
+}
+
+.tabActive {
+  color: $color-gold-100;
+  border-color: $color-border-strong;
+  box-shadow: 0 0 0 1px rgb(200 155 60 / 20%);
+}
+
+.trialTeams {
+  display: grid;
+  gap: $space-4;
+}
+
+.trialRow {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(100px, 0.7fr) minmax(110px, 0.8fr);
+  gap: $space-2;
+  align-items: center;
+}
+
+.blue .trialRow {
+  direction: rtl;
+}
+
+.blue .trialRow > * {
+  direction: ltr;
+}
+
+.winnerChoices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-3;
+}
+
+.winnerChoice {
+  padding: $space-3;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  text-align: center;
+  cursor: pointer;
+  background: $glass-surface-soft;
+}
+
+.winnerChoice:has(input:checked) {
+  border-color: $color-border-strong;
+  box-shadow: 0 0 0 2px rgb(200 155 60 / 18%);
+}
+
+.changeList {
+  display: flex;
+  justify-content: center;
+  gap: $space-2;
+  flex-wrap: wrap;
+}
+
+.modalBackdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: $space-4;
+  background: $glass-overlay;
+}
+
+.modal {
+  display: grid;
+  gap: $space-4;
+  width: min(680px, 100%);
+  max-height: min(82vh, 760px);
+  padding: $space-5;
+  overflow: auto;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-xl;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-lg;
+  animation: fadeInUp $duration-base $ease-emphasized both;
+}
+
+.miniModal {
+  position: absolute;
+  z-index: 7;
+  top: 4.25rem;
+  width: min(360px, calc(100vw - 3rem));
+  padding: $space-4;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-lg;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-lg;
+}
+
+.blue .miniModal {
+  right: calc(100% - 2rem);
+}
+
+.red .miniModal {
+  left: calc(100% - 2rem);
+}
+
+.modalList {
+  display: grid;
+  gap: $space-2;
+}
+
+.modalList button {
+  padding: $space-3;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  text-align: left;
+  background: $glass-surface-soft;
+  cursor: pointer;
+}
+
+.visionRow {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr 1fr;
+  gap: $space-2;
+  align-items: center;
+}
+
+.mappingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: $space-3;
+  align-items: center;
+  padding: $space-2;
+  border-bottom: 1px solid $color-border-subtle;
+}
+
+.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  color: $color-blue-100;
+}
+
+.loading::before {
+  width: 14px;
+  height: 14px;
+  border: 2px solid $color-border-default;
+  border-top-color: $color-blue-300;
+  border-radius: 50%;
+  content: "";
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (min-width: $breakpoint-md) {
+  .shell {
+    padding: $space-6;
+  }
+
+  .registrationGrid,
+  .boards,
+  .trialTeams {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .blue .teamHeader,
+  .blue .teamList,
+  .blue .badges {
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .blue .playerCard,
+  .blue .badges {
+    flex-direction: row;
+  }
+
+  .blue .trialRow {
+    direction: ltr;
+  }
+
+  .miniModal,
+  .blue .miniModal,
+  .red .miniModal {
+    position: fixed;
+    top: 50%;
+    right: $space-4;
+    left: $space-4;
+    width: auto;
+    transform: translateY(-50%);
+  }
+
+  .trialRow,
+  .visionRow,
+  .mappingRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readyCta,
+  .blue .playerCard,
+  .red .playerCard,
+  .hoverCard,
+  .modal,
+  .loading::before {
+    animation: none;
+  }
+}

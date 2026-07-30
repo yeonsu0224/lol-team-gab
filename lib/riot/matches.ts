@@ -1,133 +1,121 @@
 import "server-only";
 
 import type { MainRole } from "@/lib/types";
+import { encodePath, regionalRequest } from "./api";
+import type { RiotMatch, RiotMatchParticipant } from "./types";
 
-import { encodeRiotPath, riotFetch } from "./http";
-import type {
-  MatchParticipantSummary,
-  RiotMatch,
-  RiotMatchParticipant,
-} from "./types";
+const MATCH_LIMIT = 20;
+const RANKED_SOLO_QUEUE = 420;
+const RANKED_FLEX_QUEUE = 440;
+const ROLES: MainRole[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
-const MAIN_ROLES: MainRole[] = [
-  "TOP",
-  "JUNGLE",
-  "MIDDLE",
-  "BOTTOM",
-  "UTILITY",
-];
-
-function asMainRole(value: string): MainRole | null {
-  return MAIN_ROLES.includes(value as MainRole) ? (value as MainRole) : null;
+export interface MatchSummary {
+  matchId: string;
+  gameCreation: number;
+  queueId: number;
+  win: boolean;
+  role: MainRole | null;
+  kda: number;
+  damageDealt: number;
 }
 
-function summarizeParticipant(
-  participant: RiotMatchParticipant,
-): MatchParticipantSummary {
-  const role =
-    asMainRole(participant.teamPosition) ??
-    asMainRole(participant.individualPosition);
+export interface MatchHistoryResponse {
+  matches: MatchSummary[];
+  hasHistory: boolean;
+  mainRole: MainRole | null;
+  preMainRoleGames: number;
+  preMainRoleKda: number | null;
+  preMainRoleDamage: number | null;
+}
 
+export async function getMatch(matchId: string): Promise<RiotMatch> {
+  return regionalRequest<RiotMatch>(`/lol/match/v5/matches/${encodePath(matchId)}`);
+}
+
+export async function getMatchHistory(puuid: string): Promise<MatchHistoryResponse> {
+  const soloIds = await getMatchIds(puuid, RANKED_SOLO_QUEUE, MATCH_LIMIT);
+  const flexIds =
+    soloIds.length < MATCH_LIMIT
+      ? await getMatchIds(puuid, RANKED_FLEX_QUEUE, MATCH_LIMIT - soloIds.length)
+      : [];
+  const ids = [...new Set([...soloIds, ...flexIds])].slice(0, MATCH_LIMIT);
+
+  const summaries: MatchSummary[] = [];
+  for (const id of ids) {
+    const match = await getMatch(id);
+    const player = match.info.participants.find((entry) => entry.puuid === puuid);
+    if (player) summaries.push(toSummary(match, player));
+  }
+
+  const mainRole = selectMainRole(summaries);
+  const mainRoleMatches = mainRole ? summaries.filter(({ role }) => role === mainRole) : [];
   return {
-    puuid: participant.puuid,
-    riotId:
-      participant.riotIdGameName && participant.riotIdTagline
-        ? `${participant.riotIdGameName}#${participant.riotIdTagline}`
-        : null,
-    team: participant.teamId === 100 ? "blue" : "red",
-    win: participant.win,
-    championId: participant.championId,
-    championName: participant.championName,
-    role,
-    kills: participant.kills,
-    deaths: participant.deaths,
-    assists: participant.assists,
-    kda:
-      (participant.kills + participant.assists) /
-      Math.max(1, participant.deaths),
-    damageDealt: participant.totalDamageDealtToChampions,
-    cs: participant.totalMinionsKilled + participant.neutralMinionsKilled,
-    visionScore: participant.visionScore,
+    matches: summaries,
+    hasHistory: summaries.length > 0,
+    mainRole,
+    preMainRoleGames: mainRoleMatches.length,
+    preMainRoleKda: average(mainRoleMatches.map(({ kda }) => kda)),
+    preMainRoleDamage: average(mainRoleMatches.map(({ damageDealt }) => damageDealt)),
   };
 }
 
-export async function getMatch(matchId: string) {
-  const match = await riotFetch<RiotMatch>(
-    "asia",
-    `/lol/match/v5/matches/${encodeRiotPath(matchId)}`,
+export async function getRecentMatches(puuid: string): Promise<MatchHistoryResponse> {
+  const ids = await regionalRequest<string[]>(
+    `/lol/match/v5/matches/by-puuid/${encodePath(puuid)}/ids?start=0&count=${MATCH_LIMIT}`,
   );
+  const summaries: MatchSummary[] = [];
+  for (const id of ids.slice(0, MATCH_LIMIT)) {
+    const match = await getMatch(id);
+    const player = match.info.participants.find((entry) => entry.puuid === puuid);
+    if (player) summaries.push(toSummary(match, player));
+  }
+  const mainRole = selectMainRole(summaries);
+  const mainRoleMatches = mainRole ? summaries.filter(({ role }) => role === mainRole) : [];
+  return {
+    matches: summaries,
+    hasHistory: summaries.length > 0,
+    mainRole,
+    preMainRoleGames: mainRoleMatches.length,
+    preMainRoleKda: average(mainRoleMatches.map(({ kda }) => kda)),
+    preMainRoleDamage: average(mainRoleMatches.map(({ damageDealt }) => damageDealt)),
+  };
+}
 
+async function getMatchIds(puuid: string, queue: number, count: number): Promise<string[]> {
+  if (count <= 0) return [];
+  return regionalRequest<string[]>(
+    `/lol/match/v5/matches/by-puuid/${encodePath(puuid)}/ids?queue=${queue}&start=0&count=${count}`,
+  );
+}
+
+function toSummary(match: RiotMatch, player: RiotMatchParticipant): MatchSummary {
+  const deaths = Math.max(player.deaths, 1);
   return {
     matchId: match.metadata.matchId,
     gameCreation: match.info.gameCreation,
-    gameDuration: match.info.gameDuration,
-    gameMode: match.info.gameMode,
     queueId: match.info.queueId,
-    participants: match.info.participants.map(summarizeParticipant),
+    win: player.win,
+    role: ROLES.includes(player.teamPosition as MainRole)
+      ? (player.teamPosition as MainRole)
+      : null,
+    kda: (player.kills + player.assists) / deaths,
+    damageDealt: player.totalDamageDealtToChampions,
   };
 }
 
-async function getRankedMatchIds(puuid: string): Promise<string[]> {
-  const encodedPuuid = encodeRiotPath(puuid);
-  const soloIds = await riotFetch<string[]>(
-    "asia",
-    `/lol/match/v5/matches/by-puuid/${encodedPuuid}/ids?queue=420&start=0&count=20`,
-  );
-
-  if (soloIds.length >= 20) {
-    return soloIds;
+function selectMainRole(matches: MatchSummary[]): MainRole | null {
+  const counts = new Map<MainRole, number>();
+  for (const { role } of matches) {
+    if (role) counts.set(role, (counts.get(role) ?? 0) + 1);
   }
-
-  const flexIds = await riotFetch<string[]>(
-    "asia",
-    `/lol/match/v5/matches/by-puuid/${encodedPuuid}/ids?queue=440&start=0&count=${20 - soloIds.length}`,
+  return (
+    [...counts.entries()].sort(
+      ([roleA, countA], [roleB, countB]) =>
+        countB - countA || ROLES.indexOf(roleA) - ROLES.indexOf(roleB),
+    )[0]?.[0] ?? null
   );
-  return [...soloIds, ...flexIds];
 }
 
-export async function getRecentMatches(puuid: string) {
-  const matchIds = await getRankedMatchIds(puuid);
-  const matches = [];
-
-  for (const matchId of matchIds) {
-    matches.push(await getMatch(matchId));
-  }
-
-  const playerMatches = matches.flatMap((match) => {
-    const participant = match.participants.find(
-      (candidate) => candidate.puuid === puuid,
-    );
-    return participant ? [{ matchId: match.matchId, ...participant }] : [];
-  });
-
-  const roleCounts = new Map<MainRole, number>();
-  for (const match of playerMatches) {
-    if (match.role) {
-      roleCounts.set(match.role, (roleCounts.get(match.role) ?? 0) + 1);
-    }
-  }
-
-  const mainRole =
-    [...roleCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-  const mainRoleMatches = mainRole
-    ? playerMatches.filter((match) => match.role === mainRole)
-    : [];
-  const average = (
-    values: number[],
-  ): number | null =>
-    values.length > 0
-      ? values.reduce((sum, value) => sum + value, 0) / values.length
-      : null;
-
-  return {
-    matches: playerMatches,
-    totalGames: playerMatches.length,
-    wins: playerMatches.filter((match) => match.win).length,
-    mainRole,
-    preMainRoleGames: mainRole ? mainRoleMatches.length : null,
-    preMainRoleKda: average(mainRoleMatches.map((match) => match.kda)),
-    preMainRoleDamage: average(
-      mainRoleMatches.map((match) => match.damageDealt),
-    ),
-  };
+function average(values: number[]): number | null {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 }

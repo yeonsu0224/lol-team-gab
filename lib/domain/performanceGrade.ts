@@ -1,40 +1,32 @@
-import { PERFORMANCE_GRADE_THRESHOLDS } from "@/lib/constants/performanceGrade";
-import type { PerformanceGrade } from "@/lib/types";
-import { isPresent } from "@/lib/utils/normalize";
+import { PERFORMANCE_GRADE_THRESHOLDS } from "../constants/performanceGrade.ts";
+import type { PerformanceGrade } from "../types/session.ts";
 
-export interface PerformanceGradeInput {
+export interface PerformanceGradeResult {
+  grade: PerformanceGrade | null;
+  ratio: number | null;
+  expectScore: number | null;
+}
+
+export function calculatePerformanceGrade(input: {
   trialScore: number | null;
   preStatScore: number | null;
   tierExpectScore: number | null;
   unrated: boolean;
-}
-
-/**
- * F~OP grade from r = trialScore / expectScore, where
- * expectScore = (preStatScore + tierExpectScore) / 2 (spec D-11).
- * Display only. Returns `null` when unrated or any expectation is missing —
- * the expectation is never coerced to 0.
- */
-export function computePerformanceGrade(
-  input: PerformanceGradeInput,
-): PerformanceGrade | null {
+}): PerformanceGradeResult {
+  const { trialScore, preStatScore, tierExpectScore, unrated } = input;
   if (
-    input.unrated ||
-    !isPresent(input.trialScore) ||
-    !isPresent(input.preStatScore) ||
-    !isPresent(input.tierExpectScore)
+    unrated ||
+    trialScore == null ||
+    preStatScore == null ||
+    tierExpectScore == null
   ) {
-    return null;
+    return { grade: null, ratio: null, expectScore: null };
   }
-
-  const expectScore = (input.preStatScore + input.tierExpectScore) / 2;
-  if (expectScore <= 0) {
-    return null;
-  }
-
-  const ratio = input.trialScore / expectScore;
-  const match = PERFORMANCE_GRADE_THRESHOLDS.find(
-    (threshold) => ratio >= threshold.min,
-  );
-  return match ? match.grade : "F";
+  const expectScore = (preStatScore + tierExpectScore) / 2;
+  if (expectScore <= 0) return { grade: null, ratio: null, expectScore };
+  const ratio = trialScore / expectScore;
+  const grade =
+    PERFORMANCE_GRADE_THRESHOLDS.find(({ minimumRatio }) => ratio >= minimumRatio)?.grade ??
+    "F";
+  return { grade, ratio, expectScore };
 }

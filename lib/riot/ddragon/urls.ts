@@ -1,68 +1,40 @@
 import type { DataDragonImageUrls } from "./types";
 
-const DDRAGON_ORIGIN = "https://ddragon.leagueoflegends.com";
-export const RANKED_EMBLEMS_SOURCE_URL =
-  "https://static.developer.riotgames.com/docs/lol/ranked-emblems-latest.zip";
+const CDN = "https://ddragon.leagueoflegends.com/cdn";
 
-const TIER_EMBLEM_FILES: Record<string, string> = {
-  IRON: "Rank=Iron.png",
-  BRONZE: "Rank=Bronze.png",
-  SILVER: "Rank=Silver.png",
-  GOLD: "Rank=Gold.png",
-  PLATINUM: "Rank=Platinum.png",
-  EMERALD: "Rank=Emerald.png",
-  DIAMOND: "Rank=Diamond.png",
-  MASTER: "Rank=Master.png",
-  GRANDMASTER: "Rank=Grandmaster.png",
-  CHALLENGER: "Rank=Challenger.png",
-};
-
-function championDataId(value: string): string {
-  if (!/^[A-Za-z0-9]+$/.test(value)) {
-    throw new Error("Data Dragon champion id is invalid");
-  }
-  return value;
+export function profileIconUrl(version: string, profileIconId: number): string {
+  return `${CDN}/${segment(version)}/img/profileicon/${profileIconId}.png`;
 }
 
-export function profileIconUrl(
-  version: string,
-  profileIconId: number,
-): string {
-  if (!Number.isInteger(profileIconId) || profileIconId < 0) {
-    throw new Error("Profile icon id is invalid");
-  }
-  return `${DDRAGON_ORIGIN}/cdn/${version}/img/profileicon/${profileIconId}.png`;
-}
-
-export function championSquareUrl(
-  version: string,
-  dataDragonId: string,
-): string {
-  return `${DDRAGON_ORIGIN}/cdn/${version}/img/champion/${championDataId(dataDragonId)}.png`;
-}
-
-export function championSplashUrl(dataDragonId: string): string {
-  return `${DDRAGON_ORIGIN}/cdn/img/champion/splash/${championDataId(dataDragonId)}_0.jpg`;
-}
-
-export function championLoadingUrl(dataDragonId: string): string {
-  return `${DDRAGON_ORIGIN}/cdn/img/champion/loading/${championDataId(dataDragonId)}_0.jpg`;
-}
-
-export function championImageUrls(
-  version: string,
-  dataDragonId: string,
-): DataDragonImageUrls {
+export function championImageUrls(version: string, championId: string): DataDragonImageUrls {
+  const id = segment(championId);
   return {
-    square: championSquareUrl(version, dataDragonId),
-    splash: championSplashUrl(dataDragonId),
-    loading: championLoadingUrl(dataDragonId),
+    square: `${CDN}/${segment(version)}/img/champion/${id}.png`,
+    splash: `${CDN}/img/champion/splash/${id}_0.jpg`,
+    loading: `${CDN}/img/champion/loading/${id}_0.jpg`,
   };
 }
 
-export function tierEmblemUrl(tier: string): string | null {
-  const fileName = TIER_EMBLEM_FILES[tier.toUpperCase()];
-  return fileName
-    ? `/ranked-emblems/${encodeURIComponent(fileName)}`
-    : null;
+const EMBLEM_TIERS = new Set([
+  "iron",
+  "bronze",
+  "silver",
+  "gold",
+  "platinum",
+  "emerald",
+  "diamond",
+  "master",
+  "grandmaster",
+  "challenger",
+]);
+
+export function rankedEmblemUrl(tier: string): string | null {
+  const normalized = tier.toLowerCase().trim();
+  if (!EMBLEM_TIERS.has(normalized)) return null;
+  const label = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  return `/ranked-emblems/Rank=${encodeURIComponent(label)}.png`;
+}
+
+function segment(value: string): string {
+  return encodeURIComponent(value);
 }

@@ -1,0 +1,39 @@
+@use "abstracts" as *;
+
+.fade {
+  animation: fadeInUp $duration-base $ease-emphasized both;
+}
+
+.exit {
+  animation: fadeOut $duration-micro $ease-standard both;
+  pointer-events: none;
+}
+
+.stagger > * {
+  animation: fadeInUp $duration-base $ease-emphasized both;
+  animation-delay: calc(var(--stagger-index, 0) * #{$stagger-step});
+}
+
+.blue,
+.red {
+  animation-duration: $duration-base;
+  animation-timing-function: $ease-emphasized;
+  animation-fill-mode: both;
+}
+
+.blue { animation-name: slideInLeft; }
+.red { animation-name: slideInRight; }
+
+.reduced,
+.reduced > * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade,
+  .stagger > *,
+  .blue,
+  .red {
+    animation: none;
+  }
+}

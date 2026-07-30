@@ -1,116 +1,77 @@
 export interface BalancePlayer {
-  id: string;
-  score: number;
+  puuid: string;
+  personalScore: number;
 }
 
-export interface RivalPair {
-  high: BalancePlayer;
-  low: BalancePlayer;
+export interface BalancedTeams<T extends BalancePlayer> {
+  blueTeam: T[];
+  redTeam: T[];
+  blueScore: number;
+  redScore: number;
+  idealScore: number;
+  scoreDifference: number;
+  rivalPairs: Array<[string, string]>;
+  targetRound?: 2 | 3 | 4;
 }
 
-export interface TeamBalanceResult {
-  blue: BalancePlayer[];
-  red: BalancePlayer[];
-  blueSum: number;
-  redSum: number;
-  ideal: number;
-  scoreDiff: number;
-  rivalPairs: RivalPair[];
-  rivalsSplit: number;
-}
-
-export const SUPPORTED_TEAM_SIZES = [8, 10] as const;
-
-export function isSupportedTeamCount(count: number): boolean {
-  return (SUPPORTED_TEAM_SIZES as readonly number[]).includes(count);
-}
-
-/** Sort ascending by score and pair adjacent players (spec D-06 Step 1). */
-export function buildRivalPairs(players: BalancePlayer[]): RivalPair[] {
-  const sorted = [...players].sort((a, b) => a.score - b.score);
-  const pairs: RivalPair[] = [];
-  for (let index = 0; index < sorted.length; index += 2) {
-    const first = sorted[index];
-    const second = sorted[index + 1];
-    const [high, low] =
-      first.score >= second.score ? [first, second] : [second, first];
-    pairs.push({ high, low });
+export function balanceTeams<T extends BalancePlayer>(
+  players: ReadonlyArray<T>,
+  targetRound?: 2 | 3 | 4,
+): BalancedTeams<T> {
+  if (players.length !== 8 && players.length !== 10) {
+    throw new Error("팀 배정은 8명 또는 10명일 때만 가능합니다.");
   }
-  return pairs;
-}
+  const sorted = [...players].sort(
+    (a, b) => a.personalScore - b.personalScore || a.puuid.localeCompare(b.puuid),
+  );
+  const pairs = Array.from({ length: sorted.length / 2 }, (_, index) => {
+    const low = sorted[index * 2];
+    const high = sorted[index * 2 + 1];
+    return { low, high };
+  });
+  const total = sorted.reduce((sum, player) => sum + player.personalScore, 0);
+  const idealScore = total / 2;
 
-/**
- * Exhaustive 2^k assignment (spec D-06 Step 2). For each rival pair, the high
- * player goes to blue or red; the low takes the other side. Best split
- * minimizes |blue − red|, then proximity to the ideal, then rival separation.
- */
-export function balanceTeams(players: BalancePlayer[]): TeamBalanceResult {
-  if (!isSupportedTeamCount(players.length)) {
-    throw new Error(
-      `Team balancing supports ${SUPPORTED_TEAM_SIZES.join("/")} players, received ${players.length}`,
-    );
+  let best:
+    | { blueTeam: T[]; redTeam: T[]; blueScore: number; redScore: number; mask: number }
+    | undefined;
+  for (let mask = 0; mask < 2 ** pairs.length; mask += 1) {
+    const blueTeam: T[] = [];
+    const redTeam: T[] = [];
+    pairs.forEach(({ high, low }, index) => {
+      const highToBlue = (mask & (1 << index)) === 0;
+      blueTeam.push(highToBlue ? high : low);
+      redTeam.push(highToBlue ? low : high);
+    });
+    const blueScore = sumScores(blueTeam);
+    const redScore = total - blueScore;
+    const candidate = { blueTeam, redTeam, blueScore, redScore, mask };
+    if (!best || compareCandidate(candidate, best, idealScore) < 0) best = candidate;
   }
 
-  const pairs = buildRivalPairs(players);
-  const totalScore = players.reduce((sum, player) => sum + player.score, 0);
-  const ideal = totalScore / 2;
-  const pairCount = pairs.length;
-
-  let best: TeamBalanceResult | null = null;
-
-  for (let mask = 0; mask < 1 << pairCount; mask += 1) {
-    const blue: BalancePlayer[] = [];
-    const red: BalancePlayer[] = [];
-
-    for (let pairIndex = 0; pairIndex < pairCount; pairIndex += 1) {
-      const { high, low } = pairs[pairIndex];
-      const highToBlue = (mask & (1 << pairIndex)) !== 0;
-      if (highToBlue) {
-        blue.push(high);
-        red.push(low);
-      } else {
-        red.push(high);
-        blue.push(low);
-      }
-    }
-
-    const blueSum = blue.reduce((sum, player) => sum + player.score, 0);
-    const redSum = red.reduce((sum, player) => sum + player.score, 0);
-    const scoreDiff = Math.abs(blueSum - redSum);
-    // Rivals are always on opposite teams in this construction, so this is the
-    // full pair count; kept for parity with the spec's tie-break definition.
-    const rivalsSplit = pairCount;
-
-    const candidate: TeamBalanceResult = {
-      blue,
-      red,
-      blueSum,
-      redSum,
-      ideal,
-      scoreDiff,
-      rivalPairs: pairs,
-      rivalsSplit,
-    };
-
-    if (best === null || isBetter(candidate, best)) {
-      best = candidate;
-    }
-  }
-
-  return best as TeamBalanceResult;
+  if (!best) throw new Error("팀 배정 결과를 만들지 못했습니다.");
+  return {
+    ...best,
+    idealScore,
+    scoreDifference: Math.abs(best.blueScore - best.redScore),
+    rivalPairs: pairs.map(({ high, low }) => [high.puuid, low.puuid]),
+    targetRound,
+  };
 }
 
-function isBetter(
-  candidate: TeamBalanceResult,
-  current: TeamBalanceResult,
-): boolean {
-  if (candidate.scoreDiff !== current.scoreDiff) {
-    return candidate.scoreDiff < current.scoreDiff;
-  }
-  const candidateIdealGap = Math.abs(candidate.blueSum - candidate.ideal);
-  const currentIdealGap = Math.abs(current.blueSum - current.ideal);
-  if (candidateIdealGap !== currentIdealGap) {
-    return candidateIdealGap < currentIdealGap;
-  }
-  return candidate.rivalsSplit > current.rivalsSplit;
+function sumScores(players: ReadonlyArray<BalancePlayer>): number {
+  return players.reduce((sum, player) => sum + player.personalScore, 0);
+}
+
+function compareCandidate(
+  left: { blueScore: number; redScore: number; mask: number },
+  right: { blueScore: number; redScore: number; mask: number },
+  ideal: number,
+): number {
+  const difference =
+    Math.abs(left.blueScore - left.redScore) - Math.abs(right.blueScore - right.redScore);
+  if (Math.abs(difference) > Number.EPSILON) return difference;
+  const idealDistance = Math.abs(left.blueScore - ideal) - Math.abs(right.blueScore - ideal);
+  if (Math.abs(idealDistance) > Number.EPSILON) return idealDistance;
+  return left.mask - right.mask;
 }

@@ -1,56 +1,46 @@
-import { isPresent } from "@/lib/utils/normalize";
+const DIVISION_LP = 100;
 
-export const PRE_WEIGHT = 0.7;
-export const TRIAL_WEIGHT = 0.3;
-export const DIVISION_LP = 100;
-export const MAX_DIVISION_SWING = 2;
-export const TEAM_ONLY_SWING = 0.5;
+export function trialAdjustmentDivisions(
+  actualShare: number,
+  expectedShare: number,
+): -2 | -1 | 0 | 1 | 2 {
+  if (expectedShare <= 0 || !Number.isFinite(actualShare) || !Number.isFinite(expectedShare)) {
+    return 0;
+  }
+  const ratio = actualShare / expectedShare;
+  if (ratio >= 1.25) return 2;
+  if (ratio >= 1.1) return 1;
+  if (ratio <= 0.75) return -2;
+  if (ratio <= 0.9) return -1;
+  return 0;
+}
 
-/**
- * Maps a performance ratio (trialScore / expectScore) to an adjusted LP target
- * bounded to ±MAX_DIVISION_SWING divisions (spec D-02).
- */
-export function adjustedLpFromPerformance(
-  prevLp: number,
-  ratio: number,
+export function adjustedTrialLp(
+  previousLp: number,
+  input:
+    | { kind: "performance"; actualShare: number; expectedShare: number }
+    | { kind: "winner-only"; won: boolean },
 ): number {
-  const rawDivisions = (ratio - 1) * MAX_DIVISION_SWING;
-  const divisions = Math.max(
-    -MAX_DIVISION_SWING,
-    Math.min(MAX_DIVISION_SWING, rawDivisions),
-  );
-  return prevLp + divisions * DIVISION_LP;
+  const divisions =
+    input.kind === "winner-only"
+      ? input.won
+        ? 0.5
+        : -0.5
+      : trialAdjustmentDivisions(input.actualShare, input.expectedShare);
+  return Math.max(0, previousLp + divisions * DIVISION_LP);
 }
 
-/** Win/loss-only adjustment: ±0.5 division at the team level (spec D-02). */
-export function adjustedLpFromResult(prevLp: number, won: boolean): number {
-  return prevLp + (won ? TEAM_ONLY_SWING : -TEAM_ONLY_SWING) * DIVISION_LP;
+export function applyTrialRound(previousLp: number, adjustedLp: number): number {
+  return Math.max(0, Math.round(previousLp * 0.7 + adjustedLp * 0.3));
 }
 
-/** Blends the previous LP with the trial-adjusted LP at 70:30 (spec D-02). */
-export function blendLp(prevLp: number, adjustedLp: number): number {
-  return prevLp * PRE_WEIGHT + adjustedLp * TRIAL_WEIGHT;
-}
-
-export interface TrialRoundInput {
-  prevLp: number;
-  won: boolean;
-  /** trialScore / expectScore for the round; null when unrated or stat-less. */
-  performanceRatio: number | null;
-  /** Whether individual KDA/damage stats are available this round. */
-  hasStats: boolean;
-}
-
-/**
- * Accumulated LP after a trial round (spec D-02). Uses the individual
- * performance adjustment when stats are available, otherwise the team-only
- * win/loss swing, then blends 70:30 against the previous LP.
- */
-export function applyTrialRound(input: TrialRoundInput): number {
-  const adjustedLp =
-    input.hasStats && isPresent(input.performanceRatio)
-      ? adjustedLpFromPerformance(input.prevLp, input.performanceRatio)
-      : adjustedLpFromResult(input.prevLp, input.won);
-
-  return blendLp(input.prevLp, adjustedLp);
+export function buildLpSnapshot(
+  previous: Readonly<Record<string, number>>,
+  adjusted: Readonly<Record<string, number>>,
+): Record<string, number> {
+  const snapshot: Record<string, number> = {};
+  for (const [puuid, previousLp] of Object.entries(previous)) {
+    snapshot[puuid] = applyTrialRound(previousLp, adjusted[puuid] ?? previousLp);
+  }
+  return snapshot;
 }

@@ -1,193 +1,93 @@
 @use "abstracts" as *;
 
-.layout {
-  display: flex;
-  flex-direction: column;
-  gap: $space-5;
+.shell {
+  display: grid;
+  gap: $space-6;
 }
 
-.state {
-  @include text-style("body-md");
-
-  color: $color-text-muted;
-}
-
-.sectionTitle {
-  @include text-style("heading-md");
-
-  margin-bottom: $space-4;
-  color: $color-text-primary;
-}
-
-.roundList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $space-3;
-}
-
-.roundItem {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  padding: $space-2 $space-4;
+.hero,
+.panel {
+  display: grid;
+  gap: $space-4;
+  padding: $space-5;
   border: 1px solid $color-border-default;
+  border-radius: $radius-xl;
+  background: $glass-surface-default;
+}
+
+.heroBlue {
+  border-color: $color-team-blue-border;
+  background: $color-team-blue-surface;
+}
+
+.heroRed {
+  border-color: $color-team-red-border;
+  background: $color-team-red-surface;
+}
+
+.chips,
+.highlights,
+.grid,
+.actions {
+  display: flex;
+  gap: $space-3;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: $space-2 $space-3;
+  border: 1px solid;
   border-radius: $radius-pill;
+  font-weight: 800;
+}
+
+.blue { color: $color-blue-100; border-color: $color-team-blue-border; background: $color-team-blue-surface; }
+.red { color: #ffc4c4; border-color: $color-team-red-border; background: $color-team-red-surface; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.player {
+  padding: $space-3;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-md;
   background: $glass-surface-soft;
 }
 
-.roundNo {
-  @include text-style("label-md");
-
+.player p,
+.hero p {
+  margin: 0;
   color: $color-text-secondary;
 }
 
-.winner {
-  @include text-style("label-md");
-}
-
-.winnerBlue {
-  color: $color-blue-300;
-}
-
-.winnerRed {
-  color: #ffd0d6;
-}
-
-.playerList {
-  display: flex;
-  flex-direction: column;
-  gap: $space-3;
-}
-
-.playerRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: $space-3;
-  padding: $space-3 0;
-  border-bottom: 1px solid $color-border-subtle;
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.identity {
-  display: flex;
-  align-items: center;
-  gap: $space-3;
-  min-width: 160px;
-  flex: 1 1 160px;
-}
-
-.name {
-  @include text-style("label-md");
-
-  color: $color-text-primary;
-}
-
-.tierChange {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  flex: 1 1 220px;
-}
-
-.preTier {
-  @include text-style("body-sm");
-
-  color: $color-text-muted;
-}
-
-.arrow {
-  color: $color-text-muted;
-}
-
-.finalTier {
-  @include text-style("label-md");
-
-  color: $color-text-primary;
-}
-
-.deltaUp {
-  @include text-style("caption");
-
-  color: $status-success;
-}
-
-.deltaDown {
-  @include text-style("caption");
-
-  color: $status-error;
-}
-
-.deltaFlat {
-  @include text-style("caption");
-
-  color: $color-text-muted;
-}
-
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $space-2;
-}
-
-.highlightList {
-  display: flex;
-  flex-direction: column;
-  gap: $space-2;
-
-  li {
-    @include text-style("body-md");
-
-    color: $color-text-secondary;
-
-    strong {
-      display: inline-block;
-      min-width: 92px;
-      color: $color-gold-300;
-    }
-  }
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: $space-4;
-}
-
-.textarea {
-  @include text-style("body-md");
-
-  width: 100%;
+.input,
+.textarea,
+.button {
+  min-height: 44px;
   padding: $space-3;
   border: 1px solid $color-border-default;
   border-radius: $radius-md;
   color: $color-text-primary;
-  background: $glass-surface-soft;
+  background: $color-bg-soft;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 110px;
   resize: vertical;
-
-  &:focus-visible {
-    outline: 2px solid $color-blue-300;
-    outline-offset: 1px;
-  }
 }
 
-.saveRow {
-  display: flex;
-  justify-content: flex-end;
+.primary {
+  color: $color-text-inverse;
+  font-weight: 800;
+  background: $gradient-gold;
 }
 
-.homeLink {
-  @include text-style("label-md");
-
-  align-self: center;
-  padding: $space-3 $space-6;
-  color: $color-blue-300;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
+@media (max-width: 40rem) {
+  .hero,
+  .panel {
+    padding: $space-4;
   }
 }

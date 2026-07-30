@@ -1,83 +1,64 @@
 "use client";
 
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
-import type { Session } from "@/lib/types";
-
+import type { NewSession, Session } from "@/lib/types";
 import {
   createSession,
   deleteSession,
-  getServerSessionsSnapshot,
-  getSessionsSnapshot,
-  parseSessionsSnapshot,
-  subscribeToSessions,
+  parseSessions,
+  SESSION_STORAGE_KEY,
+  SESSION_STORE_EVENT,
+  updateSession,
 } from "./sessionStore";
 
-export interface UseSessionsResult {
-  sessions: Session[];
-  isHydrated: boolean;
-  create: (name?: string) => Session;
-  remove: (id: string) => void;
-}
-
-const subscribeToHydration = () => () => {};
-
-export function useSessions(): UseSessionsResult {
-  const snapshot = useSyncExternalStore(
-    subscribeToSessions,
-    getSessionsSnapshot,
-    getServerSessionsSnapshot,
+export function useSessions() {
+  // `null` marks "storage not read yet", which is what both the server render
+  // and the hydration render see. Deriving state from this snapshot instead of
+  // reading localStorage keeps server and client markup identical.
+  const raw = useSyncExternalStore<string | null>(
+    (onStoreChange) => {
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === SESSION_STORAGE_KEY) onStoreChange();
+      };
+      window.addEventListener("storage", onStorage);
+      window.addEventListener(SESSION_STORE_EVENT, onStoreChange);
+      return () => {
+        window.removeEventListener("storage", onStorage);
+        window.removeEventListener(SESSION_STORE_EVENT, onStoreChange);
+      };
+    },
+    () => window.localStorage.getItem(SESSION_STORAGE_KEY) ?? "[]",
+    () => null,
   );
-  const isHydrated = useSyncExternalStore(
-    subscribeToHydration,
-    () => true,
-    () => false,
-  );
+  const hydrated = raw !== null;
 
-  const sessions = useMemo(() => {
+  const { sessions, error } = useMemo(() => {
     try {
-      return parseSessionsSnapshot(snapshot);
-    } catch {
-      return [];
+      return { sessions: parseSessions(raw), error: null };
+    } catch (cause) {
+      return {
+        sessions: [] as Session[],
+        error: cause instanceof Error ? cause.message : "세션을 불러오지 못했습니다.",
+      };
     }
-  }, [snapshot]);
-
-  const create = useCallback((name?: string) => createSession(name), []);
-  const remove = useCallback((id: string) => deleteSession(id), []);
+  }, [raw]);
 
   return {
     sessions,
-    isHydrated,
-    create,
-    remove,
+    error,
+    hydrated,
+    refresh() {
+      window.dispatchEvent(new Event(SESSION_STORE_EVENT));
+    },
+    create(input?: NewSession) {
+      return createSession(input);
+    },
+    update(id: string, update: Partial<Omit<Session, "id" | "createdAt">>) {
+      return updateSession(id, update);
+    },
+    remove(id: string) {
+      return deleteSession(id);
+    },
   };
-}
-
-export interface UseSessionResult {
-  session: Session | null;
-  isHydrated: boolean;
-}
-
-/** Subscribes to a single session by id (storage is the source of truth). */
-export function useSession(id: string): UseSessionResult {
-  const snapshot = useSyncExternalStore(
-    subscribeToSessions,
-    getSessionsSnapshot,
-    getServerSessionsSnapshot,
-  );
-  const isHydrated = useSyncExternalStore(
-    subscribeToHydration,
-    () => true,
-    () => false,
-  );
-
-  const session = useMemo(() => {
-    try {
-      return parseSessionsSnapshot(snapshot).find((item) => item.id === id) ?? null;
-    } catch {
-      return null;
-    }
-  }, [snapshot, id]);
-
-  return { session, isHydrated };
 }

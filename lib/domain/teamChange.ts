@@ -1,8 +1,8 @@
-import type { TeamChange } from "@/lib/types";
+import type { TeamChange, TeamSide } from "@/lib/types";
 
-export interface TeamSnapshot {
-  bluePuuids: string[];
-  redPuuids: string[];
+export interface TeamMemberRef {
+  puuid: string;
+  riotId?: string;
 }
 
 export interface TeamChangeResult {
@@ -10,68 +10,38 @@ export interface TeamChangeResult {
   changedPuuids: Set<string>;
 }
 
-export type TradeReasonBuilder = (trade: {
-  outPuuid: string;
-  inPuuid: string;
-  toTeam: "blue" | "red";
-}) => string;
-
-const DEFAULT_REASON: TradeReasonBuilder = () => "전력 균형을 맞추기 위한 트레이드";
-
-/**
- * Diffs the previous round's teams against a new proposal and expresses the
- * moves as A↔G trades (spec F-06). Each swap is emitted once from the blue
- * team's perspective; `changedPuuids` flags everyone who moved for highlighting.
- */
-export function computeTeamChanges(
-  previous: TeamSnapshot,
-  proposed: TeamSnapshot,
-  reasonFor: TradeReasonBuilder = DEFAULT_REASON,
+export function calculateTeamChanges(
+  previous: { blueTeam: ReadonlyArray<TeamMemberRef>; redTeam: ReadonlyArray<TeamMemberRef> },
+  next: { blueTeam: ReadonlyArray<TeamMemberRef>; redTeam: ReadonlyArray<TeamMemberRef> },
 ): TeamChangeResult {
-  const proposedBlue = new Set(proposed.bluePuuids);
-  const proposedRed = new Set(proposed.redPuuids);
+  const changes = [
+    ...changesForSide("blue", previous.blueTeam, next.blueTeam),
+    ...changesForSide("red", previous.redTeam, next.redTeam),
+  ];
+  return {
+    changes,
+    changedPuuids: new Set(changes.flatMap(({ outPuuid, inPuuid }) => [outPuuid, inPuuid])),
+  };
+}
 
-  const leftBlue = previous.bluePuuids.filter((puuid) =>
-    proposedRed.has(puuid),
-  );
-  const leftRed = previous.redPuuids.filter((puuid) =>
-    proposedBlue.has(puuid),
-  );
+function changesForSide(
+  toTeam: TeamSide,
+  previous: ReadonlyArray<TeamMemberRef>,
+  next: ReadonlyArray<TeamMemberRef>,
+): TeamChange[] {
+  const previousIds = new Set(previous.map(({ puuid }) => puuid));
+  const nextIds = new Set(next.map(({ puuid }) => puuid));
+  const outgoing = previous.filter(({ puuid }) => !nextIds.has(puuid));
+  const incoming = next.filter(({ puuid }) => !previousIds.has(puuid));
+  const count = Math.min(outgoing.length, incoming.length);
+  return Array.from({ length: count }, (_, index) => ({
+    outPuuid: outgoing[index].puuid,
+    inPuuid: incoming[index].puuid,
+    toTeam,
+    reason: `${label(outgoing[index])} ↔ ${label(incoming[index])} 전력 균형 조정`,
+  }));
+}
 
-  const changedPuuids = new Set<string>([...leftBlue, ...leftRed]);
-  const changes: TeamChange[] = [];
-  const swaps = Math.min(leftBlue.length, leftRed.length);
-
-  for (let index = 0; index < swaps; index += 1) {
-    const outPuuid = leftBlue[index];
-    const inPuuid = leftRed[index];
-    changes.push({
-      outPuuid,
-      inPuuid,
-      toTeam: "blue",
-      reason: reasonFor({ outPuuid, inPuuid, toTeam: "blue" }),
-    });
-  }
-
-  // Any unmatched moves (roster additions/removals) still surface as changes.
-  for (let index = swaps; index < leftBlue.length; index += 1) {
-    const outPuuid = leftBlue[index];
-    changes.push({
-      outPuuid,
-      inPuuid: outPuuid,
-      toTeam: "red",
-      reason: reasonFor({ outPuuid, inPuuid: outPuuid, toTeam: "red" }),
-    });
-  }
-  for (let index = swaps; index < leftRed.length; index += 1) {
-    const inPuuid = leftRed[index];
-    changes.push({
-      outPuuid: inPuuid,
-      inPuuid,
-      toTeam: "blue",
-      reason: reasonFor({ outPuuid: inPuuid, inPuuid, toTeam: "blue" }),
-    });
-  }
-
-  return { changes, changedPuuids };
+function label(member: TeamMemberRef): string {
+  return member.riotId?.split("#")[0] || member.puuid;
 }

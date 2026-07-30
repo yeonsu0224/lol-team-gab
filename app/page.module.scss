@@ -1,254 +1,80 @@
 @use "abstracts" as *;
 
-.page {
-  min-height: 100svh;
-  width: min(100%, 1120px);
-  margin-inline: auto;
-  padding: $space-12 $space-4 $space-20;
-
-  @include respond-to($breakpoint-md) {
-    padding-inline: $space-6;
-  }
-
-  @include respond-to($breakpoint-lg) {
-    padding-inline: $space-8;
-  }
+.main {
+  display: grid;
+  min-height: calc(100vh - 49px);
+  place-items: center;
+  padding: $space-8 $space-4;
 }
 
 .hero {
-  padding: $space-12 0 $space-10;
+  width: min(100%, 52rem);
+  padding: $space-12;
   text-align: center;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-xl;
+  background: $glass-surface-default;
+  box-shadow: $shadow-lg;
+  backdrop-filter: blur(16px);
+  animation: fadeInUp $duration-base $ease-emphasized both;
 
-  @include respond-to($breakpoint-md) {
-    padding-block: $space-16 $space-12;
+  h1 {
+    margin: 0 0 $space-4;
+    font-size: clamp(2rem, 7vw, $font-size-display-xl);
+  }
+
+  p {
+    margin: 0 auto $space-4;
+    color: $color-text-secondary;
   }
 }
 
 .eyebrow {
-  @include text-style("label-md");
-
-  margin-bottom: $space-3;
-  color: $color-blue-300;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: $color-gold-100 !important;
+  font-weight: 800;
 }
 
-.title {
-  @include text-style("display-xl");
-
-  color: transparent;
-  background: $gradient-gold;
-  background-clip: text;
+.lead {
+  max-width: 38rem;
 }
 
-.description {
-  @include text-style("body-lg");
-
-  max-width: 560px;
-  margin: $space-5 auto 0;
-  color: $color-text-secondary;
-}
-
-.startPanel {
-  @include glass-surface($glass-surface-strong);
-
+.features {
   display: grid;
-  gap: $space-6;
-  padding: $space-6;
-  border-radius: $radius-xl;
-
-  @include respond-to($breakpoint-md) {
-    grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.3fr);
-    align-items: end;
-    padding: $space-8;
-  }
-}
-
-.sectionEyebrow {
-  @include text-style("caption");
-
-  margin-bottom: $space-2;
-  color: $color-blue-300;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.sectionTitle {
-  @include text-style("heading-lg");
-
-  color: $color-text-primary;
-}
-
-.sectionDescription {
-  @include text-style("body-sm");
-
-  margin-top: $space-2;
-  color: $color-text-secondary;
-}
-
-.createForm {
-  display: flex;
-  flex-direction: column;
-  gap: $space-2;
-}
-
-.label {
-  @include text-style("label-md");
-
-  color: $color-text-secondary;
-}
-
-.inputRow {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: $space-3;
-
-  @include respond-to($breakpoint-sm) {
-    flex-direction: row;
-  }
+  margin: $space-8 0;
+  text-align: left;
 }
 
-.input {
-  @include text-style("body-md");
-
-  flex: 1;
-  min-width: 0;
-  min-height: 48px;
-  padding-inline: $space-4;
-  border: 1px solid $color-border-default;
-  border-radius: $radius-md;
-  color: $color-text-primary;
-  background: $glass-surface-soft;
-
-  &::placeholder {
-    color: $color-text-muted;
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      border-color: $color-border-strong;
-      background: $color-bg-soft;
-    }
-  }
-}
-
-.primaryButton {
-  @include text-style("label-md");
-  @include hover-lift;
-  @include hover-brighten;
-
-  min-height: 48px;
-  padding-inline: $space-6;
-  border: 1px solid $color-gold-300;
-  border-radius: $radius-md;
-  color: $color-text-inverse;
-  background: $gradient-gold;
-  box-shadow: $shadow-gold;
-}
-
-.errorBanner {
-  @include text-style("body-sm");
-
-  grid-column: 1 / -1;
-  padding: $space-3 $space-4;
-  border: 1px solid $status-error-border;
-  border-radius: $radius-md;
-  color: $status-error;
-  background: $status-error-bg;
-}
-
-.sessions {
-  margin-top: $space-12;
-}
-
-.sectionHeader {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: $space-4;
-  margin-bottom: $space-5;
-}
-
-.countBadge {
-  @include text-style("caption");
-
-  padding: $space-2 $space-3;
-  border: 1px solid $color-border-default;
-  border-radius: $radius-pill;
-  color: $color-text-secondary;
-  background: $glass-surface-soft;
-}
-
-.emptyState {
-  @include text-style("body-md");
-
-  padding: $space-8;
-  border: 1px dashed $color-border-default;
-  border-radius: $radius-lg;
-  color: $color-text-muted;
-  text-align: center;
-}
-
-.sessionList {
+.features article {
   display: grid;
-  gap: $space-4;
-
-  @include respond-to($breakpoint-md) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.sessionCard {
-  @include glass-surface($glass-surface-default);
-  @include hover-surface-lift;
-
-  display: flex;
-  align-items: stretch;
-  min-width: 0;
-  border-radius: $radius-lg;
-}
-
-.sessionLink {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
   gap: $space-2;
-  min-width: 0;
-  padding: $space-5;
+  padding: $space-4;
+  border: 1px solid $color-border-subtle;
+  border-radius: $radius-lg;
+  background: $glass-surface-soft;
 }
 
-.sessionName {
-  @include text-style("heading-md");
-
-  overflow: hidden;
-  color: $color-text-primary;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sessionMeta {
-  @include text-style("body-sm");
-
+.features span {
   color: $color-text-secondary;
+  font-size: 0.82rem;
 }
 
-.deleteButton {
-  @include text-style("label-md");
-  @include hover-brighten;
+.cta {
+  display: inline-flex;
+  padding: $space-3 $space-6;
+  color: $color-text-inverse;
+  font-weight: 700;
+  border-radius: $radius-pill;
+  background: $gradient-gold;
+}
 
-  align-self: center;
-  min-height: 44px;
-  margin-right: $space-3;
-  padding-inline: $space-3;
-  border: 1px solid transparent;
-  border-radius: $radius-md;
-  color: $status-error;
-  background: transparent;
+@media (max-width: 42rem) {
+  .hero {
+    padding: $space-6;
+  }
 
-  @media (hover: hover) {
-    &:hover {
-      border-color: $status-error-border;
-      background: $status-error-bg;
-    }
+  .features {
+    grid-template-columns: 1fr;
   }
 }

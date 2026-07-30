@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { apiErrorResponse, requireQueryParam } from "@/lib/api/errors";
-import { getPlayerProfile } from "@/lib/riot/player";
+import { apiErrorResponse, requiredSearchParam } from "@/lib/api/errors";
+import { getPlayer } from "@/lib/riot/player";
 
 export async function GET(request: Request) {
   try {
-    const puuid = requireQueryParam(
-      request,
-      "puuid",
-      "플레이어 PUUID가 필요합니다.",
-    );
-    return NextResponse.json(await getPlayerProfile(puuid));
+    const puuid = requiredSearchParam(new URL(request.url), "puuid");
+    return NextResponse.json(await getPlayer(puuid));
   } catch (error) {
     return apiErrorResponse(error);
   }

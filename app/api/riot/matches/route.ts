@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { apiErrorResponse, requireQueryParam } from "@/lib/api/errors";
-import { getRecentMatches } from "@/lib/riot/matches";
+import { apiErrorResponse, requiredSearchParam } from "@/lib/api/errors";
+import { getMatchHistory, getRecentMatches } from "@/lib/riot/matches";
 
 export async function GET(request: Request) {
   try {
-    const puuid = requireQueryParam(
-      request,
-      "puuid",
-      "플레이어 PUUID가 필요합니다.",
+    const url = new URL(request.url);
+    const puuid = requiredSearchParam(url, "puuid");
+    return NextResponse.json(
+      url.searchParams.get("recent") === "1"
+        ? await getRecentMatches(puuid)
+        : await getMatchHistory(puuid),
     );
-    return NextResponse.json(await getRecentMatches(puuid));
   } catch (error) {
     return apiErrorResponse(error);
   }

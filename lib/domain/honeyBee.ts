@@ -1,185 +1,143 @@
-import type {
-  HoneyBeeBadge,
-  TierSource,
-  UnratedReason,
-} from "@/lib/types";
-import { isPresent, minMaxNormalize } from "@/lib/utils/normalize";
+import type { HoneyBeeBadge, UnratedReason } from "../types/session.ts";
+import { minMaxNormalize } from "../utils/normalize.ts";
 
-export const MIN_SAMPLE_GAMES = 3;
+export const MIN_MAIN_ROLE_SAMPLE = 3;
 
-export interface TrialStatInput {
-  kda: number | null;
-  damageDealt: number | null;
-}
-
-/**
- * Per-round trial score = normKda × 0.5 + normDamage × 0.5, normalized within
- * the round's participants (spec D-07). A player missing either stat (win/loss
- * only) yields `null`.
- */
-export function computeTrialScores(
-  stats: TrialStatInput[],
-): Array<number | null> {
-  const normKda = minMaxNormalize(stats.map((stat) => stat.kda));
-  const normDamage = minMaxNormalize(stats.map((stat) => stat.damageDealt));
-
-  return stats.map((_, index) => {
-    const kda = normKda[index];
-    const damage = normDamage[index];
-    if (!isPresent(kda) || !isPresent(damage)) {
-      return null;
-    }
-    return kda * 0.5 + damage * 0.5;
-  });
-}
-
-export interface TierExpectInput {
-  playerLp: number;
-  teamKda: number | null;
-  teamDamage: number | null;
-}
-
-/**
- * Tier-based expectation (기대치 B): the player's share of the team LP predicts
- * a share of the team's total KDA/damage. Returned on the same 0~1 scale as the
- * trial score by normalizing within the round.
- */
-export function computeTierExpectScores(
-  inputs: TierExpectInput[],
-): Array<number | null> {
-  const teamLpSum = inputs.reduce((sum, input) => sum + input.playerLp, 0);
-  if (teamLpSum <= 0) {
-    return inputs.map(() => null);
-  }
-
-  const expectedKda = inputs.map((input) =>
-    isPresent(input.teamKda)
-      ? (input.playerLp / teamLpSum) * input.teamKda
-      : null,
-  );
-  const expectedDamage = inputs.map((input) =>
-    isPresent(input.teamDamage)
-      ? (input.playerLp / teamLpSum) * input.teamDamage
-      : null,
-  );
-
-  const normKda = minMaxNormalize(expectedKda);
-  const normDamage = minMaxNormalize(expectedDamage);
-
-  return inputs.map((_, index) => {
-    const kda = normKda[index];
-    const damage = normDamage[index];
-    if (!isPresent(kda) || !isPresent(damage)) {
-      return null;
-    }
-    return kda * 0.5 + damage * 0.5;
-  });
-}
-
-export interface UnratedInput {
-  preMainRoleGames: number | null;
-  preMainRoleKda: number | null;
-  preMainRoleDamage: number | null;
+export interface RatingAvailability {
+  preMainRoleGames?: number;
+  preMainRoleKda?: number | null;
+  preMainRoleDamage?: number | null;
   preStatScore: number | null;
   tierExpectScore: number | null;
-  tierSource: TierSource;
+  tierSource?: string;
 }
 
-export interface UnratedResult {
+export interface HoneyBeeEvaluation extends HoneyBeeStreak {
   unrated: boolean;
-  reason?: UnratedReason;
-}
-
-/**
- * Determines whether a player's expectation is trustworthy (spec D-07).
- * Missing expectation is never coerced to 0 — it becomes `unrated`.
- */
-export function resolveUnrated(input: UnratedInput): UnratedResult {
-  if (input.tierSource === "manual" && !isPresent(input.preMainRoleKda)) {
-    return { unrated: true, reason: "manual_tier" };
-  }
-  if (!isPresent(input.preMainRoleGames) || input.preMainRoleGames <= 0) {
-    return { unrated: true, reason: "no_history" };
-  }
-  if (input.preMainRoleGames < MIN_SAMPLE_GAMES) {
-    return { unrated: true, reason: "insufficient_sample" };
-  }
-  if (
-    !isPresent(input.preMainRoleKda) ||
-    !isPresent(input.preMainRoleDamage)
-  ) {
-    return { unrated: true, reason: "missing_stats" };
-  }
-  if (!isPresent(input.preStatScore) || !isPresent(input.tierExpectScore)) {
-    return { unrated: true, reason: "missing_stats" };
-  }
-  return { unrated: false };
-}
-
-export interface RoundEvaluationInput {
-  trialScore: number | null;
-  preStatScore: number | null;
-  tierExpectScore: number | null;
-  unrated: boolean;
-}
-
-export interface RoundEvaluation {
+  unratedReason?: UnratedReason;
   roundHoneyBee: boolean;
   roundBelowExpect: boolean;
 }
 
-/**
- * Honeybee (strictly above both expectations) and its symmetric below-expect
- * counterpart. Both require a rated player with a trial score (spec D-07).
- */
-export function evaluateRound(input: RoundEvaluationInput): RoundEvaluation {
-  if (
-    input.unrated ||
-    !isPresent(input.trialScore) ||
-    !isPresent(input.preStatScore) ||
-    !isPresent(input.tierExpectScore)
-  ) {
-    return { roundHoneyBee: false, roundBelowExpect: false };
+export interface HoneyBeeStreak {
+  streak: number;
+  badge: HoneyBeeBadge;
+}
+
+export interface ExpectationPlayer {
+  puuid: string;
+  currentLpValue: number;
+  preMainRoleKda?: number | null;
+  preMainRoleDamage?: number | null;
+}
+
+export function determineUnratedReason(input: RatingAvailability): UnratedReason | null {
+  if (input.tierSource === "manual") return "manual_tier";
+  if ((input.preMainRoleGames ?? 0) === 0) return "no_history";
+  if ((input.preMainRoleGames ?? 0) < MIN_MAIN_ROLE_SAMPLE) return "insufficient_sample";
+  if (input.preMainRoleKda == null || input.preMainRoleDamage == null) return "missing_stats";
+  if (input.preStatScore == null || input.tierExpectScore == null) return "missing_stats";
+  return null;
+}
+
+export function evaluateHoneyBee(input: {
+  availability: RatingAvailability;
+  trialScore: number | null;
+  previousStreak: number;
+}): HoneyBeeEvaluation {
+  const reason = determineUnratedReason(input.availability);
+  if (reason) {
+    return {
+      unrated: true,
+      unratedReason: reason,
+      roundHoneyBee: false,
+      roundBelowExpect: false,
+      ...streakResult(input.previousStreak),
+    };
+  }
+  if (input.trialScore == null) {
+    return {
+      unrated: false,
+      roundHoneyBee: false,
+      roundBelowExpect: false,
+      ...streakResult(0),
+    };
   }
 
+  const preStatScore = input.availability.preStatScore as number;
+  const tierExpectScore = input.availability.tierExpectScore as number;
   const roundHoneyBee =
-    input.trialScore > input.preStatScore &&
-    input.trialScore > input.tierExpectScore;
+    input.trialScore > preStatScore && input.trialScore > tierExpectScore;
   const roundBelowExpect =
-    input.trialScore <= input.preStatScore &&
-    input.trialScore <= input.tierExpectScore;
-
-  return { roundHoneyBee, roundBelowExpect };
+    input.trialScore <= preStatScore && input.trialScore <= tierExpectScore;
+  return {
+    unrated: false,
+    roundHoneyBee,
+    roundBelowExpect,
+    ...updateHoneyBeeStreak(input.previousStreak, roundHoneyBee),
+  };
 }
 
-export interface StreakInput {
-  unrated: boolean;
-  hasStats: boolean;
-  roundHoneyBee: boolean;
-}
-
-/**
- * Streak update rules (spec D-07):
- * - unrated → maintain (no increment/reset)
- * - win/loss only (no stats) → reset to 0
- * - honeybee → +1, otherwise (missed) → reset to 0
- */
-export function updateStreak(
+export function updateHoneyBeeStreak(
   previousStreak: number,
-  input: StreakInput,
-): number {
-  if (input.unrated) {
-    return previousStreak;
-  }
-  if (!input.hasStats) {
-    return 0;
-  }
-  return input.roundHoneyBee ? previousStreak + 1 : 0;
+  roundHoneyBee: boolean,
+): HoneyBeeStreak {
+  return streakResult(roundHoneyBee ? Math.min(3, Math.max(0, previousStreak) + 1) : 0);
 }
 
-export function streakToBadge(streak: number): HoneyBeeBadge {
-  if (streak <= 0) return "none";
-  if (streak === 1) return "bee";
-  if (streak === 2) return "glitterBee";
-  return "rainbowBee";
+export function calculateCompositeScores(
+  kda: ReadonlyArray<number | null | undefined>,
+  damage: ReadonlyArray<number | null | undefined>,
+): Array<number | null> {
+  const normalizedKda = minMaxNormalize(kda);
+  const normalizedDamage = minMaxNormalize(damage);
+  return normalizedKda.map((kdaScore, index) => {
+    const damageScore = normalizedDamage[index];
+    return kdaScore == null || damageScore == null ? null : kdaScore * 0.5 + damageScore * 0.5;
+  });
+}
+
+export function calculatePreStatScores(
+  round: 1 | 2 | 3,
+  players: ReadonlyArray<ExpectationPlayer>,
+): Record<string, number | null> {
+  const scores =
+    round === 1
+      ? calculateCompositeScores(
+          players.map(({ preMainRoleKda }) => preMainRoleKda),
+          players.map(({ preMainRoleDamage }) => preMainRoleDamage),
+        )
+      : minMaxNormalize(players.map(({ currentLpValue }) => currentLpValue));
+  return Object.fromEntries(players.map(({ puuid }, index) => [puuid, scores[index]]));
+}
+
+export function calculateTierExpectationScores(
+  team: ReadonlyArray<{
+    puuid: string;
+    currentLpValue: number;
+    kda: number | null;
+    damageDealt: number | null;
+  }>,
+): Record<string, number | null> {
+  const totalLp = team.reduce((sum, { currentLpValue }) => sum + Math.max(0, currentLpValue), 0);
+  const totalKda = team.reduce((sum, { kda }) => sum + (kda ?? 0), 0);
+  const totalDamage = team.reduce((sum, { damageDealt }) => sum + (damageDealt ?? 0), 0);
+  if (totalLp <= 0 || team.some(({ kda, damageDealt }) => kda == null || damageDealt == null)) {
+    return Object.fromEntries(team.map(({ puuid }) => [puuid, null]));
+  }
+  const expectedKda = team.map(
+    ({ currentLpValue }) => totalKda * (Math.max(0, currentLpValue) / totalLp),
+  );
+  const expectedDamage = team.map(
+    ({ currentLpValue }) => totalDamage * (Math.max(0, currentLpValue) / totalLp),
+  );
+  const scores = calculateCompositeScores(expectedKda, expectedDamage);
+  return Object.fromEntries(team.map(({ puuid }, index) => [puuid, scores[index]]));
+}
+
+function streakResult(streak: number): HoneyBeeStreak {
+  const safe = Math.min(3, Math.max(0, Math.floor(streak)));
+  const badge: HoneyBeeBadge =
+    safe >= 3 ? "rainbowBee" : safe === 2 ? "glitterBee" : safe === 1 ? "bee" : "none";
+  return { streak: safe, badge };
 }

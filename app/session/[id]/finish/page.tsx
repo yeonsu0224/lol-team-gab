@@ -5,320 +5,146 @@ import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { FloatingAssistant } from "@/components/assistant/FloatingAssistant";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { ProfileIcon } from "@/components/player/ProfileIcon";
+import { FadeStage } from "@/components/motion/FadeStage";
 import { DonationPanel } from "@/components/shared/DonationPanel";
-import {
-  GradeBadge,
-  HoneyBeeStatusBadge,
-} from "@/components/shared/StatusBadge";
-import { Banner } from "@/components/ui/Banner";
-import { Button } from "@/components/ui/Button";
-import { Field, Select } from "@/components/ui/Field";
-import { Panel } from "@/components/ui/Panel";
-import { lpValueToTierDisplay } from "@/lib/constants/lpTable";
-import { BootstrapProvider } from "@/lib/ddragon/BootstrapProvider";
-import {
-  buildRebalanceSummaryPayload,
-  buildTeamSummaryPayload,
-} from "@/lib/domain/summaryPayload";
-import { updateSession } from "@/lib/storage/sessionStore";
-import { useSession } from "@/lib/storage/useSessions";
-import type {
-  Participant,
-  PerformanceGrade,
-  RoundNumber,
-} from "@/lib/types";
-
+import { ReasonPanel } from "@/components/shared/ReasonPanel";
+import { StarRating } from "@/components/shared/StarRating";
+import { lpValueToTier } from "@/lib/domain/lp";
+import { useSessions } from "@/lib/storage/useSessions";
+import type { Session, SessionWrapUp, TeamSide } from "@/lib/types";
 import styles from "./finish.module.scss";
 
-const GRADE_ORDER: PerformanceGrade[] = ["F", "D", "C", "B", "A", "OP"];
-
-function bestGrade(participant: Participant): PerformanceGrade | null {
-  let best: PerformanceGrade | null = null;
-  for (const perf of Object.values(participant.trialPerformanceByRound ?? {})) {
-    if (!perf?.performanceGrade) {
-      continue;
-    }
-    if (
-      best === null ||
-      GRADE_ORDER.indexOf(perf.performanceGrade) > GRADE_ORDER.indexOf(best)
-    ) {
-      best = perf.performanceGrade;
-    }
-  }
-  return best;
-}
-
 export default function FinishPage() {
-  const params = useParams<{ id: string }>();
-  const sessionId = params.id;
-  const { session, isHydrated } = useSession(sessionId);
-
-  const [mvpPuuid, setMvpPuuid] = useState("");
-  const [evaluationNote, setEvaluationNote] = useState("");
-  const [feedbackNote, setFeedbackNote] = useState("");
+  const { id } = useParams<{ id: string }>();
+  const { sessions, error, hydrated, update } = useSessions();
+  const session = sessions.find((item) => item.id === id);
+  const [rating, setRating] = useState<SessionWrapUp["performanceRating"]>();
+  const [feedback, setFeedback] = useState<string>();
   const [saved, setSaved] = useState(false);
+  const winner = useMemo(() => session ? finalWinner(session.rounds.map(({ trialResult }) => trialResult.winnerTeam)) : undefined, [session]);
 
-  const playedRounds = session?.rounds.length ?? 0;
+  if (error) return <p role="alert">{error}</p>;
+  if (!hydrated) return <p aria-busy>세션을 불러오는 중입니다…</p>;
+  if (!session) return <p>세션을 찾을 수 없습니다.</p>;
 
-  const rows = useMemo(() => {
-    if (!session) {
-      return [];
-    }
-    return session.participants.map((participant) => {
-      const finalTier = lpValueToTierDisplay(participant.currentLpValue);
-      const deltaValue = participant.currentLpValue - participant.preLpValue;
-      return {
-        participant,
-        preLabel: participant.preTier.label,
-        finalLabel: finalTier.label,
-        deltaValue,
-        grade: bestGrade(participant),
-      };
-    });
-  }, [session]);
+  const selectedRating = rating ?? session.wrapUp?.performanceRating;
+  const selectedFeedback = feedback ?? session.wrapUp?.feedbackNote ?? "";
+  const highlights = buildHighlights(session);
 
-  const highlights = useMemo(() => {
-    const rainbow = rows.filter(
-      (row) => row.participant.honeyBeeBadge === "rainbowBee",
-    );
-    const op = rows.filter((row) => row.grade === "OP");
-    const mvp =
-      rows.length > 0
-        ? [...rows].sort(
-            (a, b) =>
-              b.participant.personalScore - a.participant.personalScore,
-          )[0]
-        : null;
-    return { rainbow, op, mvp };
-  }, [rows]);
-
-  const latestRecord = useMemo(() => {
-    if (!session || session.rounds.length === 0) {
-      return null;
-    }
-    return session.rounds.reduce((a, b) =>
-      b.trialResult.round > a.trialResult.round ? b : a,
-    );
-  }, [session]);
-
-  function handleSave() {
-    updateSession(sessionId, {
+  function save() {
+    const endedAtRound = Math.max(1, session!.rounds.length) as 1 | 2 | 3 | 4;
+    update(id, {
       wrapUp: {
-        endedAtRound: (playedRounds === 0
-          ? 1
-          : Math.min(4, playedRounds)) as 1 | 2 | 3 | 4,
-        mvpPuuid: mvpPuuid || undefined,
-        evaluationNote: evaluationNote.trim() || undefined,
-        feedbackNote: feedbackNote.trim() || undefined,
+        endedAtRound,
+        winnerTeam: winner,
+        performanceRating: selectedRating,
+        feedbackNote: feedback === undefined ? session!.wrapUp?.feedbackNote : feedback.trim() || undefined,
         endedAt: new Date().toISOString(),
       },
     });
     setSaved(true);
-    window.setTimeout(() => setSaved(false), 2000);
-  }
-
-  if (!isHydrated) {
-    return (
-      <div className={styles.layout}>
-        <PageHeader title="내전 종료" />
-        <p className={styles.state}>불러오는 중…</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className={styles.layout}>
-        <PageHeader title="내전 종료" />
-        <Banner tone="error">세션을 찾을 수 없습니다.</Banner>
-        <Link className={styles.homeLink} href="/">
-          처음으로
-        </Link>
-      </div>
-    );
   }
 
   return (
-    <BootstrapProvider>
-      <div className={styles.layout}>
-        <PageHeader
-          title="내전 종료 · 마무리"
-          description={`총 ${playedRounds}판 진행 · 최종 결과 요약`}
+    <FadeStage stageKey={`finish-${session.rounds.length}`}>
+      <section className={styles.shell}>
+        <header className={`${styles.hero} ${winner === "blue" ? styles.heroBlue : winner === "red" ? styles.heroRed : ""}`}>
+          <p>내전 마무리</p>
+          <h2>{winner ? `${winner === "blue" ? "블루" : "레드"}팀 최종 승리` : "아직 저장된 판 결과가 없습니다"}</h2>
+          <p>승수가 같으면 마지막으로 진행한 판의 승리팀을 최종 승자로 정합니다.</p>
+          <div className={styles.chips}>
+            {session.rounds.map(({ round, trialResult }) => (
+              <span key={round} className={`${styles.chip} ${styles[trialResult.winnerTeam]}`}>
+                {round}판 · {trialResult.winnerTeam === "blue" ? "블루" : "레드"} 승
+              </span>
+            ))}
+          </div>
+        </header>
+
+        <ReasonPanel
+          title="최종 결과 판정 근거"
+          reasons={[
+            `블루 ${session.rounds.filter(({ trialResult }) => trialResult.winnerTeam === "blue").length}승 · 레드 ${session.rounds.filter(({ trialResult }) => trialResult.winnerTeam === "red").length}승`,
+            "동률일 때는 마지막 판 승리팀을 적용합니다.",
+            "성과 평가는 기록이 충분한 참가자에게만 표시합니다.",
+          ]}
         />
 
-        <Panel>
-          <h2 className={styles.sectionTitle}>판별 결과</h2>
-          {playedRounds === 0 ? (
-            <p className={styles.state}>아직 입력된 시험 판이 없습니다.</p>
-          ) : (
-            <ol className={styles.roundList}>
-              {session.rounds.map((record) => (
-                <li key={record.round} className={styles.roundItem}>
-                  <span className={styles.roundNo}>{record.round}판</span>
-                  <span
-                    className={`${styles.winner} ${
-                      record.trialResult.winnerTeam === "blue"
-                        ? styles.winnerBlue
-                        : styles.winnerRed
-                    }`}
-                  >
-                    {record.trialResult.winnerTeam === "blue" ? "블루" : "레드"}{" "}
-                    승리
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Panel>
-
-        <Panel>
-          <h2 className={styles.sectionTitle}>참가자 티어 변화</h2>
-          <ul className={styles.playerList}>
-            {rows.map((row) => (
-              <li key={row.participant.puuid} className={styles.playerRow}>
-                <div className={styles.identity}>
-                  <ProfileIcon
-                    profileIconId={row.participant.riotData.profileIconId}
-                    name={row.participant.riotId}
-                    size={36}
-                  />
-                  <span className={styles.name}>{row.participant.riotId}</span>
-                </div>
-
-                <div className={styles.tierChange}>
-                  <span className={styles.preTier}>{row.preLabel}</span>
-                  <span className={styles.arrow} aria-hidden="true">
-                    →
-                  </span>
-                  <span className={styles.finalTier}>{row.finalLabel}</span>
-                  <span
-                    className={
-                      row.deltaValue > 0
-                        ? styles.deltaUp
-                        : row.deltaValue < 0
-                          ? styles.deltaDown
-                          : styles.deltaFlat
-                    }
-                  >
-                    {row.deltaValue > 0
-                      ? `▲ ${row.deltaValue}`
-                      : row.deltaValue < 0
-                        ? `▼ ${Math.abs(row.deltaValue)}`
-                        : "―"}
-                  </span>
-                </div>
-
-                <div className={styles.badges}>
-                  {row.grade ? <GradeBadge grade={row.grade} /> : null}
-                  {row.participant.honeyBeeBadge !== "none" ? (
-                    <HoneyBeeStatusBadge
-                      badge={row.participant.honeyBeeBadge}
-                    />
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-
-        <Panel tone="soft">
-          <h2 className={styles.sectionTitle}>세션 하이라이트</h2>
-          <ul className={styles.highlightList}>
-            <li>
-              <strong>총 판 수</strong> {playedRounds}판
-            </li>
-            {highlights.mvp ? (
-              <li>
-                <strong>MVP 후보</strong> {highlights.mvp.participant.riotId}
-              </li>
-            ) : null}
-            {highlights.rainbow.length > 0 ? (
-              <li>
-                <strong>무지개 꿀벌</strong>{" "}
-                {highlights.rainbow
-                  .map((row) => row.participant.riotId)
-                  .join(", ")}
-              </li>
-            ) : null}
-            {highlights.op.length > 0 ? (
-              <li>
-                <strong>OP 등급</strong>{" "}
-                {highlights.op.map((row) => row.participant.riotId).join(", ")}
-              </li>
-            ) : null}
-          </ul>
-        </Panel>
-
-        <Panel>
-          <h2 className={styles.sectionTitle}>평가 · 피드백</h2>
-          <div className={styles.form}>
-            <Field label="오늘의 MVP" htmlFor="finish-mvp">
-              <Select
-                id="finish-mvp"
-                value={mvpPuuid}
-                onChange={(event) => setMvpPuuid(event.target.value)}
-              >
-                <option value="">선택 안 함</option>
-                {session.participants.map((participant) => (
-                  <option key={participant.puuid} value={participant.puuid}>
-                    {participant.riotId}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
-            <Field label="총평 · 아쉬운 플레이" htmlFor="finish-eval">
-              <textarea
-                id="finish-eval"
-                className={styles.textarea}
-                rows={2}
-                value={evaluationNote}
-                onChange={(event) => setEvaluationNote(event.target.value)}
-                placeholder="오늘 내전 총평을 남겨보세요."
-              />
-            </Field>
-
-            <Field label="앱 개선 피드백" htmlFor="finish-feedback">
-              <textarea
-                id="finish-feedback"
-                className={styles.textarea}
-                rows={2}
-                value={feedbackNote}
-                onChange={(event) => setFeedbackNote(event.target.value)}
-                placeholder="개선하면 좋을 점을 알려주세요."
-              />
-            </Field>
-
-            <div className={styles.saveRow}>
-              <Button onClick={handleSave}>{saved ? "저장됨" : "저장"}</Button>
-            </div>
+        <section className={styles.panel}>
+          <h2>세션 하이라이트</h2>
+          <div className={styles.highlights}>
+            {highlights.map((highlight) => <span className={styles.chip} key={highlight}>{highlight}</span>)}
           </div>
-        </Panel>
+        </section>
+
+        <section className={styles.panel}>
+          <h2>참가자 티어 변화와 성과</h2>
+          <div className={styles.grid}>
+            {session.participants.map((participant) => {
+              const finalTier = lpValueToTier(participant.currentLpValue);
+              const grades = Object.entries(participant.trialPerformanceByRound ?? {})
+                .filter(([, performance]) => performance && !performance.unrated)
+                .map(([round, performance]) => `${round}판 ${performance?.performanceGrade}`);
+              return (
+                <article className={styles.player} key={participant.puuid}>
+                  <strong>{participant.riotId}</strong>
+                  <p>{participant.preTier.label} → {finalTier.label}</p>
+                  <p>{participant.currentLpValue >= participant.preLpValue ? "▲" : "▼"} {Math.abs(participant.currentLpValue - participant.preLpValue)} LP</p>
+                  <p>{grades.length ? grades.join(" · ") : "성과 기록 부족 · 평가 생략"}</p>
+                  {participant.honeyBeeBadge !== "none" && <p>🐝 {participant.honeyBeeBadge}</p>}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className={styles.panel}>
+          <h2>내전 성과 별점</h2>
+          <p>별점은 하나만 남기고, 추가 의견은 텍스트로 작성합니다.</p>
+          <StarRating value={selectedRating} onChange={setRating} />
+          <textarea
+            className={styles.textarea}
+            aria-label="내전 피드백"
+            placeholder="다음 내전에 참고할 피드백"
+            value={selectedFeedback}
+            onChange={(event) => {
+              setFeedback(event.target.value);
+              setSaved(false);
+            }}
+          />
+          <div className={styles.actions}>
+            <button className={`${styles.button} ${styles.primary}`} type="button" onClick={save}>마무리 저장</button>
+            <Link className={styles.button} href="/dashboard">대시보드로</Link>
+            {saved && <span role="status">저장했습니다.</span>}
+          </div>
+        </section>
 
         <DonationPanel />
-
-        <Link className={styles.homeLink} href="/">
-          새 내전 시작하기
-        </Link>
-      </div>
-
-      <FloatingAssistant
-        sessionId={sessionId}
-        initialMode={session.commentMode ?? "normal"}
-        buildPayload={() => {
-          if (latestRecord) {
-            return buildRebalanceSummaryPayload(
-              latestRecord.nextTeamProposal,
-              latestRecord.trialResult.round as RoundNumber,
-            );
-          }
-          return session.preTeamProposal
-            ? buildTeamSummaryPayload(session.preTeamProposal)
-            : null;
-        }}
-      />
-    </BootstrapProvider>
+        <FloatingAssistant
+          session={session}
+          surface="finish"
+          onModeChange={(commentMode) => update(id, { commentMode })}
+        />
+      </section>
+    </FadeStage>
   );
+}
+
+function finalWinner(results: TeamSide[]): TeamSide | undefined {
+  if (!results.length) return undefined;
+  const blue = results.filter((side) => side === "blue").length;
+  const red = results.length - blue;
+  return blue === red ? results.at(-1) : blue > red ? "blue" : "red";
+}
+
+function buildHighlights(session: Session) {
+  const highlights = session.participants.flatMap((participant) => {
+    const grades = Object.values(participant.trialPerformanceByRound ?? {})
+      .filter((performance) => !performance.unrated && performance.performanceGrade);
+    return [
+      ...(participant.honeyBeeBadge !== "none" ? [`${participant.riotId} · 🐝 ${participant.honeyBeeBadge}`] : []),
+      ...(grades.some(({ performanceGrade }) => performanceGrade === "OP") ? [`${participant.riotId} · OP 성과`] : []),
+    ];
+  });
+  return highlights.length ? highlights : ["저장된 성과 하이라이트가 없습니다."];
 }
