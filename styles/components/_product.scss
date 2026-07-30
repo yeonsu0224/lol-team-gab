@@ -1,0 +1,895 @@
+@use "../abstracts/tokens" as *;
+
+.tg-topbar {
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 64px;
+  padding: 0 20px;
+  border-bottom: 1px solid $border;
+  background: rgb(3 7 18 / 82%);
+  backdrop-filter: blur(18px);
+}
+.tg-topbar__logo { color: $gold-light; font-weight: 900; letter-spacing: 0.04em; }
+.tg-topbar__left { justify-self: start; }
+
+/* D-23: 상단 오로라 배경. 콘텐츠 뒤(z-index -1)에서만 움직이고 입력을 가리지 않는다. */
+.tg-aurora {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: min(72vh, 760px);
+  opacity: 0.5;
+  pointer-events: none;
+  /* 아래쪽을 페이드아웃해 본문 가독성을 지킨다. */
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 100%) 0%, rgb(0 0 0 / 70%) 45%, transparent 100%);
+  transition: opacity 900ms $ease-emphasized;
+}
+
+/* 결과 단계처럼 배경이 연출을 맡을 때만 살짝 진하게. 높이는 유지해 캔버스 해상도를 지킨다. */
+.tg-aurora.is-focus { opacity: 0.78; }
+.tg-aurora canvas { display: block; width: 100%; height: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* canvas를 만들지 않으므로 빈 레이어만 남는다. */
+  .tg-aurora { display: none; }
+}
+
+/* F-13: 좌측 고정 광고 배너. 본문(min(1180px)) 좌측 여백 안에서만 노출한다. */
+.tg-side-banner {
+  position: fixed;
+  z-index: 25;
+  top: 50%;
+  left: 16px;
+  display: none;
+  width: min(220px, calc((100vw - 1180px) / 2 - 32px));
+  transform: translateY(-50%);
+}
+.tg-side-banner__link {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow;
+  transition: transform $motion-fast $ease, border-color $motion-fast $ease;
+}
+.tg-side-banner__link img { display: block; width: 100%; height: auto; }
+.tg-side-banner__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 7px;
+  border-radius: $radius-pill;
+  background: rgb(3 7 18 / 72%);
+  color: $text-muted;
+  font-size: 0.66rem;
+}
+
+@media (hover: hover) {
+  .tg-side-banner__link:hover { border-color: $border-strong; transform: translateY(-2px); }
+}
+
+@media (min-width: 1500px) {
+  .tg-side-banner { display: block; }
+}
+
+.tg-hero { min-height: 68vh; display: grid; align-content: center; gap: 20px; text-align: center; }
+.tg-hero h1 { margin: 0; font-size: clamp(2.5rem, 8vw, 5.8rem); }
+.tg-hero p { max-width: 660px; margin-inline: auto; color: $text-muted; font-size: 1.1rem; line-height: 1.75; }
+
+.tg-session-card { display: grid; gap: 14px; min-height: 180px; }
+.tg-session-card:hover { border-color: $border-strong; }
+.tg-session-card.is-preparing { border-color: rgb(145 160 184 / 45%); }
+.tg-session-card.is-in_progress { border-color: rgb(37 137 255 / 55%); background: linear-gradient(160deg, $blue-soft, $glass); }
+.tg-session-card.is-completed { border-color: rgb(200 155 60 / 55%); background: linear-gradient(160deg, rgb(200 155 60 / 12%), $glass); }
+
+.tg-dashboard-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid $border;
+  border-radius: $radius-pill;
+  background: rgb(255 255 255 / 4%);
+  color: inherit;
+  cursor: pointer;
+}
+.tg-dashboard-profile img,
+.tg-dashboard-profile__fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: $bg-soft;
+}
+
+.tg-player-card {
+  /* 그라디언트 시작 지점. 블루팀 미러링에서 좌상단 → 우상단으로 뒤집는다(D-16). */
+  --tg-card-sheen-angle: 120deg;
+  --tg-card-tier-angle: 135deg;
+
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background:
+    linear-gradient(var(--tg-card-sheen-angle), rgb(255 255 255 / 6%), transparent 55%),
+    rgb(255 255 255 / 4%);
+}
+
+.tg-player-card__main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+/*
+ * 참가자 등록: 좌 5 / 우 5를 한 그리드로 세워 같은 행의 카드 높이를 맞춘다.
+ * DOM 순서(0→9)를 column-flow로 채우면 기존처럼 왼쪽 열을 먼저 채운다.
+ */
+.tg-player-register {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(5, auto);
+  grid-auto-flow: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.tg-player-register .tg-player-card {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.tg-player-card__main > .tg-button {
+  flex: 0 0 auto;
+  align-self: center;
+  white-space: nowrap;
+}
+
+/*
+ * 티어마다 다른 색을 쓴다. 티어 클래스는 색(틴트·테두리)만 지정하고
+ * 방향은 `--tg-card-*-angle`(D-16 미러링)이 담당한다.
+ */
+.tg-player-card--iron,
+.tg-player-card--bronze,
+.tg-player-card--silver,
+.tg-player-card--gold,
+.tg-player-card--platinum,
+.tg-player-card--emerald,
+.tg-player-card--diamond,
+.tg-player-card--master,
+.tg-player-card--grandmaster,
+.tg-player-card--challenger {
+  border-color: var(--tg-card-tier-line);
+  background: linear-gradient(var(--tg-card-tier-angle), var(--tg-card-tier-tint), rgb(255 255 255 / 3%));
+}
+
+.tg-player-card--iron {
+  --tg-card-tier-tint: rgb(118 124 138 / 30%);
+  --tg-card-tier-line: rgb(152 160 176 / 42%);
+}
+.tg-player-card--bronze {
+  --tg-card-tier-tint: rgb(176 108 62 / 32%);
+  --tg-card-tier-line: rgb(206 132 78 / 48%);
+}
+.tg-player-card--silver {
+  --tg-card-tier-tint: rgb(158 176 198 / 30%);
+  --tg-card-tier-line: rgb(190 206 226 / 46%);
+}
+.tg-player-card--gold {
+  --tg-card-tier-tint: rgb(214 164 58 / 32%);
+  --tg-card-tier-line: rgb(240 213 140 / 52%);
+}
+.tg-player-card--platinum {
+  --tg-card-tier-tint: rgb(56 178 188 / 30%);
+  --tg-card-tier-line: rgb(96 212 220 / 48%);
+}
+.tg-player-card--emerald {
+  --tg-card-tier-tint: rgb(30 168 108 / 32%);
+  --tg-card-tier-line: rgb(60 206 140 / 50%);
+}
+.tg-player-card--diamond {
+  --tg-card-tier-tint: rgb(78 138 232 / 32%);
+  --tg-card-tier-line: rgb(126 174 255 / 52%);
+}
+.tg-player-card--master {
+  --tg-card-tier-tint: rgb(158 82 208 / 34%);
+  --tg-card-tier-line: rgb(198 132 240 / 55%);
+}
+.tg-player-card--grandmaster {
+  --tg-card-tier-tint: rgb(206 60 78 / 34%);
+  --tg-card-tier-line: rgb(240 112 126 / 55%);
+}
+.tg-player-card--challenger {
+  --tg-card-tier-tint: rgb(72 198 224 / 34%);
+  --tg-card-tier-line: rgb(146 234 250 / 58%);
+}
+button.tg-player-card { color: inherit; text-align: inherit; cursor: pointer; }
+.tg-player-card__avatar-wrap {
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+}
+.tg-player-card__avatar {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: $bg-soft;
+}
+/* 기대 이상(꿀벌)은 칩이 아니라 소환사 아이콘 모서리에 붙인다. */
+.tg-player-card__bee {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid $bg-elevated;
+  border-radius: 50%;
+  background: $bg-elevated;
+  box-shadow: 0 0 10px rgb(200 155 60 / 35%);
+}
+.tg-player-card__emblem { width: 44px; height: 44px; flex: 0 0 44px; object-fit: contain; }
+/* 모스트는 별도 칸이 아니라 소환사 아이콘 좌하단에 겹친다 — 카드 높이를 늘리지 않는다. */
+.tg-player-card__most {
+  position: absolute;
+  left: -4px;
+  bottom: -4px;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  border: 2px solid $bg-elevated;
+  border-radius: 6px;
+  object-fit: cover;
+  background: $bg-elevated;
+}
+.tg-player-card__identity { min-width: 0; flex: 1; }
+.tg-player-card__identity > strong,
+.tg-player-card__identity > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tg-player-card__identity > span { color: $text-muted; font-size: 0.8rem; }
+.tg-player-card__badges {
+  display: flex;
+  align-items: center;
+  align-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-block: 2px;
+
+  /* 칩·라인 아이콘·이스터에그 높이를 맞춰야 한 줄에서 위아래로 어긋나지 않는다. */
+  > * {
+    min-height: 26px;
+    flex: 0 0 auto;
+  }
+}
+/*
+ * 등록 카드의 내부 평가는 본문 아래가 아니라 옆 칸에 두어
+ * 이전처럼 한 줄 높이를 유지한다.
+ */
+.tg-player-card__evaluation {
+  display: grid;
+  gap: 4px;
+  flex: 0 0 78px;
+  width: 78px;
+
+  .tg-select {
+    width: 100%;
+    min-height: 26px;
+    padding: 2px 4px;
+    font-size: 0.7rem;
+  }
+}
+.tg-lane-icon img { display: block; }
+.tg-bee-icon { display: block; border-radius: 50%; object-fit: cover; }
+
+/* 성과 등급은 한눈에 읽혀야 한다. 등급별 색 + 굵은 글자로 강조한다(D-11). */
+.tg-grade {
+  padding: 4px 10px;
+  border-color: var(--tg-grade-line);
+  color: var(--tg-grade-ink);
+  background: var(--tg-grade-fill);
+  font-weight: 800;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+}
+.tg-grade--op {
+  --tg-grade-ink: #fff4d2;
+  --tg-grade-line: rgb(240 213 140 / 78%);
+  --tg-grade-fill: linear-gradient(120deg, rgb(200 155 60 / 42%), rgb(240 213 140 / 18%));
+
+  box-shadow: 0 0 14px rgb(200 155 60 / 32%);
+}
+.tg-grade--a {
+  --tg-grade-ink: #9defdf;
+  --tg-grade-line: rgb(10 200 185 / 62%);
+  --tg-grade-fill: rgb(10 200 185 / 18%);
+}
+.tg-grade--b {
+  --tg-grade-ink: #a8d2ff;
+  --tg-grade-line: rgb(37 137 255 / 58%);
+  --tg-grade-fill: rgb(37 137 255 / 16%);
+}
+.tg-grade--c {
+  --tg-grade-ink: #d6deeb;
+  --tg-grade-line: rgb(190 205 230 / 40%);
+  --tg-grade-fill: rgb(190 205 230 / 10%);
+}
+.tg-grade--d {
+  --tg-grade-ink: #ffcda0;
+  --tg-grade-line: rgb(228 146 68 / 58%);
+  --tg-grade-fill: rgb(228 146 68 / 16%);
+}
+.tg-grade--f {
+  --tg-grade-ink: #ffb3bf;
+  --tg-grade-line: rgb(239 79 103 / 62%);
+  --tg-grade-fill: rgb(239 79 103 / 18%);
+}
+.tg-player-card__toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  color: $text-muted;
+  background: rgb(255 255 255 / 4%);
+  cursor: pointer;
+}
+.tg-player-card__detail {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  text-align: left;
+  background: rgb(11 23 40 / 55%);
+  animation: tg-fade-up 220ms $ease-emphasized both;
+
+  strong { color: $gold-light; font-size: 0.82rem; }
+  span { color: $text-muted; font-size: 0.8rem; }
+}
+.tg-trade-chip {
+  gap: 4px;
+  color: $gold-light;
+  border-color: rgb(240 213 140 / 55%);
+  background: rgb(200 155 60 / 18%);
+  font-weight: 700;
+}
+.tg-player-card.is-changed {
+  border-color: rgb(240 213 140 / 70%);
+  background:
+    linear-gradient(var(--tg-card-sheen-angle), rgb(200 155 60 / 28%), transparent 58%),
+    rgb(200 155 60 / 10%);
+  box-shadow: 0 0 0 1px rgb(200 155 60 / 35%), 0 0 22px rgb(200 155 60 / 18%);
+}
+.tg-player-card.is-blue { border-color: rgb(37 137 255 / 55%); background: $blue-soft; }
+.tg-player-card.is-red { border-color: rgb(239 79 103 / 55%); background: $red-soft; }
+
+.tg-rebalance-banner {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  font-weight: 700;
+
+  &.is-trade {
+    color: $gold-light;
+    border-color: rgb(240 213 140 / 50%);
+    background: rgb(200 155 60 / 14%);
+  }
+
+  &.is-gold {
+    color: #9defdf;
+    border-color: rgb(10 200 185 / 45%);
+    background: rgb(10 200 185 / 12%);
+  }
+}
+
+.tg-trade-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tg-trade-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgb(240 213 140 / 42%);
+  border-radius: $radius-md;
+  background: rgb(200 155 60 / 10%);
+}
+
+.tg-trade-list__player {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  .tg-player-card__avatar {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.tg-trade-list__mark {
+  display: grid;
+  place-items: center;
+  color: $gold-light;
+}
+
+/* 팀 대 팀 구도. 가운데 VS 마크를 두고 양쪽 보드는 위 정렬을 유지한다(D-16). */
+.tg-versus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-content: start;
+  align-items: start;
+  gap: 16px;
+}
+
+.tg-versus__mark {
+  display: grid;
+  align-self: center;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid $border-strong;
+  border-radius: 50%;
+  color: $gold-light;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgb(11 23 40 / 72%);
+  backdrop-filter: blur(10px);
+}
+
+.tg-team-board {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid;
+  border-radius: $radius-xl;
+}
+.tg-team-board.is-blue { border-color: rgb(37 137 255 / 45%); background: $blue-soft; text-align: right; }
+.tg-team-board.is-red { border-color: rgb(239 79 103 / 45%); background: $red-soft; }
+.tg-team-board__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0;
+  }
+}
+/* 블루팀은 카드와 마찬가지로 헤더 요소도 중앙→바깥 순서로 뒤집는다(D-16). */
+.tg-team-board.is-blue .tg-team-board__header,
+.tg-team-board.is-blue .tg-team-board__header h2 { flex-direction: row-reverse; }
+.tg-team-board.is-blue .tg-player-card {
+  /* 카드 내용이 뒤집히므로 그라디언트도 우측에서 시작한다(360deg − 기본값). */
+  --tg-card-sheen-angle: 240deg;
+  --tg-card-tier-angle: 225deg;
+
+  animation: tg-slide-left $motion-enter $ease-emphasized both;
+}
+.tg-team-board.is-blue .tg-player-card__main,
+.tg-team-board.is-blue .tg-player-card__badges { flex-direction: row-reverse; }
+.tg-team-board.is-red .tg-player-card { animation: tg-slide-right $motion-enter $ease-emphasized both; }
+/*
+ * 헤더(`<header>`)가 팀 박스의 첫 자식이므로 카드는 nth-child 2~6이다.
+ * nth-child로 세면 5번째 카드가 규칙에 걸리지 않아 지연 없이 먼저 나타난다.
+ * 카드만 세도록 `article` 기준 nth-of-type을 쓴다.
+ */
+.tg-team-board article.tg-player-card:nth-of-type(1) { animation-delay: calc(#{$motion-stagger} * 1); }
+.tg-team-board article.tg-player-card:nth-of-type(2) { animation-delay: calc(#{$motion-stagger} * 2); }
+.tg-team-board article.tg-player-card:nth-of-type(3) { animation-delay: calc(#{$motion-stagger} * 3); }
+.tg-team-board article.tg-player-card:nth-of-type(4) { animation-delay: calc(#{$motion-stagger} * 4); }
+.tg-team-board article.tg-player-card:nth-of-type(5) { animation-delay: calc(#{$motion-stagger} * 5); }
+
+.tg-easter-egg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid $border-strong;
+  border-radius: $radius-pill;
+  color: $gold-light;
+  background: rgb(200 155 60 / 12%);
+  font-size: 0.72rem;
+}
+.tg-easter-egg--sparkle, .tg-easter-egg--glow { animation: tg-sparkle 2.6s $ease infinite; }
+.tg-easter-egg--rainbow { background: linear-gradient(90deg, #805ad5, $blue, $teal, $gold); background-size: 200%; animation: tg-gradient 5s $ease infinite; }
+
+.tg-assistant-fab {
+  position: fixed;
+  z-index: 35;
+  right: 24px;
+  bottom: 88px;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+/* 플로팅 상태에서만 노출되는 말풍선. 꿀벌 FAB 왼쪽에 붙는다. */
+.tg-assistant-hint {
+  position: fixed;
+  z-index: 35;
+  right: 92px;
+  bottom: 100px;
+  margin: 0;
+  padding: 9px 14px;
+  border: 1px solid rgb(240 213 140 / 55%);
+  border-radius: 999px;
+  background: rgb(200 155 60 / 18%);
+  backdrop-filter: blur(12px);
+  color: $gold-light;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tg-fade-up $motion-enter $ease-emphasized both;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -6px;
+    width: 10px;
+    height: 10px;
+    border-top: 1px solid rgb(240 213 140 / 55%);
+    border-right: 1px solid rgb(240 213 140 / 55%);
+    background: rgb(200 155 60 / 18%);
+    transform: translateY(-50%) rotate(45deg);
+  }
+}
+
+.tg-assistant-sidebar {
+  position: fixed;
+  z-index: 40;
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  width: min(420px, 100%);
+  grid-template-rows: auto 1fr auto;
+  padding: 20px;
+  border-left: 1px solid $border;
+  background: rgb(7 16 31 / 96%);
+  box-shadow: $shadow;
+}
+.tg-assistant-sidebar__messages { overflow: auto; display: grid; align-content: start; gap: 12px; padding: 16px 0; scrollbar-width: none; }
+.tg-message { padding: 12px; border-radius: $radius-md; background: rgb(255 255 255 / 5%); line-height: 1.6; }
+.tg-message.is-user { margin-left: 36px; background: $blue-soft; }
+.tg-message .tg-md-line { margin: 0 0 0.4em; }
+.tg-message code { padding: 0 4px; border-radius: 4px; background: rgb(255 255 255 / 8%); }
+.tg-caret { margin-left: 2px; animation: tg-pulse 900ms $ease infinite; }
+.tg-assistant-think {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  background: rgb(255 255 255 / 4%);
+}
+.tg-assistant-think__face { font-size: 1.4rem; }
+
+.tg-analysis-transition { min-height: 55vh; display: grid; place-items: center; text-align: center; }
+.tg-analysis-transition__orb { width: 84px; height: 84px; margin: 0 auto 22px; border: 1px solid $border-strong; border-radius: 50%; background: radial-gradient(circle, $gold 0 8%, transparent 10%), $blue-soft; animation: tg-pulse 1.1s $ease infinite; }
+
+.tg-winner-toggle.is-selected.is-blue { border-color: $blue; background: $blue; }
+.tg-winner-toggle.is-selected.is-red { border-color: $red; background: $red; }
+
+/* 승리팀 컬러는 전면 wash 대신 오로라 배경 색 전환으로 표현한다(D-20 · D-23). */
+.tg-result-reveal {
+  position: relative;
+  min-height: 68vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+/*
+ * 후킹 멘트와 CTA는 항상 같은 자리에 있어야 한다(D-20). 본체가 자라면서
+ * 위아래로 밀리지 않도록 3행(후킹 / 본체 / CTA)을 고정하고 본체만 늘어나게 둔다.
+ */
+.tg-result-reveal__stage {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: center;
+  gap: 22px;
+  width: min(920px, 100%);
+  min-height: min(68vh, 620px);
+  padding: 24px 16px;
+}
+
+.tg-result-reveal__body {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.tg-result-reveal__hook {
+  margin: 0;
+  color: $text-muted;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+  letter-spacing: 0.01em;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 840ms $ease-emphasized, transform 840ms $ease-emphasized;
+
+  &.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tg-result-reveal__title {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 4.6rem);
+  line-height: 1.05;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 960ms $ease-emphasized, transform 960ms $ease-emphasized;
+
+  &.is-visible {
+    opacity: 1;
+    transform: none;
+    animation: tg-fade-up 960ms $ease-emphasized both;
+  }
+}
+
+.tg-result-reveal__detail {
+  max-width: 760px;
+  margin: 0;
+  color: $text-muted;
+  line-height: 1.65;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 840ms $ease-emphasized 240ms, transform 840ms $ease-emphasized 240ms;
+
+  &.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tg-result-reveal__drum {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  opacity: 0;
+
+  &.is-visible { opacity: 1; }
+
+  span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: $gold-light;
+    animation: tg-pulse 1560ms $ease infinite;
+
+    &:nth-child(2) { animation-delay: 240ms; }
+    &:nth-child(3) { animation-delay: 480ms; }
+  }
+}
+
+.tg-result-reveal__banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  opacity: 0;
+
+  &.is-visible { opacity: 1; }
+}
+
+.tg-result-reveal__banner-item {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-width: 88px;
+  max-width: 140px;
+  padding: 12px 10px;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  background: rgb(11 23 40 / 72%);
+  animation: tg-fade-up 840ms $ease-emphasized both;
+
+  span {
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.82rem;
+  }
+
+  .tg-player-card__avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+  }
+}
+
+.tg-result-reveal__banner-item.is-performance {
+  width: min(230px, 100%);
+  max-width: 230px;
+
+  strong {
+    color: $gold-light;
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+}
+
+.tg-result-reveal__tier-emblem {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.tg-result-reveal__mvp {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 1040ms $ease-emphasized, transform 1040ms $ease-emphasized;
+
+  &.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* 아이콘이 주인공이므로 이름은 기본 타이틀의 절반 크기로 둔다. */
+  .tg-result-reveal__title {
+    opacity: 1;
+    transform: none;
+    animation: none;
+    font-size: clamp(1rem, 3.5vw, 2.3rem);
+  }
+}
+
+.tg-result-reveal__mvp.is-culprit .tg-result-reveal__mvp-avatar {
+  border-color: $red;
+  box-shadow: 0 0 44px rgb(239 79 103 / 38%);
+}
+
+.tg-result-reveal__mvp-avatar {
+  width: min(168px, 46vw);
+  height: min(168px, 46vw);
+  border: 3px solid $gold;
+  border-radius: 50%;
+  box-shadow: 0 0 44px rgb(200 155 60 / 38%);
+  object-fit: cover;
+  background: $bg-soft;
+}
+
+.tg-result-reveal__cta {
+  justify-content: center;
+  margin-top: 8px;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: opacity 840ms $ease-emphasized, transform 840ms $ease-emphasized;
+
+  &.is-visible {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+
+/* 후원 패널: 설명과 토스 QR을 나란히. 좁은 화면에서는 QR이 아래로 내려간다. */
+.tg-donation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+}
+
+.tg-donation__qr {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 0;
+
+  img {
+    display: block;
+    width: 168px;
+    height: 168px;
+    padding: 8px;
+    border: 1px solid $border;
+    border-radius: $radius-md;
+    background: #fff;
+  }
+
+  figcaption { font-size: 0.78rem; }
+}
+
+.tg-result-summary {
+  animation: tg-fade-up 480ms $ease-emphasized both;
+
+  &.is-blue {
+    border-color: rgb(37 137 255 / 55%);
+    background: linear-gradient(180deg, $blue-soft, $glass);
+  }
+
+  &.is-red {
+    border-color: rgb(239 79 103 / 55%);
+    background: linear-gradient(180deg, $red-soft, $glass);
+  }
+}
+
+@media (max-width: 760px) {
+  .tg-team-board.is-blue { text-align: left; }
+  .tg-team-board.is-blue .tg-player-card {
+    /* 1열에서는 미러링을 풀므로 그라디언트도 기본 방향으로 되돌린다. */
+    --tg-card-sheen-angle: 120deg;
+    --tg-card-tier-angle: 135deg;
+  }
+  .tg-team-board.is-blue .tg-player-card__main,
+  .tg-team-board.is-blue .tg-player-card__badges { flex-direction: row; justify-content: flex-start; }
+  /* 헤더는 방향만 되돌리고 space-between은 유지한다. */
+  .tg-team-board.is-blue .tg-team-board__header,
+  .tg-team-board.is-blue .tg-team-board__header h2 { flex-direction: row; }
+  .tg-versus { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .tg-donation { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .tg-player-register {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+  .tg-assistant-sidebar { top: 0; width: 100%; }
+}

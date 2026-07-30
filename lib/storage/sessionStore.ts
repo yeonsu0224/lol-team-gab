@@ -1,112 +1,95 @@
-import type { Session } from "@/lib/types";
+import type { NewSession, Session } from "@/lib/types";
 
-// D-01: localStorage only, UUID 세션 식별
-const STORAGE_KEY = "teamgap.sessions.v1";
+export const SESSION_STORAGE_KEY = "team-gap:sessions:v4";
+export const SESSION_STORE_EVENT = "team-gap:sessions-changed";
 
-export class SessionStorageFullError extends Error {
-  constructor() {
-    super("localStorage 용량이 가득 차 세션을 저장하지 못했습니다.");
-    this.name = "SessionStorageFullError";
+export class StorageError extends Error {
+  constructor(message: string, public readonly code: "unavailable" | "quota" | "invalid") {
+    super(message);
+    this.name = "StorageError";
   }
 }
 
-type SessionMap = Record<string, Session>;
+export function parseSessions(raw: string | null): Session[] {
+  if (!raw) return [];
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!Array.isArray(value)) throw new Error("not array");
+    return value.filter(isSession).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  } catch {
+    throw new StorageError("저장된 세션 데이터를 읽을 수 없습니다.", "invalid");
+  }
+}
 
-const CHANGE_EVENT = "teamgap:sessions-changed";
-
-function isQuotaExceeded(error: unknown): boolean {
+function isSession(value: unknown): value is Session {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<Session>;
   return (
-    error instanceof DOMException &&
-    (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED")
+    typeof item.id === "string" &&
+    typeof item.createdAt === "string" &&
+    Array.isArray(item.participants) &&
+    Array.isArray(item.rounds)
   );
 }
 
-export function parseSessionMap(raw: string | null): SessionMap {
-  if (!raw) return {};
+function storage(): Storage {
+  if (typeof window === "undefined") throw new StorageError("브라우저 저장소를 사용할 수 없습니다.", "unavailable");
+  return window.localStorage;
+}
+
+function read(): Session[] {
+  return parseSessions(storage().getItem(SESSION_STORAGE_KEY));
+}
+
+function write(sessions: Session[]) {
   try {
-    return JSON.parse(raw) as SessionMap;
-  } catch {
-    return {};
+    storage().setItem(SESSION_STORAGE_KEY, JSON.stringify(sessions));
+    window.dispatchEvent(new Event(SESSION_STORE_EVENT));
+  } catch (cause) {
+    if (cause instanceof DOMException && cause.name.includes("Quota")) {
+      throw new StorageError("저장 공간이 부족합니다. 오래된 세션을 삭제해 주세요.", "quota");
+    }
+    throw new StorageError("세션을 저장하지 못했습니다.", "unavailable");
   }
 }
 
-export function getSessionsRawSnapshot(): string | null {
-  return window.localStorage.getItem(STORAGE_KEY);
+export function listSessions(): Session[] {
+  return read();
 }
 
-// storage 이벤트(다른 탭) + 커스텀 이벤트(같은 탭 쓰기) 모두 구독
-export function subscribeSessions(onChange: () => void): () => void {
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === null || event.key === STORAGE_KEY) onChange();
-  };
-  window.addEventListener("storage", onStorage);
-  window.addEventListener(CHANGE_EVENT, onChange);
-  return () => {
-    window.removeEventListener("storage", onStorage);
-    window.removeEventListener(CHANGE_EVENT, onChange);
-  };
-}
-
-function readAll(): SessionMap {
-  if (typeof window === "undefined") return {};
-  return parseSessionMap(getSessionsRawSnapshot());
-}
-
-function writeAll(sessions: SessionMap): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-  } catch (error) {
-    if (isQuotaExceeded(error)) throw new SessionStorageFullError();
-    throw error;
-  }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
-export function createSession(name?: string): Session {
+export function createSession(input: NewSession = {}): Session {
   const session: Session = {
     id: crypto.randomUUID(),
+    name: input.name?.trim() || "새 내전",
     createdAt: new Date().toISOString(),
-    participants: [],
-    preTeamProposal: null,
+    participants: input.participants ?? [],
     rounds: [],
     commentMode: "normal",
-    ...(name?.trim() ? { name: name.trim() } : {}),
   };
-
-  const sessions = readAll();
-  sessions[session.id] = session;
-  writeAll(sessions);
+  write([session, ...read()]);
   return session;
-}
-
-export function getSession(id: string): Session | null {
-  return readAll()[id] ?? null;
-}
-
-// 최신 생성 순
-export function listSessions(): Session[] {
-  return Object.values(readAll()).sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
-  );
 }
 
 export function updateSession(
   id: string,
-  patch: Partial<Omit<Session, "id" | "createdAt">>,
-): Session | null {
-  const sessions = readAll();
-  const current = sessions[id];
-  if (!current) return null;
-
-  const next: Session = { ...current, ...patch, id: current.id, createdAt: current.createdAt };
-  sessions[id] = next;
-  writeAll(sessions);
-  return next;
+  update: Partial<Omit<Session, "id" | "createdAt">> | ((current: Session) => Session),
+): Session {
+  const sessions = read();
+  const index = sessions.findIndex((item) => item.id === id);
+  if (index < 0) throw new StorageError("세션을 찾을 수 없습니다.", "invalid");
+  const current = sessions[index];
+  sessions[index] =
+    typeof update === "function"
+      ? update(current)
+      : { ...current, ...update, id: current.id, createdAt: current.createdAt };
+  write(sessions);
+  return sessions[index];
 }
 
-export function deleteSession(id: string): void {
-  const sessions = readAll();
-  if (!(id in sessions)) return;
-  delete sessions[id];
-  writeAll(sessions);
+export function deleteSession(id: string): boolean {
+  const sessions = read();
+  const next = sessions.filter((item) => item.id !== id);
+  if (next.length === sessions.length) return false;
+  write(next);
+  return true;
 }

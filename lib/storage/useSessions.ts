@@ -1,40 +1,59 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import type { Session } from "@/lib/types";
+
+import type { NewSession, Session } from "@/lib/types";
 import {
-  getSessionsRawSnapshot,
-  parseSessionMap,
-  subscribeSessions,
+  createSession,
+  deleteSession,
+  parseSessions,
+  SESSION_STORAGE_KEY,
+  SESSION_STORE_EVENT,
+  updateSession,
 } from "./sessionStore";
 
-const getServerSnapshot = () => null;
-
-export function useSessions(): Session[] | null {
-  const raw = useSyncExternalStore(
-    subscribeSessions,
-    getSessionsRawSnapshot,
-    getServerSnapshot,
+export function useSessions() {
+  const raw = useSyncExternalStore<string | null>(
+    (notify) => {
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === SESSION_STORAGE_KEY) notify();
+      };
+      window.addEventListener("storage", onStorage);
+      window.addEventListener(SESSION_STORE_EVENT, notify);
+      return () => {
+        window.removeEventListener("storage", onStorage);
+        window.removeEventListener(SESSION_STORE_EVENT, notify);
+      };
+    },
+    () => window.localStorage.getItem(SESSION_STORAGE_KEY) ?? "[]",
+    () => null,
   );
 
-  return useMemo(() => {
-    if (raw === null) return null;
-    return Object.values(parseSessionMap(raw)).sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt),
-    );
+  const snapshot = useMemo(() => {
+    try {
+      return { sessions: parseSessions(raw), error: null };
+    } catch (cause) {
+      return {
+        sessions: [] as Session[],
+        error: cause instanceof Error ? cause.message : "세션을 불러오지 못했습니다.",
+      };
+    }
   }, [raw]);
-}
 
-// undefined = 아직 로드 전(SSR), null = 없는 세션
-export function useSession(id: string): Session | null | undefined {
-  const raw = useSyncExternalStore(
-    subscribeSessions,
-    getSessionsRawSnapshot,
-    getServerSnapshot,
-  );
-
-  return useMemo(() => {
-    if (raw === null) return undefined;
-    return parseSessionMap(raw)[id] ?? null;
-  }, [raw, id]);
+  return {
+    ...snapshot,
+    hydrated: raw !== null,
+    create(input?: NewSession) {
+      return createSession(input);
+    },
+    update(
+      id: string,
+      update: Partial<Omit<Session, "id" | "createdAt">> | ((current: Session) => Session),
+    ) {
+      return updateSession(id, update);
+    },
+    remove(id: string) {
+      return deleteSession(id);
+    },
+  };
 }

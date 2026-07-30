@@ -1,5 +1,8 @@
 # Design System — Hextech Glass
 
+> **문서 버전:** v0.8.3
+> **상태:** 5차 UX — 고정 액션 바 · AI 푸시 사이드바 · 느린 순차 모션 · 티어별 카드 색 · 좌측 사이드 배너 · 오로라 배경(색 테마 전환) · 결과 인트로 3행 고정 · 카드 아코디언 상세 · AI 플로팅 말풍선 · beta 표식
+
 리그 오브 레전드의 어두운 청색·금색 계열에서 영감을 받은 컬러 그라디언트와 글래스모피즘을 사용한다. 다만 Riot의 실제 클라이언트를 복제하지 않고, 내전 팀 편성과 스탯 비교에 적합한 독자적인 인터페이스를 구성한다.
 
 핵심 키워드:
@@ -7,6 +10,197 @@
 ```text
 Dark Navy / Hextech Gold / Arcane Blue / Glass / Competitive
 ```
+
+### 0-A. 4차 스타일 아키텍처
+
+- 시각 토큰과 Hextech Glass 스타일은 유지한다.
+- CSS Modules(`*.module.scss`, `styles.foo`)는 사용하지 않는다.
+- `styles/globals.scss`가 `styles/components/`, `styles/pages/`의 SCSS partial을 불러온다.
+- 전역 클래스 충돌을 방지하기 위해 모든 제품 클래스는 `tg-` 접두사와 BEM 네이밍을 사용한다.
+- 상태 클래스는 `is-active`, `is-loading`, `is-blue`, `is-red`; JS hook이 필요하면 `data-*` 속성을 우선한다.
+
+```scss
+.tg-team-card {}
+.tg-team-card__identity {}
+.tg-team-card__badges {}
+.tg-team-card.is-blue {}
+```
+
+스크롤은 유지하되 시각적 스크롤바만 숨긴다. 포커스 가능한 콘텐츠와 키보드 탐색을 막는 `overflow: hidden`은 페이지 루트에 사용하지 않는다.
+
+### 0-B. 4차 신규 패턴
+
+- `tg-assistant-sidebar`: 우측 고정 패널. 요약, 주목 선수 1~2명, 예시 질문 3개, 대화 입력을 포함한다.
+- `tg-analysis-transition`: 2~3초 분석 단계 문구와 저강도 모션. reduced-motion에서는 문구만 전환한다.
+- `tg-result-reveal`: 세션 인트로 → 승리팀 → MVP → 기대치 대비 최악 → 기대 이상 플레이어 순차 공개. beat(`hook`/`drum`/`reveal`/`cta`)에 따라 요소 노출.
+  - 단계 결과 색은 전면 wash가 아니라 **오로라 배경 테마 전환**(§0-C, D-23)으로 표현한다. `.tg-result-reveal`에는 배경색을 두지 않는다.
+  - `.tg-result-reveal__hook` / `__title` / `__detail` / `__drum`: 후킹·본체·보조·드럼롤 점
+  - `.tg-result-reveal__banner` / `__banner-item`: 승리팀·꿀벌 아이콘+이름 가로 배너
+  - `.tg-result-reveal__mvp`: MVP 단일 히어로(큰 아이콘+이름)
+  - `.tg-result-reveal__mvp.is-culprit`: 기대치 대비 최악 플레이어 히어로. 레드 border/glow
+  - `.tg-result-reveal__banner-item.is-performance`: 기대 이상 플레이어의 티어 엠블럼·실력 문구를 포함하는 확장 카드
+  - 비트 기준: hook 1.3초 → drum 1.2초 → reveal 이후 CTA 1.4초. 데이터가 없을 때만 짧게 축약
+  - `.tg-result-reveal__cta`: 본체 공개 후 페이드인하는 다음/건너뛰기
+  - reduced-motion에서는 연출 클래스 없이 내용·CTA를 즉시 표시
+- `tg-winner-toggle.is-blue/is-red`: 선택 시 버튼 배경 전체를 팀 컬러로 채운다.
+- `tg-search-candidate`(구현은 `tg-player-card` 재사용 가능): 원격 Riot ID 후보의 **소환사 원형 아이콘 → 게임명#태그·대표 티어 → 등록 액션** 순서. 티어가 없으면 `언랭크 · 수동 티어 입력 필요`를 중립색으로 표시한다.
+- `tg-easter-egg` / `tg-easter-egg--glow|rainbow|sparkle`: 개발자 이스터에그 태그(D-21). 카드 뱃지 행에만 붙이며 점수 배지와 시각적으로 구분한다. reduced-motion에서는 라벨만 남긴다.
+
+```scss
+.tg-easter-egg {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  min-height: 22px;
+  padding: 0 $space-2;
+  border-radius: $radius-pill;
+  color: $color-gold-100;
+  border: 1px solid $color-border-strong;
+  background: rgb(200 155 60 / 12%);
+  font-size: 0.72rem;
+}
+
+.tg-easter-egg--sparkle { /* 저강도 반짝임 */ }
+.tg-easter-egg--glow { /* 은은한 외곽 glow */ }
+.tg-easter-egg--rainbow { /* 느린 그라디언트 시프트 */ }
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-easter-egg--sparkle,
+  .tg-easter-egg--glow,
+  .tg-easter-egg--rainbow {
+    animation: none;
+  }
+}
+```
+
+### 0-C. 5차 신규 패턴
+
+- `tg-action-bar`: 하단 고정 CTA 구역. 좌측에 점수 안내(`/scoring`) 아이콘, 우측에 주요 액션.
+
+**주의 — `.tg-panel` 안에 `position: fixed` 자손을 두지 않는다**
+
+`.tg-panel`은 `backdrop-filter: blur(18px)`를 쓴다. `backdrop-filter`가 `none`이 아니면 그 요소는 **`position: fixed` 자손의 컨테이닝 블록**이자 **새 스택 컨텍스트**가 된다. 따라서 패널 안에서 `.tg-action-bar`를 렌더하면 화면 하단이 아니라 **패널 하단**에 붙고, `.tg-modal-backdrop`(`inset: 0`)도 뷰포트가 아니라 패널만 덮는다.
+
+```tsx
+// ❌ 페이지 루트를 패널로 감싸면 하단 바·모달이 패널에 갇힌다
+<section className="tg-panel tg-stack">
+  ...
+  <ActionBar>...</ActionBar>
+</section>
+
+// ✅ 루트는 tg-stack, 시각적 박스는 안쪽 패널로
+<section className="tg-stack">
+  <div className="tg-panel tg-stack">...</div>
+  <ActionBar>...</ActionBar>
+</section>
+```
+
+페이지 루트는 항상 `.tg-page .tg-stack` / `.tg-stack`이며, 패널은 그 **안쪽 섹션**으로만 쓴다.
+
+**주의 — 카드 상세는 아코디언이다 (hover 플로팅 폐기)**
+
+상세 전력은 `.tg-player-card__detail`로 카드 **안쪽**에 펼친다. hover 플로팅은 가독성·스택 컨텍스트 문제가 있어 쓰지 않는다. ▼ 토글(`.tg-player-card__toggle`)만 열고 닫으며, 팀 교체 `onClick`과 충돌하지 않도록 `stopPropagation`한다.
+
+```scss
+.tg-player-card { display: grid; gap: 10px; }
+.tg-player-card__main { display: flex; align-items: center; gap: 12px; }
+.tg-player-card__detail { /* 펼쳤을 때만 렌더 */ }
+.tg-team-board.is-blue .tg-player-card__main { flex-direction: row-reverse; }
+```
+
+**주의 — stagger 지연은 `nth-child`로 세지 않는다**
+
+`.tg-team-board`의 첫 자식은 팀 헤더이므로 팀원 카드는 `nth-child(2)~(6)`이다. `nth-child(1)~(5)`로 지연을 주면 **5번째 카드만 규칙에 걸리지 않아 지연 0으로 먼저 나타난다.** 카드만 세도록 `article` 기준 `nth-of-type`을 쓴다.
+
+```scss
+// ❌ 헤더가 1번을 차지해 5번째 카드가 규칙에서 빠진다
+.tg-team-board .tg-player-card:nth-child(5) { animation-delay: ...; }
+
+// ✅ 카드(article)만 센다
+.tg-team-board article.tg-player-card:nth-of-type(5) { animation-delay: calc(#{$motion-stagger} * 5); }
+```
+
+항목 수가 가변이거나 타입이 섞이면 CSS 대신 인라인 `style={{ animationDelay }}`로 index를 넘긴다(결과 인트로 배너가 이 방식).
+
+**결과 인트로 3행 고정 (D-20)**
+
+`.tg-result-reveal__stage`는 `grid-template-rows: auto minmax(0,1fr) auto`로 **후킹 / 본체 / CTA**를 고정한다. 본체가 나타나도 기대 증진 멘트와 버튼이 밀리지 않는다. MVP·범인 히어로는 아이콘 ≈168px, 이름은 기본 타이틀의 약 50%(`clamp(1rem, 3.5vw, 2.3rem)`).
+
+**라인 아이콘 · 꿀벌 아이콘 · 성과 칩**
+
+- `.tg-lane-icon`: `public/icons/white/{top,jungle,mid,adc,sp}.png` (18×18). API 키→파일명 매핑은 `LaneIcon` 컴포넌트가 담당한다.
+- `.tg-bee-icon`: `public/bee.jpg`를 `border-radius: 50%`로 자른 원형. **플레이어 카드에서는 소환사 아이콘 우하단에** `.tg-player-card__bee`로 붙이고, AI FAB도 같은 아이콘을 쓴다. 칩 행에 두지 않는다.
+- `.tg-grade--{f,d,c,b,a,op}`: 성과 등급별 색·굵은 글자. OP는 금색 그라디언트와 약한 글로우.
+- `.tg-player-card__badges > *`: 모두 `min-height: 26px`로 상하 중앙을 맞춘다.
+
+**참가자 등록 카드 내부 평가 (D-06)**
+
+- 등록 카드의 시각 순서는 **티어 엠블럼 → 소환사 아이콘 → 정보 → 내부 평가 → 제외**다.
+- 모스트 챔피언은 별도 칸이 아니라 **소환사 아이콘 좌하단 20px 오버레이**다. 카드 높이를 늘리지 않는다.
+- `.tg-player-card__evaluation`은 정보 옆의 **78px 세로 두 칸**(과대/적정/과소 · -10~+10)이다. 본문 아래에 두지 않아 이전 카드 높이를 유지한다.
+- 등록 화면에서는 평가 칩을 중복 표시하지 않는다. 팀 제안·재밸런스에서만 과대/과소·보정 칩을 보여준다.
+- 등록 카드 좌5/우5는 하나의 `.tg-player-register` grid로 구성해 같은 행 높이를 공유한다. 모바일은 1열로 복원한다.
+
+**후원 패널 (`.tg-donation`)**
+
+마무리 화면의 개발자 후원은 설명과 토스 QR(`public/tossQR.png`)을 나란히 둔다. QR은 흰 배경 패딩으로 스캔 대비를 확보하고, 좁은 화면에서는 아래로 내려간다.
+
+- `tg-champion-picker`: 시험 판 챔피언 선택 그리드. 모달 헤더 아래에 `type="search"` 입력을 두고 한글 표시명·영문 ID를 필터링한다. 결과가 없으면 `.tg-champion-picker__empty`를 그리드 전체 열(`1 / -1`)에 표시한다.
+- Data Dragon의 `Jade_*` 항목은 리메이크 전 버전이 아니라 **모드 전용 변형**이다. 일반 챔피언과 이름이 같으므로 서버 bootstrap에서 제외하고, 클라이언트도 오래된 캐시에 대비해 정규화된 이름 중복을 제거한다.
+
+- `body.tg-assistant-open`: AI 사이드바가 열리면 본문을 좌측으로 밀고(`margin-right`) 고정 요소의 `right`를 함께 보정한다.
+- `tg-aurora`: **오로라 배경(D-23)**. React Bits Aurora 셰이더를 `ogl`로 포팅한 WebGL 레이어. 콘텐츠 뒤(`z-index: -1`)에서만 흐르고 입력을 받지 않는다.
+
+```scss
+.tg-aurora {
+  position: fixed;
+  z-index: -1;              // body 배경 위 · 본문 아래
+  top: 0;
+  right: 0;
+  left: 0;
+  height: min(72vh, 760px); // 상단 밴드
+  opacity: 0.5;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 100%) 0%, rgb(0 0 0 / 70%) 45%, transparent 100%);
+  transition: opacity 900ms $ease-emphasized;
+}
+
+/* 배경이 연출을 맡는 동안만 진하게. 높이는 그대로 둬야 캔버스 해상도가 유지된다. */
+.tg-aurora.is-focus { opacity: 0.78; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-aurora { display: none; } // WebGL 초기화도 생략
+}
+```
+
+- 기본 팔레트는 **남색 단일 색조**(`#16306b` → `$blue #2589ff` → `#1b3a7a`), 속도 0.35×. 3개 정지점은 좌→중앙→우로 보간되므로 **하나의 테마 안에서** 색상을 섞지 말고 **명도만** 바꾼다. `$teal`·`$gold`를 함께 넣으면 무지개 그라디언트가 된다.
+- **색 테마 전환:** 테마는 `default`/`blue`/`red`/`gold` 4종이며 각각 단일 색조를 지킨다. 페이지는 `lib/motion/auroraTheme.ts`의 `setAuroraTheme()`으로 지정하고 **언마운트 시 `default`로 되돌린다**. 레이아웃 루트에 있는 배경을 페이지가 제어하므로 context 대신 모듈 스토어를 쓴다.
+  - 전환은 CSS가 아니라 렌더 루프에서 처리한다. 프레임 레이트와 무관한 지수 보간(시간상수 900ms)으로 목표 색까지 이동하고, 남은 색 거리에 비례해 진폭을 최대 +0.5 더해 전환 중 한 번 일렁이게 한다.
+  - 기본이 아닌 테마가 활성이면 컴포넌트가 `.is-focus`를 붙인다(구독 리렌더). 색 보간은 리렌더 없이 매 프레임 폴링한다.
+- `.tg-panel`은 `backdrop-filter: blur(18px)` + 78% 불투명 glass이므로 오로라 위에서도 대비가 유지된다. 배경 밝기를 올릴 때는 패널 대비를 함께 확인한다.
+- `tg-side-banner`: **좌측 고정 광고 배너(F-13)**. 본문(`min(1180px, 100% - 32px)` 중앙 정렬)의 **좌측 여백 안에서만** 폭을 갖고, 여백이 부족한 화면에서는 숨긴다. 우상단에 `광고` 뱃지를 둔다.
+
+```scss
+.tg-side-banner {
+  position: fixed;
+  z-index: 25;                                          // 모달(100+)보다 낮게
+  top: 50%;
+  left: 16px;
+  display: none;                                        // 기본 숨김
+  width: min(220px, calc((100vw - 1180px) / 2 - 32px)); // 좌측 여백에만 배치
+  transform: translateY(-50%);
+}
+
+.tg-side-banner__link img { display: block; width: 100%; height: auto; }
+.tg-side-banner__badge { position: absolute; top: 8px; right: 8px; }
+
+@media (min-width: 1500px) {
+  .tg-side-banner { display: block; } // 여백 ≥ 152px일 때만 노출
+}
+```
+
+- 광고 링크는 `target="_blank"` + `rel="noopener noreferrer"`, 영역은 `<aside aria-label>`로 감싼다.
+- hover는 `@media (hover: hover)`에서 `translateY(-2px)` + border 강조만 사용한다(§8 모션 제약 준수).
 
 ## 1. 컬러 토큰
 
@@ -301,7 +495,81 @@ $shadow-blue:
 - 네온 광택은 선택·강조 상태에만 사용한다.
 - 중첩된 카드마다 그림자를 추가하지 않는다.
 
+## 4-A. 모션 시스템 (D-14)
+
+3차 반복에서 도입한 모션 규칙. 정적·딱딱한 인상을 걷어내되, **가독성·성능·접근성**을 최우선으로 한다. 토큰은 `styles/abstracts/_motion.scss`에 둔다.
+
+### 이징 토큰
+
+```scss
+$ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);   // 기본 전환·등장
+$ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);     // 등장(감속) 강조
+$ease-in-soft: cubic-bezier(0.4, 0, 1, 1);         // 퇴장(가속)
+```
+
+- 기본은 **`ease-in-out` 계열 cubic-bezier**를 적극 사용한다. `linear`·급격한 곡선은 지양한다.
+
+### 지속시간·지연 토큰
+
+```scss
+$motion-micro: 180ms;    // hover 마이크로 인터랙션 (§5 유지, 150~250ms)
+$motion-enter: 320ms;    // 콘텐츠 등장 (220~420ms)
+$motion-exit: 240ms;     // 단계 전환 페이드 아웃
+$motion-stagger-step: 60ms;  // 순차 등장 항목 간 지연 (40~80ms)
+```
+
+### keyframes
+
+```scss
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {   // 블루팀: 좌 → 우
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {  // 레드팀: 우 → 좌
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes gradientShift { // CTA 활성 강조 (저강도)
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+```
+
+### 적용 규칙
+
+| 상황 | 모션 |
+|------|------|
+| **단계 전환**(페이지·스텝 이동) | 현재 화면 박스 `fadeOut`($motion-exit) → 새 화면 등장 |
+| **콘텐츠 등장 순서** | 항상 **박스(컨테이너) → 타이틀 → 리스트/주요 콘텐츠** 순, `fadeInUp` + stagger |
+| **순차 등장(stagger)** | 항목 index × `$motion-stagger-step` 지연 누적 |
+| **stagger 선택자** | 컨테이너에 헤더 등 다른 자식이 있으면 `nth-child`가 아니라 **`nth-of-type`**(또는 인라인 `animationDelay`)을 쓴다 |
+| **팀 슬라이드 인** | 블루=`slideInLeft`, 레드=`slideInRight`. **참가자 등록 화면 제외** |
+| **팀 제안 CTA** | 활성 시 `gradientShift` (의도된 예외, 저강도 루프) |
+
+### 접근성 (reduced-motion)
+
+```scss
+@media (prefers-reduced-motion: reduce) {
+  // 이동·슬라이드·그라디언트 루프 생략, 즉시 표시 또는 최소 페이드만
+}
+```
+
+- 모션은 콘텐츠 접근을 지연시키지 않는다(키보드·스크린리더 흐름은 즉시 동작).
+- 클라이언트에서는 `lib/hooks/useReducedMotion.ts`로 상태를 감지해 슬라이드/루프를 끈다.
+
 ## 5. 컴포넌트 규칙
+
+> **MVP 기준:** 아래는 토큰(§1~§4) 위에 올라가는 **UI 컴포넌트·화면 패턴** 제안이다.  
+> 구현은 CSS Modules + `@use "abstracts" as *`를 사용하며, 상세 스펙·파일 매핑은 절 하단 **UI 컴포넌트 카탈로그**를 따른다.
 
 ### Button
 
@@ -333,18 +601,111 @@ $shadow-blue:
   border: 1px solid rgba(248, 237, 199, 0.48);
   box-shadow: $shadow-gold;
 }
+
+.button--secondary {
+  border: 1px solid $color-border-default;
+  color: $color-text-primary;
+  background: rgba(16, 32, 56, 0.72);
+}
+
+.button--danger {
+  min-height: 32px;
+  padding-inline: $space-3;
+  border: 1px solid rgba(255, 107, 107, 0.32);
+  color: #ffb4b4;
+  background: rgba(82, 27, 27, 0.48);
+}
 ```
 
 상태 규칙:
 
-- hover: 최대 2px 상승 또는 밝기 증가
-- active: 상승 효과 제거, 1px 아래로 이동 가능
+- hover: **모든 클릭 가능 UI**에 아주 약한 강조를 반드시 제공한다 (아래 **인터랙티브 Hover** 참고)
+- primary hover: 1~2px 상승 + `brightness(1.06~1.08)` + 그림자 미세 증가
+- secondary / ghost hover: 1px 상승 + `$color-border-strong` + `$shadow-sm`
+- danger hover: 1px 상승 + 테두리·배경 밝기 증가
+- active: 상승 효과 제거, `brightness(0.98)` 또는 1px 아래로 이동
 - focus-visible: 청록색 2px focus ring
-- disabled: 불투명도 45%, 포인터 이벤트 차단
+- disabled: 불투명도 45%, 포인터 이벤트 차단, **hover 없음**
 - loading: 크기를 유지하고 중복 클릭 차단
 - 아이콘 버튼의 클릭 영역은 최소 40×40px
 
 한 화면에서 Primary Button은 원칙적으로 하나의 주요 행동에만 사용한다.
+
+### 인터랙티브 Hover (전역)
+
+모든 버튼, 링크, 입력 필드, 클릭 가능 카드는 마우스 호버 시 **눈에 띄되 과하지 않은** 피드백을 제공해야 한다. hover가 없는 인터랙티브 UI는 허용하지 않는다.
+
+#### 적용 대상
+
+| 요소 | hover 피드백 |
+|------|-------------|
+| `button`, `[role="button"]` | 1px 상승 + `brightness(1.06)` |
+| `a[href]` | 밝기 증가 (`brightness(1.12)`) |
+| `input`, `select`, `textarea` | `$color-border-strong` + 배경 미세 밝기 |
+| 클릭 가능 Card / 세션 카드 | 1~2px 상승 + 테두리·그림자 강조 |
+| 네비게이션 탭 / Step 링크 | 테두리·색상·그림자 미세 변화 |
+| danger / remove 버튼 | 1px 상승 + danger 색상 밝기 증가 |
+
+#### 적용하지 않는 대상
+
+- 정보 표시 전용 Card (클릭 불가)
+- Badge, 상태 라벨 (클릭 불가)
+- `disabled`, `aria-disabled="true"`, `pointer-events: none` 요소
+- 장식용 이미지·아이콘 (행동과 무관할 때)
+
+#### 강도 기준
+
+- **기본**: 1px 상승, `160ms ease` transition
+- **강조(primary, 활성 탭)**: 최대 2px 상승, `$shadow-gold` 또는 `$shadow-sm` 추가
+- **입력 필드**: transform 없이 테두리·배경만 변화
+- hover만으로 레이아웃이 밀리지 않도록 transform은 `-1px ~ -2px` 범위로 제한한다.
+
+#### 터치·접근성
+
+- `@media (hover: hover) and (pointer: fine)` 안에서만 hover를 적용한다. 터치 기기에서는 hover 스타일이 고정되지 않도록 한다.
+- hover는 focus-visible, active와 **함께** 동작해야 하며, hover만으로 상태를 전달하지 않는다.
+- `prefers-reduced-motion: reduce`에서는 transform을 제거하고 border·background·filter만 사용한다.
+
+#### 전역 SCSS (`styles/base/_interactive.scss`)
+
+```scss
+button,
+a[href],
+select,
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+summary,
+[role="button"] {
+  @include interactive-transition;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover,
+  [role="button"]:not([aria-disabled="true"]):hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+  }
+
+  a[href]:hover {
+    filter: brightness(1.12);
+  }
+
+  select:hover,
+  input:not(:disabled):not([readonly]):hover {
+    border-color: $color-border-strong;
+    background-color: rgba(16, 32, 56, 0.88);
+  }
+}
+```
+
+컴포넌트별 추가 강조가 필요하면 아래 mixin을 사용한다. 화면마다 임의 hover 값을 새로 만들지 않는다.
+
+```scss
+@include interactive-transition;  // 공통 transition
+@include hover-lift(-1px);        // 1px 상승
+@include hover-emphasis-subtle;    // 테두리 + $shadow-sm
+@include hover-brighten(1.06);    // brightness 조절
+@include hover-surface-lift;      // lift + emphasis (secondary 버튼·카드용)
+```
 
 ### Card
 
@@ -367,6 +728,7 @@ $shadow-blue:
 규칙:
 
 - Card 전체가 클릭 가능할 때만 hover 상승 효과를 사용한다.
+- 클릭 가능 Card hover: `@include hover-surface-lift` + `$color-border-strong`
 - 클릭 불가능한 Card에 클릭 가능한 것처럼 보이는 hover를 적용하지 않는다.
 - 챔피언 Splash를 사용할 때 어두운 오버레이를 반드시 적용한다.
 - Card 안에 Card를 중첩하는 것은 1단계까지만 허용한다.
@@ -396,6 +758,7 @@ $shadow-blue:
 - 장문 설명에는 Badge를 사용하지 않는다.
 - 색상과 함께 아이콘 또는 텍스트 라벨을 제공한다.
 - 상태 Badge와 클릭 가능한 Filter Chip을 시각적으로 구분한다.
+- 도메인 변형(`tierBadge`, `opBadge` 등)은 **UI 컴포넌트 카탈로그 — Badge 변형**을 따른다.
 
 ### Panel
 
@@ -420,6 +783,753 @@ $shadow-blue:
 - 중요한 행동은 Panel 하단 또는 헤더 우측의 일관된 위치에 둔다.
 - 한 화면에 강한 Glass Panel을 과도하게 배치하지 않는다.
 - 긴 표가 들어가면 Glass 투명도를 낮추고 가독성을 우선한다.
+
+---
+
+## 5-A. UI 컴포넌트 카탈로그 (MVP)
+
+§5의 Button·Card·Badge·Panel 규칙을 **구체 클래스·크기·화면 배치**까지 내린 구현 제안이다.  
+Phase 4 이후 화면(F-04 팀 제안, F-05 시험 판 등)을 추가할 때도 동일 패턴을 확장한다.
+
+### 기본 UI (Chrome)
+
+모든 세션·하위 화면에 공통으로 제공하는 **탐색·페이지 틀**이다. 기능 화면보다 먼저 배치한다.
+
+#### BackLink
+
+이전 화면 또는 랜딩으로 돌아가는 텍스트 링크.
+
+| 속성 | 값 |
+|------|-----|
+| 최소 높이 | 44px |
+| typography | `label-md` |
+| color | `$color-blue-300` |
+| icon | `←` (텍스트, aria-hidden) |
+| hover | `$color-blue-100` + 배경 `rgba(16, 32, 56, 0.48)` |
+
+```scss
+.backLink {
+  @include text-style("label-md");
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  min-height: 44px;
+  color: $color-blue-300;
+}
+```
+
+| 화면 | href | label |
+|------|------|-------|
+| 랜딩·대시보드 외 전체 | `/dashboard` | `대시보드` |
+| (필요 시) 이전 단계 | 이전 step path | `참가자로`, `팀 제안으로` 등 |
+
+규칙:
+
+- 브라우저 뒤로가기에만 의존하지 않고, **항상 눈에 보이는 BackLink**를 제공한다.
+- **TopBanner 좌측 슬롯**에 1회 배치한다 (전역 크롬). 페이지 본문·session layout에 중복 배치하지 않는다.
+- 랜딩(`/`)·대시보드(`/dashboard`)에서는 목적지가 같으므로 표시하지 않는다.
+- Primary Button과 같은 줄에 두지 않는다.
+
+#### PageHeader
+
+페이지 제목·부제·우측 액션 영역. BackLink는 TopBanner에 있으므로 **본문에서 생략**한다.
+
+| 영역 | typography | 설명 |
+|------|------------|------|
+| `title` | `heading-lg` | 페이지/세션 제목 |
+| `description` | `body-sm`, secondary | 참가자 수, 진행 상태 등 |
+| `action` | — | Badge, CTA (optional) |
+
+```scss
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.title {
+  @include text-style("heading-lg");
+  color: $color-text-primary;
+}
+
+.description {
+  @include text-style("body-sm");
+  color: $color-text-secondary;
+}
+```
+
+규칙:
+
+- Session layout 아래 page panel **맨 위**에 배치한다.
+- `backHref` / `backLabel`은 layout BackLink가 **없는** 독립 페이지에서만 사용한다 (예: 랜딩 이외 root 페이지).
+- 제목(`h1`)은 PageHeader에 1개만 둔다. Panel 내부 `sectionTitle`은 `h2`로 하향한다.
+
+#### Session Chrome
+
+세션 플로우 공통 상단 구조.
+
+```text
+container
+  TopBanner (좌측 BackLink → "/dashboard" · 중앙 로고)
+  chrome
+    StepNav
+  page panel
+    PageHeader (title + description)
+    …본문…
+```
+
+```scss
+.chrome {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+```
+
+#### Link (텍스트 / 버튼형)
+
+| 변형 | 용도 |
+|------|------|
+| `BackLink` | 뒤로/랜딩 (기본 Chrome) |
+| `homeLink` | **deprecated** — BackLink 사용 |
+| `linkButton` | 비활성 안내·상태 칩 (클릭 불가 시 `linkButtonDisabled`) |
+
+### Input / Select / Field
+
+폼 입력의 기본 단위. Riot ID 검색, 수동 티어 입력 등에 사용한다.
+
+| 속성 | 값 |
+|------|-----|
+| 최소 높이 | 44px |
+| 패딩 | `0 $space-4` |
+| radius | `$radius-md` |
+| border | `$color-border-default` |
+| background | `rgba(7, 16, 31, 0.76)` 또는 `$glass-surface-soft` |
+| typography | `body-md` (입력값), `label-md` (라벨) |
+| focus | `outline: 2px solid $color-border-focus` |
+| hover | `$color-border-strong` + 배경 `rgba(16, 32, 56, 0.88)` |
+
+```scss
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  min-width: 140px;
+  flex: 1 1 180px;
+}
+
+.input,
+.select {
+  min-height: 44px;
+  padding: 0 $space-4;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-md;
+  color: $color-text-primary;
+  background: rgba(7, 16, 31, 0.76);
+}
+```
+
+규칙:
+
+- 라벨(`fieldLabel`)은 입력 위에 배치하고 `$color-text-secondary`를 사용한다.
+- placeholder는 `$color-text-muted`.
+- `inputRow`는 입력 + primary 버튼을 가로 배치하며, `$breakpoint-sm` 이하에서는 column으로 전환한다.
+- 숫자 입력(LP 등)은 `min`/`max`로 클라이언트 검증 후 서버·도메인 로직과 일치시킨다.
+
+### Banner (Error / Warning)
+
+API 실패, 저장 실패, 데이터 부족 등 시스템·데이터 상태를 알린다.
+
+| 변형 | 색상 토큰 | 용도 |
+|------|-----------|------|
+| `errorBanner` | `$status-error*` | API 오류, 등록 실패 |
+| `warningBanner` | `$status-warning*` / gold tint | bootstrap 실패, 데이터 부족 |
+
+```scss
+.errorBanner {
+  @include text-style("body-sm");
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  color: #ffd6d6;
+  background: rgba(109, 31, 31, 0.45);
+  border: 1px solid rgba(255, 120, 120, 0.32);
+}
+
+.warningBanner {
+  color: $color-gold-100;
+  background: rgba(120, 92, 18, 0.22);
+  border: 1px solid rgba(200, 155, 60, 0.28);
+}
+```
+
+규칙:
+
+- `role="alert"`를 error에 사용한다.
+- 플레이어 평가(범인 등)와 시스템 오류를 같은 스타일로 표현하지 않는다.
+- 원인 + 다음 행동(재시도, 키 갱신 등)을 함께 안내한다.
+
+### Link
+
+텍스트 링크와 버튼형 링크를 구분한다. **뒤로 가기는 BackLink**(기본 UI Chrome)를 사용한다.
+
+| 변형 | 스타일 | hover |
+|------|--------|-------|
+| `BackLink` | `$color-blue-300`, `label-md`, `←` 아이콘 | 배경 + 밝기 (§ 기본 UI Chrome) |
+| `linkButton` | secondary 버튼과 동일 | `@include hover-surface-lift` |
+| `linkButtonDisabled` | opacity 45%, `pointer-events: none` | hover 없음 |
+
+### Accordion
+
+상세 정보(스탯, 모스트, 근거)를 접었다 펼치는 패턴. **PlayerCard** 내부에서 사용한다.
+
+구현은 native `<details>` / `<summary>`를 우선한다.
+
+| 영역 | 클래스 | 설명 |
+|------|--------|------|
+| 컨테이너 | `accordion` | 상단 `$color-border-subtle` 구분선 |
+| 트리거 | `accordionTrigger` | `label-md`, 좌측 라벨 + 우측 `▾` |
+| 본문 | `accordionBody` | padding `$space-5`, gap `$space-4` |
+
+```scss
+.accordionTrigger {
+  @include text-style("label-md");
+  padding: $space-3 $space-5;
+  color: $color-text-secondary;
+  cursor: pointer;
+
+  &::after {
+    content: "▾";
+    color: $color-blue-300;
+    transition: transform 160ms ease;
+  }
+}
+
+.accordion[open] .accordionTrigger::after {
+  transform: rotate(180deg);
+}
+```
+
+규칙:
+
+- 기본 상태는 **접힘**. 요약 행(cardSummary)만 항상 노출한다.
+- 트리거 문구 예: `상세 분석 보기`
+- 키보드: `<summary>` 기본 focus 지원, focus-visible ring 유지
+- hover: 배경 `rgba(16, 32, 56, 0.48)`, 텍스트 `$color-text-primary`
+
+> **3차 변경(F-02) → 5차 개정:** 참가자 등록·팀 카드의 상세는 **아코디언(▼ 토글)** 이다. hover 플로팅 모달은 폐기한다.
+
+### StepNav
+
+세션 진행 단계(참가자 → 팀 제안 → 시험 판 → 재밸런스) 네비게이션.
+
+| 속성 | 값 |
+|------|-----|
+| 레이아웃 | 가로 pill 목록, `overflow-x: auto` |
+| step 높이 | 44px |
+| step gap | `$space-2` |
+| 비활성 | `$glass-surface-soft`, `$color-text-secondary` |
+| 활성 | `$color-gold-300`, `$shadow-gold`, `$color-border-strong` |
+| stepNumber | 20×20px 원형, `$glass-overlay` 배경 |
+
+```scss
+.step {
+  border-radius: $radius-pill;
+  border: 1px solid $color-border-subtle;
+  @include hover-emphasis-subtle;
+}
+
+.stepActive {
+  border: 1px solid $color-border-strong;
+  box-shadow: $shadow-gold;
+  color: $color-gold-300;
+}
+```
+
+규칙:
+
+- `aria-current="step"`을 활성 링크에 지정한다.
+- `nav`에 `aria-label="내전 진행 단계"` 제공.
+- 모바일에서 가로 스크롤 허용, 줄바꿈하지 않는다 (`white-space: nowrap`).
+
+### TopBanner (공통 크롬, D-14)
+
+전 화면 상단에 고정되는 배너. **중앙 정렬 로고** 스타일 (feedback: 큰 시작 버튼 → 상단 배너).
+
+| 요소 | 스타일 |
+|------|--------|
+| position | `sticky`/`fixed` top, `z-index` chrome 레이어 |
+| layout | `1fr auto 1fr` 3열 — **좌측 슬롯에 BackLink(대시보드)**, 중앙 로고, 우측은 여백 |
+| surface | `glass-surface($glass-surface-soft, $glass-blur-sm, $color-border-subtle)`, 하단 border |
+| logo | 중앙 정렬, `$gradient-gold` text clip 또는 로고 마크 |
+| height | 컴팩트(본문 자리 침범 최소) |
+
+규칙:
+
+- 랜딩·대시보드·세션 화면 공통 상단 크롬으로 유지한다.
+- 배너는 장식이 아니라 브랜드·홈 진입점이며, 큰 CTA를 대체한다.
+
+### Hero (Landing · 소개형, F-01)
+
+랜딩은 **소개형**이다. 앱이 무엇을 하는지 전달하고 "시작하기"로 대시보드에 진입한다.
+
+| 요소 | typography / 스타일 |
+|------|---------------------|
+| `badge` | `caption`, pill, `$color-gold-300`, uppercase |
+| `title` | `display-xl`, `$gradient-gold` text clip |
+| `subtitle` | `body-md`, `$color-text-secondary` |
+| `startCta` | `primary` 버튼 → `/dashboard` |
+
+규칙:
+
+- hero는 중앙 정렬, gap `$space-3`.
+- display-xl 그라디언트 텍스트는 hero·주요 결과 점수에만 사용한다.
+- 소개 블록은 Stagger(박스→타이틀→콘텐츠) 등장.
+
+### DashboardGreeting (F-12, D-15)
+
+대시보드 상단 인사·내 플레이어 영역.
+
+| 요소 | 스타일 |
+|------|--------|
+| `greeting` | `heading-md`, "안녕하세요, 총무 {이름}님" (미지정 시 "총무님") |
+| `myPlayerPicker` | Riot ID 검색 결과 계정을 "나"(myPuuid)로 지정/해제 |
+
+### SessionCard
+
+저장된 내전 목록의 클릭 가능 카드 (대시보드 그리드).
+
+| 속성 | 값 |
+|------|-----|
+| surface | `glass-surface($glass-surface-soft, $glass-blur-sm, $color-border-subtle)` |
+| padding | `$space-5` |
+| radius | `$radius-lg` |
+| layout | column, gap `$space-2` |
+| hover | `@include hover-surface-lift` + `$shadow-sm` |
+
+| 텍스트 / 요소 | typography / 스타일 |
+|--------|------------|
+| `sessionName` | `body-lg`, primary |
+| `sessionMeta` | `caption`, secondary (생성일 등) |
+| `statusChip` | 상태 칩 — `preparing`(준비중, neutral) / `in_progress`(진행중, blue) / `completed`(완료, gold) (D-15) |
+| `myRating` | 내 평점 별점(StarRating, read-only) — `wrapUp` 별점 있을 때 (F-10/F-12) |
+
+그리드: 모바일 1열 → `$breakpoint-md` 이상 2~3열 (`sessionGrid`). 카드 나열은 Stagger 모션 적용(D-14).
+
+### StarRating (F-10)
+
+세션 **성과** 별점 1~5 입력/표시 컴포넌트. 피드백은 별점 없이 텍스트만.
+
+| 상태 | 스타일 |
+|------|--------|
+| 입력 | 세션 성과 별 1~5 클릭·키보드 선택, 채워진 별 `$color-gold-500` (피드백은 텍스트만) |
+| 표시(read-only) | 대시보드 카드 "내 평점" 등, 비활성 |
+
+- `aria-label`로 "5점 만점에 N점" 제공, 키보드 조작 지원.
+
+### 플로팅·모달 패턴 (3차)
+
+feedback "2차 시도"에서 상시 큰 패널 대신 **hover 플로팅 / 미니 모달**로 정보 밀도를 낮춘다.
+
+| 컴포넌트 | 용도 | 규칙 |
+|----------|------|------|
+| `PlayerDetailAccordion` | 참가자/팀 카드 상세 (F-02) | ▼ 토글로 카드 안 상세 전력. 팀 교체 클릭과 분리 |
+| `MiniAddModal` | 팀 박스 선수 추가/교체 (F-04) | 팀 박스 버튼 클릭 시 **블루=좌 / 레드=우** 방향에 소형 모달 플로팅 |
+| `BalanceReasonPopover` | 밸런스 근거 (F-04) | 팀 제안 박스 **우상단 아이콘** hover 시 상세 근거 박스 플로팅 (상시 패널 아님) |
+| `RecentMatchesModal` | 최근 경기 선택 (F-05) | 참가자 최근 경기 목록을 모달로, 선택 시 폼 자동 채움 |
+
+공통 규칙:
+
+- 플로팅/모달은 `$shadow-lg`(모달)·`$shadow-md`(팝오버), Glass surface 사용.
+- 핵심 폼·콘텐츠를 가리지 않게 배치하고, ESC·바깥 클릭으로 닫는다.
+- hover 전용 정보는 keyboard focus·터치 대체 경로를 함께 제공한다(§8 접근성).
+- 등장/퇴장에 `fadeInUp`/`fadeOut`($motion-enter/$motion-exit) 적용.
+
+### PlayerCard
+
+참가자 1명의 사전 전력을 표시하는 **column 리스트** 아이템.
+
+#### 레이아웃 원칙
+
+- 목록(`participantList`)은 **flex column**, gap `$space-3`, 카드 width 100%.
+- flex wrap 그리드로 여러 열 배치하지 **않는다**.
+- 카드 내부는 **요약(항상 노출) + 아코디언(상세)** 2단 구조.
+
+#### cardSummary (요약 행)
+
+| 영역 | 크기 / 스타일 |
+|------|---------------|
+| profileIcon | 56×56px, 원형 |
+| tierEmblem | **88×88px**, `object-fit: contain` |
+| playerName | `heading-md` |
+| badgeRow | tier / internal / source 뱃지 |
+| summaryMeta | `body-sm`, muted — 포지션 · 최근 N판 |
+| removeButton | danger compact (min-height 32px) |
+
+```scss
+.participantList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.cardSummary {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-4 $space-5;
+}
+```
+
+#### accordionBody (상세)
+
+- `statGrid`: 4열 auto-fit (min 120px), label `caption` + value `body-md`
+- `metaSection`: 모스트 챔피언, 근거 요약
+- `reasonList`: bullet list, `$color-text-secondary`
+
+### Badge 변형 (도메인)
+
+§5 Badge 공통 규칙 위에, MVP에서 사용하는 변형을 정의한다.
+
+| 클래스 | 의미 | 색상 |
+|--------|------|------|
+| `tierBadge` + `lolTier*` | LoL 티어+LP | 티어별 색 (Iron~Challenger) |
+| `internalBadge` + `internalTier1~4` | 내부 1~4티어 | 1=gold, 2=teal, 3=blue, 4=slate |
+| `opBadge` | OP | purple tint (`$status-op*`) |
+| `sourceBadge` | 솔랭/자랭/수동 | neutral glass |
+| `readyBadge` | 팀 제안 가능 | `$gradient-blue` |
+| `readyBadgeLink` | 준비 완료 CTA (링크) | readyBadge와 동일 톤 + 클릭 가능 |
+| `waitBadge` | 인원 부족 | neutral + border |
+
+규칙:
+
+- Badge는 기본적으로 **클릭 불가**, hover 없음.
+- **예외:** `readyBadgeLink`는 8·10명 준비 완료 시 `/team` 이동용으로만 클릭 가능하다. `n/10 · 팀 제안하기` 형태로 인원과 액션을 함께 표시한다.
+- OP와 internal tier는 동시 표시 가능.
+- LoL 티어 뱃지는 `getLolTierBadgeClassName()` + `lolTierIron` … `lolTierChallenger` 변형을 사용한다.
+- 내부 1~4 뱃지는 `getInternalTierBadgeClassName()` + `internalTier1` … `internalTier4` 변형을 사용한다. **동일 blue tint 금지.**
+
+#### LoL 티어 뱃지 색 (참고)
+
+| 티어 | 톤 |
+|------|-----|
+| Iron | gray |
+| Bronze | copper |
+| Silver | silver-blue |
+| Gold | hextech gold |
+| Platinum | cyan |
+| Emerald | green |
+| Diamond | indigo |
+| Master | purple |
+| Grandmaster | red |
+| Challenger | bright gold |
+
+#### 내부 티어 뱃지 색 (세션 상대 4분위)
+
+| 뱃지 | 톤 | 의미 |
+|------|-----|------|
+| 1 | gold | 상위 25% |
+| 2 | teal | 25~50% |
+| 3 | blue | 50~75% |
+| 4 | slate | 하위 25% |
+
+- `readyBadge` / `readyBadgeLink` / `waitBadge`는 폼 헤더 우측 상태 표시용.
+
+### Profile & Game Assets
+
+Data Dragon / Community Dragon 이미지 규격.
+
+| 자산 | 크기 | URL helper |
+|------|------|------------|
+| ProfileIcon | 56×56px, 원형 | `getProfileIconUrl(version, id)` |
+| TierEmblem | **88×88px** | `getTierEmblemUrl(tier)` |
+| ChampionIcon | 40×40px, `$radius-md` | `getChampionImageUrls(...).square` |
+
+```scss
+.profileIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(248, 237, 199, 0.22);
+}
+
+.tierEmblem {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+}
+
+.championIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+}
+```
+
+규칙:
+
+- profileIcon 없을 때 `profileFallback`: 이니셜 1글자, 56×56 원형.
+- tierEmblem은 cardSummary 우측 고정 (`flex-shrink: 0`).
+- championIcon hover: 1px lift + border 강조 (정보 아이콘, 클릭 불필요 시에도 미세 hover 허용).
+
+### StatGrid
+
+dl 기반 KPI 그리드. Accordion 본문·팀 패널 등에 재사용.
+
+```scss
+.statGrid {
+  display: grid;
+  gap: $space-3;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.statItem dt {
+  @include text-style("caption");
+  color: $color-text-muted;
+}
+
+.statItem dd {
+  @include text-style("body-md");
+  color: $color-text-primary;
+  @include stat-number; // 숫자 KPI일 때
+}
+```
+
+### Placeholder / Empty State
+
+데이터 없음·아직 구현 전 영역.
+
+```scss
+.placeholder {
+  min-height: 160px;
+  border: 1px dashed $color-border-default;
+  border-radius: $radius-lg;
+  color: $color-text-muted;
+  @include text-style("body-sm");
+}
+```
+
+규칙:
+
+- dashed border로 “임시/비어 있음”을 표현한다.
+- hover 없음 (클릭 불가).
+
+### 화면 레이아웃 패턴
+
+MVP 화면별 Panel 조합. 새 화면은 아래 패턴을 따른다.
+
+#### F-01 Landing (`app/page.tsx`) — 소개형 (3차)
+
+```text
+TopBanner (고정 상단, 중앙 로고)
+Hero (badge + title + subtitle)
+  ↓ $space-10
+IntroSection — 앱 소개 (Stagger 등장)
+  ↓
+StartCta → "/dashboard"
+```
+
+#### F-12 Dashboard (`app/dashboard/page.tsx`) — 신규 (3차)
+
+```text
+TopBanner
+DashboardGreeting — "안녕하세요, 총무 {이름}님" + MyPlayerPicker
+CreateRow — "새 내전 시작" (nameInput + primaryButton)
+ListSection — sessionGrid → SessionCard[] (statusChip + myRating, Stagger 등장)
+```
+
+#### Session Layout (`app/session/[id]/layout.tsx`)
+
+```text
+container
+  TopBanner (공통 크롬 · 좌측 BackLink → "/dashboard")
+  chrome
+    StepNav
+  children (page panel, FadeStage 전환)
+```
+
+#### F-02/F-03 Players (`app/session/[id]/players/page.tsx`) — 3차 개편
+
+```text
+Panel (glass, page shell)
+  PageHeader (title + meta)   ← BackLink는 TopBanner에 있음
+  searchHint (검색창 상단 소형 텍스트 — 본캐 경고 등)  ← 박스 아님
+  FormPanel (glass-strong) — Riot ID 등록 + 팀 제안 CTA(그라디언트 활성)
+  ManualPanel (optional) — 수동 티어
+  registeredGrid — 좌5 / 우5 2열, 좌열→우열 순차, 같은 행 높이
+    → PlayerCard: 티어 → 소환사(+모스트 오버레이) → 정보 → 내부 평가(옆 칸) → ▼ 아코디언 → 제외
+    → 상세는 `.tg-player-card__detail` 아코디언
+```
+
+#### F-04/F-06 Team & Rebalance — 대치 정렬 (D-16, 3차)
+
+```text
+teamBoards (중앙 기준 대치)
+  blueBoard (좌) — 헤더/타이틀/카드 우측 정렬, 카드 내 요소 거울 순서, slideInLeft
+  powerRatioBar (51% vs 49%)
+  redBoard (우)  — 헤더/타이틀/카드 좌측 정렬, 기본 순서, slideInRight
+    · 각 팀 박스: 평균 티어 헤더 + [선수 추가/교체] 버튼(→ MiniAddModal)
+    · 우상단: 밸런스 근거 아이콘(→ BalanceReasonPopover)
+actionRow (하단 버튼 구역) — [시험 판 진행] / [내전 종료하기]
+FloatingAssistant (우하단)
+```
+
+#### F-06 Rebalance — 요약 배너 · 트레이드 강조 (5차)
+
+```text
+header
+  h1 — N판 재밸런스 제안
+  button — 이전 팀으로 재도전하기 (우상단, 구성만 복원·성적 유지)
+  .tg-rebalance-banner.is-trade | .is-gold
+    · 교체 있음: 「팀원 n명을 교체했습니다.」
+    · 교체 없음: 「황금밸런스의 판입니다. 팀원 변경은 불필요!」
+  PowerRatio
+.tg-versus — 팀 보드 (교체 카드 `.is-changed` + `.tg-trade-chip`)
+.tg-trade-list — 아바타 ↔ 아바타 + 방향 칩
+```
+
+| 클래스 | 규칙 |
+|--------|------|
+| `.tg-rebalance-banner.is-trade` | 교체 강조(경고/액센트 톤) |
+| `.tg-rebalance-banner.is-gold` | 무교체 황금밸런스 톤 |
+| `.tg-player-card.is-changed` | 금색 배경·보더·글로우 |
+| `.tg-trade-chip` | 카드 위 트레이드 아이콘 + 「블루로 / 레드로」 |
+| `.tg-trade-list__item` | 나간 선수 · ↔ SVG · 들어온 선수 · 방향 칩 |
+| `.tg-assistant-hint` | FAB 왼쪽 말풍선 「AI 분석을 들어보세요!」(사이드바 닫힘 시만) |
+| `.tg-beta` | teal 상단첨자 `beta` — 점수판 이미지 등 실험 기능 |
+
+**카드 폭 규칙 (D-16)**
+
+대치 정렬은 **콘텐츠 정렬만** 바꾼다. `teamList`는 grid이므로 `justify-content`를 주면 auto 컬럼이 stretch되지 않아 카드가 내용 폭으로 줄어든다. 정렬은 `text-align`으로만 처리하고, `justify-content: flex-end`는 flex 행(`teamHeader`·`badges`)에만 적용한다.
+
+```scss
+// ✅ 카드가 팀 박스 안쪽 폭 100%를 유지
+.blue .teamHeader,
+.blue .teamList,
+.blue .badges { text-align: right; }
+
+.blue .teamHeader,
+.blue .badges { justify-content: flex-end; }
+
+// ❌ .teamList(grid)에 justify-content를 주면 카드 폭이 내용 폭으로 줄어든다
+```
+
+**요소 순서 미러링 (D-16)**
+
+블루팀 카드는 레드팀 카드의 거울 배치를 따른다. 카드 최상위 flex(`playerCard`)와 **뱃지 행(`badges`)** 모두 `row-reverse`를 적용해, 두 팀 모두 중앙에서 바깥쪽으로 `내부 티어 뱃지 → 라인 아이콘 → 성과·꿀벌` 순서로 읽히게 한다.
+
+```scss
+.blue .playerCard,
+.blue .badges { flex-direction: row-reverse; }
+
+@media (max-width: 47.999rem) {
+  // 1열로 쌓이면 정렬·순서 미러링 모두 해제
+  .blue .playerCard,
+  .blue .badges { flex-direction: row; }
+}
+```
+
+**그라디언트 방향 미러링 (D-16 · 5차)**
+
+티어 그라디언트도 미러링 대상이다. 내용이 우측 정렬인데 색이 좌상단에서 시작하면 시선 방향과 어긋난다. 각도를 커스텀 프로퍼티로 빼고 블루팀에서 `360deg − 기본값`으로 뒤집는다. 티어별 규칙(9개)에 각도를 하드코딩하지 않는다.
+
+```scss
+.tg-player-card {
+  --tg-card-sheen-angle: 120deg;  // 흰 sheen
+  --tg-card-tier-angle: 135deg;   // 티어 틴트 → 좌상단 시작
+  background:
+    linear-gradient(var(--tg-card-sheen-angle), rgb(255 255 255 / 6%), transparent 55%),
+    rgb(255 255 255 / 4%);
+}
+
+// 티어 클래스는 색(틴트)만 지정한다
+.tg-player-card--gold { --tg-card-tier-tint: rgb(200 155 60 / 22%); }
+
+.tg-team-board.is-blue .tg-player-card {
+  --tg-card-sheen-angle: 240deg;  // 우상단 시작
+  --tg-card-tier-angle: 225deg;
+}
+
+@media (max-width: 760px) {
+  // 1열에서 미러링 해제 시 각도도 되돌린다
+  .tg-team-board.is-blue .tg-player-card {
+    --tg-card-sheen-angle: 120deg;
+    --tg-card-tier-angle: 135deg;
+  }
+}
+```
+
+**헤더 미러링 (D-16 · 5차)**
+
+팀 헤더도 미러링 대상이다. 블루팀에서 `블루팀 [평균 티어]` 순서로 읽히면 우측 정렬과 어긋나므로, 헤더 행과 그 안의 `h2`를 모두 `row-reverse`로 뒤집어 `[평균 티어] 블루팀`이 우측에 붙게 한다. `선수 추가` 버튼은 반대쪽(안쪽)으로 이동한다.
+
+```scss
+.tg-team-board__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; }
+}
+
+.tg-team-board.is-blue .tg-team-board__header,
+.tg-team-board.is-blue .tg-team-board__header h2 { flex-direction: row-reverse; }
+
+@media (max-width: 760px) {
+  // 방향만 되돌리고 space-between은 유지한다
+  .tg-team-board.is-blue .tg-team-board__header,
+  .tg-team-board.is-blue .tg-team-board__header h2 { flex-direction: row; }
+}
+```
+
+**VS 마크 (`.tg-versus` · 5차)**
+
+팀 대 팀 화면(팀 제안·재밸런스)은 `.tg-grid--2` 대신 `.tg-versus`(`1fr auto 1fr`)를 쓰고 가운데에 `.tg-versus__mark`(원형 `VS`)를 둔다. 보드는 위 정렬을 유지하고 마크만 `align-self: center`로 세로 중앙에 맞춘다. 장식이므로 `aria-hidden`이며, 팀 구분은 각 보드의 `h2`가 담당한다. 모바일 1열에서는 두 보드 사이 행으로 내려간다.
+
+시험 판 결과 **입력** 화면은 대치 구도가 아니라 입력 폼이므로 VS 마크를 넣지 않는다.
+
+| Panel 클래스 | surface | padding | gap |
+|--------------|---------|---------|-----|
+| `panel` | `glass-surface` | `$space-6` | `$space-6` |
+| `formPanel` / `listSection` | `$glass-surface-strong` | `$space-6` | `$space-5` |
+| `formHeader` | grid 1fr + auto (≥720px) | — | `$space-3` |
+| `registeredGrid` | 2열(≥`$breakpoint-md`), 1열(모바일) | — | `$space-3` |
+| `blueBoard` | `text-align: right`, 헤더·`h2`·카드·뱃지 행 `flex-direction: row-reverse` | — | — |
+| `teamList` | grid 1열, `justify-content` 금지(카드 100% 폭 유지) | — | `$space-2` |
+
+### 컴포넌트 ↔ 파일 매핑 (MVP)
+
+구현 시 CSS Modules 클래스명은 아래를 기준으로 맞춘다. 공통 추출 전까지 화면별 module에 동일 이름을 사용한다.
+
+| UI | 현재 파일 | 추후 공통화 |
+|----|-----------|-------------|
+| BackLink | `BackLink.module.scss` | `components/layout/BackLink` |
+| PageHeader | `PageHeader.module.scss` | `components/layout/PageHeader` |
+| Primary / Secondary / Remove Button | `players.module.scss`, `page.module.scss` | `components/shared/Button` |
+| Input / Select / Field | `players.module.scss`, `page.module.scss` | `components/shared/Input` |
+| Banner | `players.module.scss`, `page.module.scss` | `components/shared/Banner` |
+| StepNav | `StepNav.module.scss` | `components/layout/StepNav` |
+| SessionCard | `page.module.scss` | `components/dashboard/SessionCard` |
+| TopBanner | `layout.module.scss` | `components/layout/TopBanner` |
+| SideBanner (F-13) | `styles/components/_product.scss` (`.tg-side-banner`) | `components/layout/SideBanner` |
+| AuroraBackground (D-23) | `styles/components/_product.scss` (`.tg-aurora`) | `components/motion/AuroraBackground` + `lib/motion/auroraTheme`(색 테마 스토어) |
+| DashboardGreeting / SessionGrid / MyPlayerPicker | `dashboard.module.scss` | `components/dashboard/*` |
+| 모션 래퍼(FadeStage/Stagger/TeamSlideIn) | `_motion.scss` + module | `components/motion/*` |
+| PlayerCard + Accordion | `styles/components/_product.scss` (`.tg-player-card`) | `components/session/PlayerCard` |
+| MiniAddModal / BalanceReasonPopover | `team.module.scss` | `components/team/*` |
+| RecentMatchesModal | `trial.module.scss` | `components/trial/RecentMatchesModal` |
+| StarRating | `finish.module.scss` | `components/shared/StarRating` |
+| RiotIdSearch | `RiotIdSearch.module.scss` | `components/player/RiotIdSearch` |
+| Badge 변형 | `players.module.scss`, `_status-badges.scss` | `components/shared/Badge` |
+| ReasonPanel | `ReasonPanel` + 화면 module | `components/shared/ReasonPanel` |
+| VisionReviewPanel | trial 화면 module | `components/trial/VisionReviewPanel` |
+| StatGrid | `players.module.scss` | `components/shared/StatGrid` |
+
+규칙:
+
+- 새 화면에서 Button·Input·Badge를 **다시 정의하지 않는다**. 위 클래스 스펙을 복사하거나 공통 컴포넌트로 추출한다.
+- 화면마다 spacing·radius·색상을 바꾸지 않는다. 토큰과 본 절의 수치를 따른다.
 
 ## 6. 상태 색상 규칙
 
@@ -540,6 +1650,7 @@ styles/
 │   ├── _reset.scss
 │   ├── _fonts.scss
 │   ├── _root.scss
+│   ├── _interactive.scss
 │   └── _accessibility.scss
 ├── utilities/
 │   ├── _glass.scss
@@ -552,15 +1663,21 @@ styles/
 
 ```text
 components/
-├── Button/
-│   ├── Button.tsx
-│   └── Button.module.scss
-├── PlayerCard/
-│   ├── PlayerCard.tsx
-│   └── PlayerCard.module.scss
-└── TeamPanel/
-    ├── TeamPanel.tsx
-    └── TeamPanel.module.scss
+├── layout/
+│   ├── BackLink.tsx
+│   ├── BackLink.module.scss
+│   ├── PageHeader.tsx
+│   ├── PageHeader.module.scss
+│   ├── StepNav.tsx
+│   └── StepNav.module.scss
+├── player/
+│   ├── RiotIdSearch.tsx
+│   └── RiotIdSearch.module.scss
+├── shared/
+│   └── ReasonPanel.tsx
+├── trial/
+│   └── VisionReviewPanel.tsx
+└── (화면별 module: players / team / trial / rebalance / summary)
 ```
 
 ### 토큰 관리
@@ -602,6 +1719,20 @@ SCSS 변수와 CSS Custom Property를 함께 사용한다.
   }
 }
 ```
+
+### Interactive Hover Mixin
+
+§5 Button — 인터랙티브 Hover와 동일한 값을 mixin으로 제공한다. `_mixins.scss`에 정의하고, 전역 기본값은 `_interactive.scss`에서 적용한다.
+
+```scss
+@mixin interactive-transition { /* transform, border, background, box-shadow, color, filter — 160ms */ }
+@mixin hover-lift($offset: -1px) { /* hover 시 translateY, active 시 원위치 */ }
+@mixin hover-emphasis-subtle { /* $color-border-strong + $shadow-sm */ }
+@mixin hover-brighten($amount: 1.06) { /* filter: brightness */ }
+@mixin hover-surface-lift { /* hover-lift + hover-emphasis-subtle */ }
+```
+
+`styles/globals.scss`에서 `_interactive.scss`를 import하여 앱 전역 hover 기본값을 보장한다.
 
 ### 반응형 Mixin
 
@@ -660,6 +1791,7 @@ CSS Modules 내부에서도 BEM과 유사한 명확한 역할명을 사용한다
 - 상태를 색상만으로 표현
 - 페이지마다 새로운 spacing 값 생성
 - 동일한 Button과 Badge를 화면별로 다시 구현
+- **클릭 가능 UI에 hover 피드백 없이 배포**
 - 디자인 명세에 없는 임의의 애니메이션 추가
 
 ## 8. 접근성 및 모션
@@ -685,10 +1817,48 @@ CSS Modules 내부에서도 BEM과 유사한 명확한 역할명을 사용한다
 - 본문 텍스트는 충분한 명도 대비를 유지한다.
 - Glass Surface 위 텍스트의 가독성을 실제 배경 이미지와 함께 확인한다.
 - 모든 인터랙션은 키보드로 사용할 수 있어야 한다.
+- 마우스가 있는 환경에서는 모든 버튼·링크·입력 UI에 hover 피드백을 제공한다 (§5 인터랙티브 Hover).
+- 터치 전용 환경에서는 hover 스타일이 상태처럼 고정되지 않도록 `@media (hover: hover)`로 제한한다.
 - `OP`, `꿀벌`, `범인`은 아이콘과 텍스트를 함께 표시한다.
-- 애니메이션은 150~250ms 범위로 제한한다.
-- 장식적인 무한 애니메이션은 사용하지 않는다.
+- **hover 마이크로 인터랙션**은 150~250ms로 제한한다.
+- **단계 전환·콘텐츠 등장**(D-14, §4-A)은 220~420ms, stagger 40~80ms를 사용한다. 이징은 `ease-in-out` 계열 cubic-bezier를 우선한다.
+  - **예외 — 결과 인트로(D-20):** 드라마 연출이 목적이므로 위 상한을 쓰지 않는다. 요소 길이 840~1560ms, stagger 140ms를 사용한다(`.tg-result-reveal__*`). 다른 화면에 이 값을 복사하지 않는다.
+- hover 전용 정보(BalanceReasonPopover 등)는 keyboard focus·터치 대체 경로를 함께 제공한다. 플레이어 상세는 아코디언이므로 hover 전용 경로가 아니다.
+- `prefers-reduced-motion: reduce`에서는 hover transform·슬라이드 인·그라디언트 루프를 생략하고, 즉시 표시하거나 최소한의 border·background·페이드 변화만 사용한다.
+- 장식적인 무한 애니메이션은 사용하지 않는다. **예외 2건:**
+  - 팀 제안 CTA 활성 그라디언트(§4-A, 저강도, reduced-motion에서 정지).
+  - **오로라 배경 `.tg-aurora`**(D-23, §0-C): 콘텐츠 뒤 레이어·0.35× 속도·상단 마스크. reduced-motion에서는 WebGL을 초기화하지 않고 레이어를 숨긴다. WebGL2 미지원 시 정적 배경으로 폴백하고, 탭이 가려지면 렌더 루프를 멈춘다.
+- **전면 컬러 wash는 쓰지 않는다.** 결과 강조처럼 화면 전체에 색을 입히고 싶을 때는 오로라 배경 테마(D-23 색 테마 전환)를 바꾼다. 본문 위에 반투명 색 레이어를 덮으면 패널·텍스트 대비가 함께 무너진다.
 
 핵심 원칙은 다음 한 문장으로 정리할 수 있습니다.
 
 > 어두운 청색 배경과 절제된 금색·청록색 포인트를 사용하고, Glass 효과는 주요 정보 계층을 강조하는 데만 적용하며, 플레이어 스탯의 가독성을 모든 장식보다 우선한다.
+
+---
+
+## 9. 변경 이력
+
+| 버전 | 날짜 | 변경 |
+|------|------|------|
+| v0.3 | 2026-07-28 | MVP UI 카탈로그 · Chrome · hover/interactive |
+| v0.4 | 2026-07-29 | 구현 반영: `readyBadgeLink`, RiotIdSearch·ReasonPanel·VisionReviewPanel 매핑, 컴포넌트 폴더 구조 동기화 |
+| v0.5.1 | 2026-07-30 | D-16 대치 정렬 구현 규칙 보강: `teamList`(grid)에 `justify-content` 금지 — 카드 폭 100% 유지, `justify-content`는 flex 행(`teamHeader`·`badges`)에만. 블루팀은 `playerCard`·`badges` 모두 `row-reverse`로 요소 순서 거울 배치, 모바일 1열에서 해제 |
+| v0.6 | 2026-07-30 | 4차 스타일 아키텍처: CSS Modules 제거, `tg-` BEM 전역 SCSS, 스크롤 동작을 유지하는 숨김 스크롤바, AI 사이드바·분석 전환·결과 공개·승리팀 컬러 토글 패턴 추가 |
+| v0.6.1 | 2026-07-30 | D-21 이스터에그 태그 클래스(`.tg-easter-egg--*`)와 reduced-motion 규칙 추가 |
+| v0.6.2 | 2026-07-30 | F-02 원격 검색 후보 카드에 소환사 프로필 아이콘·대표 티어·등록 액션 배치 규칙 추가 |
+| v0.6.3 | 2026-07-30 | D-20 결과 인트로: wash·배너·MVP 히어로·beat 노출 클래스(`tg-result-reveal__*`) |
+| v0.7 | 2026-07-30 | 5차: `.tg-action-bar`, AI 푸시(`.tg-assistant-open`), 모션 1.4×, 티어 그라디언트 카드, 시험 입력 축소 |
+| v0.7.1 | 2026-07-30 | §0-C에 F-13 `.tg-side-banner` 좌측 광고 배너 규칙 추가(좌측 여백 폭 계산·1500px 미만 숨김·광고 뱃지) |
+| v0.7.2 | 2026-07-30 | §0-C에 D-23 `.tg-aurora` WebGL 오로라 배경 추가. §8 무한 애니메이션 예외를 2건(CTA 그라디언트·오로라 배경)으로 명시 |
+| v0.7.3 | 2026-07-30 | D-16 미러링에 **그라디언트 방향** 포함: 카드 각도를 `--tg-card-*-angle`로 분리, 블루팀은 `360deg − 기본값`(240/225deg)로 뒤집고 모바일 1열에서 복원 |
+| v0.7.4 | 2026-07-30 | §0-C 주의 추가: `.tg-panel`의 `backdrop-filter`가 fixed 자손의 컨테이닝 블록·스택 컨텍스트를 만든다. 페이지 루트를 패널로 감싸지 않는다(하단 바·모달 갇힘 버그) |
+| v0.7.5 | 2026-07-30 | §0-C에 챔피언 검색 모달·빈 결과 UI와 Data Dragon 모드 전용 `Jade_*` 중복 제외 규칙 추가 |
+| v0.7.6 | 2026-07-30 | D-20 결과 인트로 5 Stage로 확장: 느린 비트, MVP 수치, `.is-culprit` 범인 히어로, `.is-performance` 기대 이상 티어 카드 |
+| v0.7.7 | 2026-07-30 | 결과 인트로 모션 길이 2배(840~1560ms·stagger 140ms) 예외 명문화. **`.tg-result-reveal.is-blue/.is-red` 전면 wash 삭제** 후 D-23 오로라 색 테마 전환(`.tg-aurora.is-focus`)으로 대체 |
+| v0.7.8 | 2026-07-30 | §0-C 주의 추가: 카드 hover 플로팅은 **카드 자체 z-index**를 올려야 형제에 가리지 않는다(불투명 배경 + blur 병기). D-16에 **헤더 미러링**과 **`.tg-versus` VS 마크**(`1fr auto 1fr`) 추가 |
+| v0.7.9 | 2026-07-30 | stagger 지연 선택자 규칙 추가: 헤더가 있는 컨테이너는 `nth-child` 대신 **`nth-of-type`** (팀 박스 5번째 카드가 지연 없이 먼저 나타나던 버그) |
+| v0.8.0 | 2026-07-30 | 결과 인트로 3행 고정·MVP/범인 아이콘 확대. 라인 PNG·원형 bee·토스 QR 후원. 티어별 카드 색·성과 등급 칩·칩 상하 정렬 |
+| v0.8.1 | 2026-07-30 | 참가자 등록 카드 순서를 티어→소환사→모스트→정보로 변경. 30px 모스트 챔피언과 내부 평가(과대/적정/과소·-10~+10) 소형 필드 추가 |
+| v0.8.2 | 2026-07-30 | 카드 상세 hover 플로팅 폐기 → **아코디언**. 재밸런스 트레이드 목록(↔ 아이콘)·`.is-changed` 금색 강조·황금밸런스/교체 n명 배너 |
+| v0.8.3 | 2026-07-30 | `.tg-assistant-hint` 플로팅 말풍선 · `.tg-beta` · 재밸런스 헤더 우상단 「이전 팀으로 재도전」 |
+| v0.5 | 2026-07-29 | **3차 반복(feedback "2차 시도"):** §4-A 모션 시스템(이징·지속시간·keyframes fadeOut/fadeInUp/slideInLeft·Right/gradientShift·reduced-motion), TopBanner·소개형 Hero·Dashboard(Greeting·SessionCard 상태칩/평점)·StarRating·플로팅 모달 패턴(PlayerHoverCard·MiniAddModal·BalanceReasonPopover·RecentMatchesModal), 대치 정렬(D-16) 레이아웃, §8 모션 가이드·파일 매핑 갱신 |

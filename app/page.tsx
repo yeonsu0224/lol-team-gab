@@ -1,96 +1,32 @@
-"use client";
+import Link from "next/link";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  createSession,
-  SessionStorageFullError,
-} from "@/lib/storage/sessionStore";
-import { useSessions } from "@/lib/storage/useSessions";
-import styles from "./page.module.scss";
-
-export default function Home() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const sessions = useSessions();
-  const [error, setError] = useState<string | null>(null);
-
-  const handleCreate = () => {
-    try {
-      const session = createSession(name);
-      router.push(`/session/${session.id}/players`);
-    } catch (e) {
-      setError(
-        e instanceof SessionStorageFullError
-          ? e.message
-          : "세션을 만들지 못했습니다. 다시 시도해 주세요.",
-      );
-    }
-  };
-
+export default function LandingPage() {
   return (
-    <main className={`container ${styles.page}`}>
-      <section className={styles.hero}>
-        <p className={styles.badge}>Hextech Glass</p>
-        <h1 className={styles.title}>내전 총무</h1>
-        <p className={styles.subtitle}>LoL 5v5 내전 팀 밸런스 도구</p>
-      </section>
-
-      <section className={styles.createPanel} aria-label="새 내전 만들기">
-        <h2 className={styles.panelTitle}>새 내전 시작</h2>
-        <div className={styles.createRow}>
-          <input
-            className={styles.nameInput}
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="내전 이름 (선택)"
-            maxLength={40}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleCreate();
-            }}
-          />
-          <button className={styles.primaryButton} type="button" onClick={handleCreate}>
-            팀 만들기
-          </button>
+    <main className="tg-page">
+      <section className="tg-hero">
+        <span className="tg-chip is-gold">내전 준비부터 결과까지</span>
+        <h1>팀 밸런스,<br />감이 아니라 근거로.</h1>
+        <p>
+          참가자 전력을 분석하고 팀을 제안한 뒤, 시험 판 결과로 재밸런스합니다.
+          마지막에는 MVP와 기대 이상 플레이어까지 리드미컬하게 정리해 드려요.
+        </p>
+        <div className="tg-row" style={{ justifyContent: "center" }}>
+          <Link className="tg-button tg-button--primary" href="/dashboard">시작하기</Link>
+          <a className="tg-button" href="#features">무엇을 할 수 있나요?</a>
         </div>
-        {error ? (
-          <p className={styles.errorBanner} role="alert">
-            {error}
-          </p>
-        ) : null}
       </section>
-
-      <section className={styles.listSection} aria-label="저장된 세션">
-        <h2 className={styles.panelTitle}>저장된 내전</h2>
-        {sessions === null ? null : sessions.length === 0 ? (
-          <p className={styles.empty}>저장된 내전이 없습니다. 새 내전을 시작해 보세요.</p>
-        ) : (
-          <ul className={styles.sessionGrid}>
-            {sessions.map((session) => (
-              <li key={session.id}>
-                <button
-                  type="button"
-                  className={styles.sessionCard}
-                  onClick={() => router.push(`/session/${session.id}/players`)}
-                >
-                  <span className={styles.sessionName}>
-                    {session.name ?? "이름 없는 내전"}
-                  </span>
-                  <span className={styles.sessionMeta}>
-                    {new Date(session.createdAt).toLocaleString("ko-KR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </span>
-                  <span className={styles.sessionMeta}>
-                    참가자 {session.participants.length}명 · 입력 {session.rounds.length}/3판
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+      <section id="features" className="tg-grid tg-grid--auto">
+        {[
+          ["전력 분석", "Riot 공개 기록과 티어를 함께 봅니다."],
+          ["팀 제안", "8명 또는 10명을 균형 있게 나눕니다."],
+          ["시험 판", "KDA·피해량·챔피언·라인을 반영합니다."],
+          ["결과 공개", "승리팀·MVP·기대 이상 플레이어를 보여줍니다."],
+        ].map(([title, text]) => (
+          <article className="tg-panel" key={title}>
+            <h2>{title}</h2>
+            <p className="tg-muted">{text}</p>
+          </article>
+        ))}
       </section>
     </main>
   );
