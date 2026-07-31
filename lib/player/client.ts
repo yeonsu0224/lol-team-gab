@@ -26,9 +26,14 @@ export interface DataDragonBootstrap {
 }
 
 export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const headers = new Headers(init?.headers);
+  if (typeof document !== "undefined") {
+    const match = document.cookie.match(/(?:^|;\s*)tg-locale=(ko|en)(?:;|$)/);
+    if (match?.[1]) headers.set("Accept-Language", match[1]);
+  }
+  const response = await fetch(url, { ...init, headers });
   const body = await response.json().catch(() => ({})) as { error?: { message?: string; code?: string } };
-  if (!response.ok) throw new ClientApiError(body.error?.message ?? "요청을 처리하지 못했습니다.", body.error?.code);
+  if (!response.ok) throw new ClientApiError(body.error?.message ?? "Request failed", body.error?.code);
   return body as T;
 }
 
@@ -67,7 +72,7 @@ export async function loadParticipant(
     recentStats: Participant["riotData"]["recentStats"];
   }>(`/api/riot/player?puuid=${encodeURIComponent(account.puuid)}`);
   if (!data.rank && !manualTier) {
-    throw new ClientApiError("랭크 기록이 없습니다. 수동 티어를 입력해 주세요.", "MANUAL_TIER_REQUIRED");
+    throw new ClientApiError("MANUAL_TIER_REQUIRED", "MANUAL_TIER_REQUIRED");
   }
   const preLpValue = data.rank?.lpValue ?? tierToLpValue(manualTier!.tier, manualTier!.rank, manualTier!.lp);
   return {

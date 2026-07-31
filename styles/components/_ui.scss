@@ -3,7 +3,7 @@
 .tg-page {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 104px 0 96px;
+  padding: 24px 0 96px;
   transition: margin-right 420ms $ease-emphasized;
 }
 
@@ -188,7 +188,11 @@ body.tg-assistant-open .tg-assistant-fab { right: min(420px, 100%); }
 
 @media (max-width: 760px) {
   .tg-grid--2 { grid-template-columns: 1fr; }
-  .tg-page { width: min(100% - 20px, 1180px); padding-top: 88px; }
+  .tg-page { width: min(100% - 20px, 1180px); }
   .tg-panel { padding: 18px; border-radius: $radius-lg; }
   body.tg-assistant-open .tg-page { margin-right: 0; }
+}
+
+.tg-shell__body {
+  padding-top: 72px;
 }

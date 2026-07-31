@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { DemoDataBadge } from "@/components/demo/DemoDataBadge";
+import { useDemoStatus } from "@/lib/demo/useDemoStatus";
+import { useLocale, useT } from "@/lib/i18n/context";
 import type { Session } from "@/lib/types";
 
 export interface MatchPayload {
@@ -43,6 +46,9 @@ export function TrialAssist({
   onMatch: (match: MatchPayload) => void;
   onVision: (players: VisionPlayer[]) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
+  const { demoMode } = useDemoStatus();
   const [modal, setModal] = useState<"match" | "recent" | "vision" | null>(null);
   const [matchId, setMatchId] = useState("");
   const [puuid, setPuuid] = useState(preferredPuuid ?? session.participants[0]?.puuid ?? "");
@@ -56,11 +62,11 @@ export function TrialAssist({
     try {
       const response = await fetch(`/api/riot/match/${encodeURIComponent(id.trim())}`);
       const body = await response.json() as MatchPayload & { error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "경기를 불러오지 못했습니다.");
+      if (!response.ok) throw new Error(body.error?.message ?? t("assist.matchFail"));
       onMatch(body);
       setModal(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "경기를 불러오지 못했습니다.");
+      setError(cause instanceof Error ? cause.message : t("assist.matchFail"));
     } finally {
       setLoading(false);
     }
@@ -72,10 +78,10 @@ export function TrialAssist({
     try {
       const response = await fetch(`/api/riot/matches?puuid=${encodeURIComponent(puuid)}`);
       const body = await response.json() as { matches?: MatchPayload[]; error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "최근 경기를 불러오지 못했습니다.");
+      if (!response.ok) throw new Error(body.error?.message ?? t("assist.recentFail"));
       setMatches(body.matches ?? []);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "최근 경기를 불러오지 못했습니다.");
+      setError(cause instanceof Error ? cause.message : t("assist.recentFail"));
     } finally {
       setLoading(false);
     }
@@ -85,18 +91,18 @@ export function TrialAssist({
     setLoading(true);
     setError("");
     try {
-      const image = await toBase64(file);
+      const image = await toBase64(file, () => t("assist.imageFail"));
       const response = await fetch("/api/riot/vision", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ image, mimeType: file.type }),
       });
       const body = await response.json() as { players?: VisionPlayer[]; error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "이미지를 분석하지 못했습니다.");
+      if (!response.ok) throw new Error(body.error?.message ?? t("assist.visionFail"));
       onVision(body.players ?? []);
       setModal(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "이미지를 분석하지 못했습니다.");
+      setError(cause instanceof Error ? cause.message : t("assist.visionFail"));
     } finally {
       setLoading(false);
     }
@@ -106,14 +112,17 @@ export function TrialAssist({
     <>
       <div className="tg-panel tg-row tg-row--between">
         <div>
-          <strong>입력 보조</strong>
-          <p className="tg-muted">손으로 넣기보다 경기 ID·최근 경기·점수판 이미지를 먼저 쓰세요.</p>
+          <strong className="tg-row" style={{ gap: 8 }}>
+            {t("assist.title")}
+            {demoMode && <DemoDataBadge />}
+          </strong>
+          <p className="tg-muted">{t("assist.hint")}</p>
         </div>
         <div className="tg-row">
-          <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("match")}>경기 ID</button>
-          <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("recent")}>최근 경기</button>
+          <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("match")}>{t("assist.matchId")}</button>
+          <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("recent")}>{t("assist.recent")}</button>
           <button className="tg-button tg-button--primary" type="button" onClick={() => setModal("vision")}>
-            점수판 이미지<span className="tg-beta">beta</span>
+            {t("assist.vision")}<span className="tg-beta">beta</span>
           </button>
         </div>
       </div>
@@ -122,15 +131,15 @@ export function TrialAssist({
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
             <div className="tg-row tg-row--between">
               <h2>
-                {modal === "match" ? "경기 ID 불러오기" : modal === "recent" ? "최근 경기 선택" : "점수판 이미지 분석"}
+                {modal === "match" ? t("assist.matchTitle") : modal === "recent" ? t("assist.recentTitle") : t("assist.visionTitle")}
                 {modal === "vision" && <span className="tg-beta">beta</span>}
               </h2>
-              <button className="tg-button" type="button" onClick={() => setModal(null)}>닫기</button>
+              <button className="tg-button" type="button" onClick={() => setModal(null)}>{t("common.close")}</button>
             </div>
             {modal === "match" && (
               <div className="tg-row">
-                <input className="tg-input" style={{ flex: 1 }} value={matchId} onChange={(event) => setMatchId(event.target.value)} placeholder="KR_1234567890" />
-                <button className="tg-button tg-button--primary" disabled={!matchId.trim() || loading} onClick={() => void fetchMatch(matchId)}>불러오기</button>
+                <input className="tg-input" style={{ flex: 1 }} value={matchId} onChange={(event) => setMatchId(event.target.value)} placeholder="KR_1234567890 / DEMO_KR_0001" />
+                <button className="tg-button tg-button--primary" disabled={!matchId.trim() || loading} onClick={() => void fetchMatch(matchId)}>{t("assist.load")}</button>
               </div>
             )}
             {modal === "recent" && (
@@ -139,12 +148,13 @@ export function TrialAssist({
                   <select className="tg-select" style={{ flex: 1 }} value={puuid} onChange={(event) => setPuuid(event.target.value)}>
                     {session.participants.map((participant) => <option value={participant.puuid} key={participant.puuid}>{participant.riotId}</option>)}
                   </select>
-                  <button className="tg-button tg-button--primary" onClick={() => void fetchRecent()} disabled={!puuid || loading}>목록 조회</button>
+                  <button className="tg-button tg-button--primary" onClick={() => void fetchRecent()} disabled={!puuid || loading}>{t("assist.list")}</button>
                 </div>
                 <div className="tg-grid">
                   {matches.map((match) => (
                     <button className="tg-button" type="button" key={match.metadata.matchId} onClick={() => { onMatch(match); setModal(null); }}>
-                      {match.metadata.matchId} · {new Date(match.info.gameCreation).toLocaleString("ko-KR")}
+                      {match.metadata.matchId.startsWith("DEMO_") && <DemoDataBadge />}{" "}
+                      {match.metadata.matchId} · {new Date(match.info.gameCreation).toLocaleString(locale === "en" ? "en-US" : "ko-KR")}
                     </button>
                   ))}
                 </div>
@@ -152,15 +162,15 @@ export function TrialAssist({
             )}
             {modal === "vision" && (
               <label className="tg-field">
-                <span>LoL 점수판 이미지 <span className="tg-beta">beta</span></span>
-                <span className="tg-muted">인식이 틀릴 수 있어요. 분석 후 수동 매칭으로 고칠 수 있습니다.</span>
+                <span>{t("assist.visionLabel")} <span className="tg-beta">beta</span></span>
+                <span className="tg-muted">{t("assist.visionHint")}</span>
                 <input type="file" accept="image/*" disabled={loading} onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (file) void analyzeImage(file);
                 }} />
               </label>
             )}
-            {loading && <p aria-busy>불러오는 중…</p>}
+            {loading && <p aria-busy>{t("assist.loading")}</p>}
             {error && <div className="tg-notice tg-notice--error">{error}</div>}
           </section>
         </div>
@@ -169,11 +179,11 @@ export function TrialAssist({
   );
 }
 
-function toBase64(file: File): Promise<string> {
+function toBase64(file: File, failMessage: () => string): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-    reader.onerror = () => reject(new Error("이미지를 읽지 못했습니다."));
+    reader.onerror = () => reject(new Error(failMessage()));
     reader.readAsDataURL(file);
   });
 }

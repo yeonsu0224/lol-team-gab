@@ -6,10 +6,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { AssistantSidebar } from "@/components/assistant/AssistantSidebar";
+import { DemoDataBadge } from "@/components/demo/DemoDataBadge";
+import { DemoPlayerChips } from "@/components/demo/DemoPlayerChips";
 import { ActionBar } from "@/components/layout/ActionBar";
 import { StepNav } from "@/components/layout/StepNav";
 import { AnalysisTransition } from "@/components/motion/AnalysisTransition";
 import { ReasonPanel } from "@/components/shared/ReasonPanel";
+import { isDemoPuuidClient } from "@/lib/demo/useDemoStatus";
+import { useT } from "@/lib/i18n/context";
+import type { MessageKey } from "@/lib/i18n/messages/ko";
+import { useTierLabel } from "@/lib/i18n/useTierLabel";
 import {
   buildTeamProposal,
   proposalFromTeams,
@@ -42,7 +48,7 @@ import type {
   TeamProposal,
   TeamSide,
 } from "@/lib/types";
-import { PlayerCard, displayGameName, roleLabel } from "./PlayerCard";
+import { PlayerCard, displayGameName } from "./PlayerCard";
 import { TrialAssist, type MatchPayload } from "./TrialAssist";
 
 type View = "players" | "team" | "trial" | "rebalance";
@@ -61,6 +67,7 @@ interface TrialForm {
 }
 
 export function SessionWorkspace({ sessionId, view }: { sessionId: string; view: View }) {
+  const t = useT();
   const { sessions, error, hydrated, update } = useSessions();
   const session = sessions.find(({ id }) => id === sessionId);
   const [bootstrap, setBootstrap] = useState<DataDragonBootstrap | null>(null);
@@ -70,8 +77,15 @@ export function SessionWorkspace({ sessionId, view }: { sessionId: string; view:
   }, []);
 
   if (error) return <main className="tg-page"><div className="tg-notice tg-notice--error">{error}</div></main>;
-  if (!hydrated) return <main className="tg-page"><p aria-busy>세션을 불러오는 중입니다…</p></main>;
-  if (!session) return <main className="tg-page tg-panel"><h1>세션을 찾을 수 없습니다</h1><Link className="tg-button" href="/dashboard">대시보드로</Link></main>;
+  if (!hydrated) return <main className="tg-page"><p aria-busy>{t("session.loading")}</p></main>;
+  if (!session) {
+    return (
+      <main className="tg-page tg-panel">
+        <h1>{t("session.notFound")}</h1>
+        <Link className="tg-button" href="/dashboard">{t("session.toDashboard")}</Link>
+      </main>
+    );
+  }
 
   const save = (
     patch: Partial<Omit<Session, "id" | "createdAt">> | ((current: Session) => Session),
@@ -104,6 +118,7 @@ function PlayersView({
   bootstrap: DataDragonBootstrap | null;
   save: (patch: Partial<Omit<Session, "id" | "createdAt">>) => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [remoteAccounts, setRemoteAccounts] = useState<AccountResult[]>([]);
@@ -164,7 +179,7 @@ function PlayersView({
 
   async function add(account: AccountResult, manualTier?: { tier: string; rank: string; lp: number }) {
     if (session.participants.some(({ puuid }) => puuid === account.puuid)) {
-      setError("이미 등록된 플레이어입니다.");
+      setError(t("players.alreadyAdded"));
       return;
     }
     if (session.participants.length >= 10) return;
@@ -177,7 +192,7 @@ function PlayersView({
       rememberPlayer(participant);
       setQuery("");
       setRemoteAccounts([]);
-      setMessage(`${participant.riotId} 등록 완료`);
+      setMessage(t("players.added", { riotId: participant.riotId }));
     } catch (cause) {
       if (cause instanceof ClientApiError && cause.code === "MANUAL_TIER_REQUIRED") {
         setManual({ account, tier: "SILVER", rank: "IV", lp: 0 });
@@ -222,7 +237,7 @@ function PlayersView({
   }, [router, session.id]);
 
   if (transition) {
-    return <AnalysisTransition messages={["전력을 비교하는 중", "역할 조합을 확인하는 중", "팀 제안 완성"]} onComplete={finishTransition} />;
+    return <AnalysisTransition messages={[t("players.analyzing1"), t("players.analyzing2"), t("players.analyzing3")]} onComplete={finishTransition} />;
   }
 
   return (
@@ -230,28 +245,32 @@ function PlayersView({
       <div className="tg-panel tg-stack">
         <div className="tg-row tg-row--between">
           <div>
-            <h1>참가자 등록 · 전력 분석</h1>
-            <p className="tg-muted">{session.participants.length}/10명 · 8명 또는 10명에서 팀 제안 가능</p>
+            <h1 className="tg-row" style={{ gap: 8 }}>
+              {t("players.title")}
+              <DemoDataBadge />
+            </h1>
+            <p className="tg-muted">{t("players.count", { count: session.participants.length })}</p>
           </div>
-          <button className="tg-button" type="button" onClick={() => setRecentOpen(true)}>이전 플레이어</button>
+          <button className="tg-button" type="button" onClick={() => setRecentOpen(true)}>{t("players.recent")}</button>
         </div>
-        <p className="tg-muted">부캐라면 본캐 계정을 입력하세요. 태그가 없으면 #KR1로 원격 검색을 시도합니다.</p>
+        <p className="tg-muted">{t("players.hint")}</p>
         <div className="tg-row">
           <input
             className="tg-input"
             style={{ flex: 1 }}
             value={query}
             onChange={(event) => { setQuery(event.target.value); setError(""); setTagHint(false); }}
-            placeholder="게임명 또는 게임명#태그"
-            aria-label="Riot ID 검색"
+            placeholder={t("players.placeholder")}
+            aria-label={t("players.searchAria")}
           />
-          <span>{loading ? "검색 중…" : ""}</span>
+          <span>{loading ? t("dashboard.searching") : ""}</span>
         </div>
+        <DemoPlayerChips onSelect={(riotId) => { setQuery(riotId); setError(""); setTagHint(false); }} />
         {tagHint && (
-          <p className="tg-muted">플레이어 태그가 #KR1이 아닐 경우 자동검색이 작동하지 않을 수 있습니다. 본 플레이어의 정확한 태그를 확인 해 주세요.</p>
+          <p className="tg-muted">{t("players.tagHint")}</p>
         )}
         {!query.includes("#") && query.trim() && !accounts.length && !tagHint && !loading && (
-          <p className="tg-muted">이전 등록 후보가 없습니다. 태그를 포함해 검색해 보세요.</p>
+          <p className="tg-muted">{t("players.noRecent")}</p>
         )}
         {accounts.length > 0 && (
           <div className="tg-grid">
@@ -260,7 +279,7 @@ function PlayersView({
                 key={account.puuid}
                 account={account}
                 bootstrap={bootstrap}
-                actionLabel="등록"
+                actionLabel={t("players.register")}
                 onSelect={() => void add(account)}
               />
             ))}
@@ -281,46 +300,46 @@ function PlayersView({
           />
         ))}
       </div>
-      <ReasonPanel reasons={["랭크 LP를 70%로 가장 크게 반영합니다.", "주 라인 KDA 20%와 최근 승률 10%를 보조로 사용합니다.", "총무 내부 평가는 티어·전적에 잡히지 않는 센스를 -10~+10%p 범위에서 보정합니다.", "기록이 부족한 값은 0점으로 처리하지 않고 중립값으로 보완합니다."]} />
+      <ReasonPanel reasons={[t("players.reason1"), t("players.reason2"), t("players.reason3"), t("players.reason4")]} />
       <ActionBar>
         <button className={`tg-button ${ready ? "tg-button--ready" : ""}`} type="button" disabled={!ready} onClick={propose}>
-          {ready ? "팀 제안하기" : `${session.participants.length}/8명 이상 필요`}
+          {ready ? t("players.propose") : t("players.needMore", { count: session.participants.length })}
         </button>
       </ActionBar>
       {recentOpen && (
         <div className="tg-modal-backdrop" role="presentation" onMouseDown={() => setRecentOpen(false)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
-            <div className="tg-row tg-row--between"><h2>이전 플레이어</h2><button className="tg-button" onClick={() => setRecentOpen(false)}>닫기</button></div>
+            <div className="tg-row tg-row--between"><h2>{t("players.recent")}</h2><button className="tg-button" onClick={() => setRecentOpen(false)}>{t("players.close")}</button></div>
             {recent.length ? recent.map((item) => (
               <div className="tg-row tg-row--between" key={item.puuid}>
-                <button className="tg-button" onClick={() => void add(item)}>{item.riotId} 재등록</button>
-                <button className="tg-button" onClick={() => removeRecentPlayer(item.puuid)}>기록 삭제</button>
+                <button className="tg-button" onClick={() => void add(item)}>{item.riotId} {t("players.reregister")}</button>
+                <button className="tg-button" onClick={() => removeRecentPlayer(item.puuid)}>{t("players.removeRecent")}</button>
               </div>
-            )) : <p className="tg-muted">이전에 등록한 플레이어가 없습니다.</p>}
+            )) : <p className="tg-muted">{t("players.noRecentList")}</p>}
           </section>
         </div>
       )}
       {manual && (
         <div className="tg-modal-backdrop" onMouseDown={() => setManual(null)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
-            <h2>수동 티어 입력</h2>
-            <p className="tg-muted">{manual.account.gameName}#{manual.account.tagLine}은 현재 랭크 기록이 없습니다.</p>
+            <h2>{t("manual.title")}</h2>
+            <p className="tg-muted">{t("manual.body", { riotId: `${manual.account.gameName}#${manual.account.tagLine}` })}</p>
             <div className="tg-grid tg-grid--2">
-              <label className="tg-field"><span>티어</span><select className="tg-select" value={manual.tier} onChange={(event) => setManual({ ...manual, tier: event.target.value })}>
+              <label className="tg-field"><span>{t("manual.tier")}</span><select className="tg-select" value={manual.tier} onChange={(event) => setManual({ ...manual, tier: event.target.value })}>
                 {["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND"].map((tier) => <option key={tier}>{tier}</option>)}
               </select></label>
-              <label className="tg-field"><span>구간</span><select className="tg-select" value={manual.rank} onChange={(event) => setManual({ ...manual, rank: event.target.value })}>
+              <label className="tg-field"><span>{t("manual.rank")}</span><select className="tg-select" value={manual.rank} onChange={(event) => setManual({ ...manual, rank: event.target.value })}>
                 {["IV", "III", "II", "I"].map((rank) => <option key={rank}>{rank}</option>)}
               </select></label>
-              <label className="tg-field"><span>LP</span><input className="tg-input" type="number" min={0} max={99} value={manual.lp} onChange={(event) => setManual({ ...manual, lp: Number(event.target.value) })} /></label>
+              <label className="tg-field"><span>{t("manual.lp")}</span><input className="tg-input" type="number" min={0} max={99} value={manual.lp} onChange={(event) => setManual({ ...manual, lp: Number(event.target.value) })} /></label>
             </div>
             <div className="tg-row">
-              <button className="tg-button" type="button" onClick={() => setManual(null)}>취소</button>
+              <button className="tg-button" type="button" onClick={() => setManual(null)}>{t("common.cancel")}</button>
               <button className="tg-button tg-button--primary" type="button" onClick={() => {
                 const value = manual;
                 setManual(null);
                 void add(value.account, value);
-              }}>이 티어로 등록</button>
+              }}>{t("manual.submit")}</button>
             </div>
           </section>
         </div>
@@ -338,6 +357,7 @@ function TeamView({
   bootstrap: DataDragonBootstrap | null;
   save: (patch: Partial<Omit<Session, "id" | "createdAt">>) => void;
 }) {
+  const t = useT();
   const proposal = session.preTeamProposal;
   const [selected, setSelected] = useState<{ puuid: string; side: TeamSide } | null>(null);
   const [editSide, setEditSide] = useState<TeamSide | null>(null);
@@ -345,7 +365,7 @@ function TeamView({
   const [accounts, setAccounts] = useState<AccountResult[]>([]);
   const [editError, setEditError] = useState("");
   const [editLoading, setEditLoading] = useState(false);
-  if (!proposal) return <Missing title="팀 제안" href={`/session/${session.id}/players`} />;
+  if (!proposal) return <Missing title={t("team.title")} href={`/session/${session.id}/players`} />;
 
   function select(participant: Participant, side: TeamSide) {
     const currentProposal = session.preTeamProposal;
@@ -400,11 +420,11 @@ function TeamView({
   async function addMember(account: AccountResult) {
     if (!editSide) return;
     if (session.participants.length >= 10) {
-      setEditError("참가자는 최대 10명입니다.");
+      setEditError(t("team.maxPlayers"));
       return;
     }
     if (session.participants.some(({ puuid }) => puuid === account.puuid)) {
-      setEditError("이미 참가 중인 플레이어입니다.");
+      setEditError(t("session.alreadyIn"));
       return;
     }
     setEditLoading(true);
@@ -432,8 +452,8 @@ function TeamView({
   return (
     <section className="tg-stack">
       <header className="tg-panel">
-        <h1>1판 팀 제안</h1>
-        <p className="tg-muted">카드 두 장을 차례로 선택하면 팀을 교체합니다.</p>
+        <h1>{t("team.title")}</h1>
+        <p className="tg-muted">{t("team.hint")}</p>
         <PowerRatio proposal={proposal} />
       </header>
       <div className="tg-versus">
@@ -442,27 +462,28 @@ function TeamView({
         <TeamBoard side="red" proposal={proposal} bootstrap={bootstrap} selected={selected?.puuid} onSelect={select} onRemove={removeMember} onAdd={() => setEditSide("red")} />
       </div>
       <section className="tg-panel">
-        <div><strong>밸런스 근거</strong><p className="tg-muted">평균 티어 차이 {proposal.tierDiffDivisions}구간 · 전력 비율과 역할 분포를 함께 봤습니다.</p></div>
+        <div><strong>{t("team.balance")}</strong><p className="tg-muted">{t("team.balanceMeta", { diff: proposal.tierDiffDivisions })}</p></div>
       </section>
-      <ReasonPanel reasons={["서로 비슷한 전력의 라이벌을 반대 팀에 배치합니다.", "내부 1~5/OP 뱃지는 설명용이며 팀 배정 점수를 바꾸지 않습니다.", "수동 교체 후 전력 비율과 평균 티어를 다시 계산합니다."]} />
+      <ReasonPanel reasons={[t("team.reason1"), t("team.reason2"), t("team.reason3")]} />
       <ActionBar>
-        <Link className="tg-button" href={`/session/${session.id}/finish`}>내전 종료하기</Link>
-        <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>이 구성으로 시험 판</Link>
+        <Link className="tg-button" href={`/session/${session.id}/finish`}>{t("team.finish")}</Link>
+        <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>{t("team.trial")}</Link>
       </ActionBar>
       {editSide && (
         <div className="tg-modal-backdrop" onMouseDown={() => setEditSide(null)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
-            <div className="tg-row tg-row--between"><h2>{editSide === "blue" ? "블루팀" : "레드팀"} 선수 추가</h2><button className="tg-button" onClick={() => setEditSide(null)}>닫기</button></div>
+            <div className="tg-row tg-row--between"><h2>{t("team.addMember", { side: editSide === "blue" ? t("team.blue") : t("team.red") })}</h2><button className="tg-button" onClick={() => setEditSide(null)}>{t("common.close")}</button></div>
             <div className="tg-row">
-              <input className="tg-input" style={{ flex: 1 }} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="게임명#태그" />
-              <button className="tg-button tg-button--primary" disabled={!query.includes("#") || editLoading} onClick={() => void searchMember()}>검색</button>
+              <input className="tg-input" style={{ flex: 1 }} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("players.placeholder")} />
+              <button className="tg-button tg-button--primary" disabled={!query.includes("#") || editLoading} onClick={() => void searchMember()}>{t("common.search")}</button>
             </div>
+            <DemoPlayerChips onSelect={(riotId) => { setQuery(riotId); }} />
             {accounts.map((account) => (
               <SearchAccountCandidate
                 key={account.puuid}
                 account={account}
                 bootstrap={bootstrap}
-                actionLabel="추가"
+                actionLabel={t("team.add")}
                 onSelect={() => void addMember(account)}
               />
             ))}
@@ -492,6 +513,7 @@ function TrialView({
   const [champPickerFor, setChampPickerFor] = useState<string | null>(null);
   const [championQuery, setChampionQuery] = useState("");
   const [visionMap, setVisionMap] = useState<Array<{ riotId?: string; role?: string; kda?: string; damage?: number; championName?: string }> | null>(null);
+  const t = useT();
   const proposal = proposalForRound(session, round);
   const form = forms[round];
   const champions = bootstrap
@@ -510,9 +532,9 @@ function TrialView({
   }, [router, round, session.id]);
 
   if (transition) {
-    return <AnalysisTransition messages={["시험 판 기록을 정리하는 중", "기대치와 성과를 비교하는 중", "재밸런스 제안 완성"]} onComplete={finishTransition} />;
+    return <AnalysisTransition messages={[t("trial.analyzing1"), t("trial.analyzing2"), t("trial.analyzing3")]} onComplete={finishTransition} />;
   }
-  if (!proposal) return <Missing title="시험 판 결과" href={`/session/${session.id}/team`} />;
+  if (!proposal) return <Missing title={t("trial.missing")} href={`/session/${session.id}/team`} />;
 
   function patchForm(patch: Partial<TrialForm>) {
     setForms((current) => ({ ...current, [round]: { ...current[round], ...patch } }));
@@ -542,14 +564,14 @@ function TrialView({
       },
     ]));
     patchForm({ winnerTeam: round % 2 ? "blue" : "red", stats });
-    setMessage(`${round}판 가상 데이터를 채웠습니다. 저장 전에 확인해 주세요.`);
+    setMessage(t("trial.dummyFilled", { round }));
   }
 
   function applyMatch(match: MatchPayload) {
     const known = new Set(session.participants.map(({ puuid }) => puuid));
     const rows = match.info.participants.filter(({ puuid }) => known.has(puuid));
     if (!rows.length) {
-      setMessage("세션 참가자와 일치하는 선수가 없습니다.");
+      setMessage(t("trial.noMatchPlayers"));
       return;
     }
     const stats = { ...form.stats };
@@ -570,7 +592,7 @@ function TrialView({
       winnerTeam: winner?.teamId === 200 ? "red" : "blue",
       stats,
     });
-    setMessage(`${rows.length}명의 경기 기록을 채웠습니다. 저장 전에 확인해 주세요.`);
+    setMessage(t("trial.matchFilled", { count: rows.length }));
   }
 
   function applyVision(players: Array<{ riotId?: string; role?: string; kda?: string; damage?: number; championName?: string }>) {
@@ -580,7 +602,7 @@ function TrialView({
     });
     if (unmatched.length) {
       setVisionMap(players);
-      setMessage("일부 플레이어를 자동 매칭하지 못했습니다. 수동으로 연결해 주세요.");
+      setMessage(t("trial.visionPartial"));
       return;
     }
     const stats = { ...form.stats };
@@ -602,7 +624,7 @@ function TrialView({
       };
     });
     patchForm({ stats });
-    setMessage(`${players.length}명의 이미지 분석 결과를 채웠습니다.`);
+    setMessage(t("trial.visionFilled", { count: players.length }));
   }
 
   function bindVisionRow(index: number, puuid: string) {
@@ -627,7 +649,7 @@ function TrialView({
       .filter((draft): draft is TrialDraft => draft !== null);
     const next = replayTrialRounds(session, drafts);
     if (next.rounds.length < round) {
-      setMessage("이전 판부터 순서대로 저장해 주세요.");
+      setMessage(t("trial.saveOrder"));
       return;
     }
     save(next);
@@ -638,11 +660,11 @@ function TrialView({
     <section className="tg-stack">
       <div className="tg-panel tg-stack">
         <header className="tg-row tg-row--between">
-          <div><h1>시험 판 결과 입력</h1><p className="tg-muted">양 팀 모두 입력 스캔을 위해 좌측 정렬합니다.</p></div>
+          <div><h1>{t("trial.title")}</h1><p className="tg-muted">{t("trial.hint")}</p></div>
           <div className="tg-row">
             {([1, 2, 3] as const).map((item) => (
               <button className={`tg-button ${round === item ? "tg-button--primary" : ""}`} type="button" key={item} onClick={() => setRound(item)}>
-                {item}판 {session.rounds.some((record) => record.round === item) ? "✓" : ""}
+                {t("trial.roundTab", { round: item })} {session.rounds.some((record) => record.round === item) ? "✓" : ""}
               </button>
             ))}
           </div>
@@ -655,10 +677,10 @@ function TrialView({
               key={side}
               onClick={() => patchForm({ winnerTeam: side })}
             >
-              {side === "blue" ? "블루팀 승리" : "레드팀 승리"}
+              {side === "blue" ? t("trial.blueWin") : t("trial.redWin")}
             </button>
           ))}
-          <button className="tg-button" type="button" onClick={fillDummy}>가상 데이터 채우기</button>
+          <button className="tg-button" type="button" onClick={fillDummy}>{t("trial.fillDummy")}</button>
         </div>
       </div>
       <TrialAssist
@@ -681,7 +703,7 @@ function TrialView({
           );
           return (
             <section className={`tg-team-board is-${side}`} style={{ textAlign: "left" }} key={side}>
-              <h2>{side === "blue" ? "블루팀" : "레드팀"}</h2>
+              <h2>{side === "blue" ? t("team.blue") : t("team.red")}</h2>
               {team.map((participant) => {
                 const stat = form.stats[participant.puuid];
                 const avatar = bootstrap ? profileIconUrl(bootstrap.version, participant.profileIconId) : undefined;
@@ -695,29 +717,29 @@ function TrialView({
                       <strong>{displayGameName(participant.riotId)}</strong>
                     </span>
                     <input className="tg-input" aria-label={`${participant.riotId} KDA`} value={stat?.kda ?? ""} placeholder="12/4/9" onChange={(event) => patchStat(participant.puuid, { kda: event.target.value })} />
-                    <input className="tg-input" aria-label={`${participant.riotId} 피해량`} value={stat?.damage ?? ""} placeholder="20,170" onChange={(event) => patchStat(participant.puuid, { damage: event.target.value })} />
+                    <input className="tg-input" aria-label={`${participant.riotId} ${t("trial.damageAria")}`} value={stat?.damage ?? ""} placeholder="20,170" onChange={(event) => patchStat(participant.puuid, { damage: event.target.value })} />
                     <button className="tg-button" type="button" onClick={() => {
                       setChampionQuery("");
                       setChampPickerFor(participant.puuid);
                     }}>
                       {champ && bootstrap
                         ? <Image src={championIconUrl(bootstrap.version, champ.image.full)} alt={champ.name} width={28} height={28} unoptimized />
-                        : "챔피언"}
+                        : t("trial.champion")}
                     </button>
                     <select
                       className="tg-select"
-                      aria-label={`${participant.riotId} 플레이 라인`}
+                      aria-label={`${participant.riotId} ${t("trial.roleAria")}`}
                       value={stat?.playedRole ?? ""}
                       onChange={(event) => patchStat(participant.puuid, { playedRole: event.target.value as MainRole | "" })}
                     >
-                      <option value="">라인</option>
+                      <option value="">{t("trial.roleEmpty")}</option>
                       {(["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"] as const).map((role) => (
                         <option
                           key={role}
                           value={role}
                           disabled={takenRoles.has(role) && stat?.playedRole !== role}
                         >
-                          {roleLabel(role)}
+                          {t(`role.${role}` as MessageKey)}
                         </option>
                       ))}
                     </select>
@@ -729,23 +751,23 @@ function TrialView({
         })}
       </div>
       {message && <div className="tg-notice">{message}</div>}
-      <ReasonPanel title={`${round}판 평가 근거`} reasons={["직전 누적 LP 90%에 이번 판 성과 10%를 반영합니다.", "KDA와 챔피언 피해량이 모두 있을 때 개인 성과 등급을 계산합니다.", "이전 기록이 부족한 참가자는 기대 이상·이하 판정을 생략합니다."]} />
+      <ReasonPanel title={t("trial.reasonTitle", { round })} reasons={[t("trial.reason1"), t("trial.reason2"), t("trial.reason3")]} />
       <ActionBar>
-        <Link className="tg-button" href={`/session/${session.id}/finish`}>내전 종료하기</Link>
-        <button className="tg-button tg-button--primary" type="button" onClick={saveRound}>{round}판 저장 · 재밸런스 보기</button>
+        <Link className="tg-button" href={`/session/${session.id}/finish`}>{t("team.finish")}</Link>
+        <button className="tg-button tg-button--primary" type="button" onClick={saveRound}>{t("trial.saveRebalance", { round })}</button>
       </ActionBar>
       {champPickerFor && bootstrap && (
         <div className="tg-modal-backdrop" onMouseDown={() => setChampPickerFor(null)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
-            <div className="tg-row tg-row--between"><h2>챔피언 선택</h2><button className="tg-button" type="button" onClick={() => setChampPickerFor(null)}>닫기</button></div>
+            <div className="tg-row tg-row--between"><h2>{t("trial.champion")}</h2><button className="tg-button" type="button" onClick={() => setChampPickerFor(null)}>{t("common.close")}</button></div>
             <input
               className="tg-input"
               type="search"
               autoFocus
               value={championQuery}
               onChange={(event) => setChampionQuery(event.target.value)}
-              placeholder="챔피언 이름 검색"
-              aria-label="챔피언 검색"
+              placeholder={t("trial.championSearch")}
+              aria-label={t("trial.championSearch")}
             />
             <div className="tg-champion-picker">
               {visibleChampions.map((champion) => (
@@ -762,7 +784,7 @@ function TrialView({
                   <span>{champion.name}</span>
                 </button>
               ))}
-              {!visibleChampions.length && <p className="tg-champion-picker__empty">검색 결과가 없습니다.</p>}
+              {!visibleChampions.length && <p className="tg-champion-picker__empty">{t("trial.noChampions")}</p>}
             </div>
           </section>
         </div>
@@ -770,12 +792,12 @@ function TrialView({
       {visionMap && (
         <div className="tg-modal-backdrop" onMouseDown={() => setVisionMap(null)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
-            <div className="tg-row tg-row--between"><h2>점수판 수동 매칭</h2><button className="tg-button" type="button" onClick={() => setVisionMap(null)}>닫기</button></div>
+            <div className="tg-row tg-row--between"><h2>{t("trial.visionMatchTitle")}</h2><button className="tg-button" type="button" onClick={() => setVisionMap(null)}>{t("common.close")}</button></div>
             {visionMap.map((row, index) => (
               <div className="tg-row tg-row--between" key={`${row.riotId}-${index}`}>
-                <span>{row.riotId || row.championName || `감지 ${index + 1}`} · {row.kda} · {row.damage}</span>
+                <span>{row.riotId || row.championName || t("trial.visionDetected", { index: index + 1 })} · {row.kda} · {row.damage}</span>
                 <select className="tg-select" defaultValue="" onChange={(event) => { if (event.target.value) bindVisionRow(index, event.target.value); }}>
-                  <option value="">참가자 연결</option>
+                  <option value="">{t("trial.visionBind")}</option>
                   {session.participants.map((participant) => (
                     <option value={participant.puuid} key={participant.puuid}>{displayGameName(participant.riotId)}</option>
                   ))}
@@ -799,11 +821,12 @@ function RebalanceView({
   save: (patch: Partial<Omit<Session, "id" | "createdAt">>) => void;
 }) {
   const params = useSearchParams();
+  const t = useT();
   const target = Math.max(2, Math.min(4, Number(params.get("round")) || session.rounds.length + 1)) as 2 | 3 | 4;
   const record = session.rounds.find(({ nextTeamProposal }) => nextTeamProposal.targetRound === target);
   const proposal = record?.nextTeamProposal ?? session.rounds.at(-1)?.nextTeamProposal;
   const [selected, setSelected] = useState<{ puuid: string; side: TeamSide } | null>(null);
-  if (!proposal) return <Missing title="재밸런스" href={`/session/${session.id}/trial`} />;
+  if (!proposal) return <Missing title={t("rebalance.missing")} href={`/session/${session.id}/trial`} />;
   const activeProposal = proposal;
   const previous = target === 2
     ? session.preTeamProposal
@@ -822,8 +845,8 @@ function RebalanceView({
   const changedCount = changed.size;
   const tradeLabelByPuuid = new Map<string, string>();
   for (const change of trades) {
-    tradeLabelByPuuid.set(change.inPuuid, change.toTeam === "blue" ? "블루로 이동" : "레드로 이동");
-    tradeLabelByPuuid.set(change.outPuuid, change.toTeam === "blue" ? "레드로 이동" : "블루로 이동");
+    tradeLabelByPuuid.set(change.inPuuid, change.toTeam === "blue" ? t("rebalance.moveBlue") : t("rebalance.moveRed"));
+    tradeLabelByPuuid.set(change.outPuuid, change.toTeam === "blue" ? t("rebalance.moveRed") : t("rebalance.moveBlue"));
   }
 
   function select(participant: Participant, side: TeamSide) {
@@ -873,15 +896,15 @@ function RebalanceView({
     <section className="tg-stack">
       <header className="tg-panel">
         <div className="tg-row tg-row--between">
-          <h1>{target}판 재밸런스 제안</h1>
+          <h1>{t("rebalance.title", { round: target })}</h1>
           <button className="tg-button" type="button" onClick={retryWithPreviousTeam} disabled={!previous}>
-            이전 팀으로 재도전하기
+            {t("rebalance.retry")}
           </button>
         </div>
         <p className={` ${changedCount ? "is-trade" : "is-gold"}`}>
           {changedCount
-            ? `팀원 ${changedCount/2}명을 교체했습니다.`
-            : "황금밸런스의 판입니다. 팀원 변경은 불필요!"}
+            ? t("rebalance.traded", { count: changedCount / 2 })
+            : t("rebalance.golden")}
         </p>
         <PowerRatio proposal={proposal} />
       </header>
@@ -909,7 +932,7 @@ function RebalanceView({
         />
       </div>
       <section className="tg-panel tg-stack">
-        <h2>교체된 팀원</h2>
+        <h2>{t("rebalance.tradesTitle")}</h2>
         {uniqueTrades.length ? (
           <ul className="tg-trade-list">
             {uniqueTrades.map((change) => {
@@ -925,23 +948,23 @@ function RebalanceView({
                     </svg>
                   </span>
                   <TradePlayer participant={incoming} bootstrap={bootstrap} />
-                  <span className="tg-chip is-gold">{change.toTeam === "blue" ? "블루 ↔ 레드" : "레드 ↔ 블루"}</span>
+                  <span className="tg-chip is-gold">{change.toTeam === "blue" ? t("rebalance.swapBlueRed") : t("rebalance.swapRedBlue")}</span>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className="tg-muted">이번 재밸런스에서는 팀원을 바꾸지 않았습니다. 황금밸런스를 유지합니다.</p>
+          <p className="tg-muted">{t("rebalance.noTrades")}</p>
         )}
       </section>
-      <ReasonPanel reasons={["직전 판 결과를 누적 전력에 반영해 다시 팀을 나눴습니다.", "트레이드 칩·강조 카드는 직전 구성에서 팀이 바뀐 참가자입니다.", "총무가 필요하면 팀 제안 화면과 같은 방식으로 수동 조정할 수 있습니다."]} />
+      <ReasonPanel reasons={[t("rebalance.reason1"), t("rebalance.reason2"), t("rebalance.reason3")]} />
       <ActionBar>
-        <Link className="tg-button" href={`/session/${session.id}/finish`}>내전 종료하기</Link>
+        <Link className="tg-button" href={`/session/${session.id}/finish`}>{t("team.finish")}</Link>
         {target <= 3
-          ? <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>{target}판 결과 입력</Link>
-          : <Link className="tg-button tg-button--primary" href={`/session/${session.id}/finish`}>최종 결과 보기</Link>}
+          ? <Link className="tg-button tg-button--primary" href={`/session/${session.id}/trial`}>{t("rebalance.enterRound", { round: target })}</Link>
+          : <Link className="tg-button tg-button--primary" href={`/session/${session.id}/finish`}>{t("rebalance.finalResults")}</Link>}
       </ActionBar>
-      <span className="tg-sr-only">{previous ? "직전 팀 구성과 비교됨" : ""}</span>
+      <span className="tg-sr-only">{previous ? t("rebalance.compared") : ""}</span>
     </section>
   );
 }
@@ -969,17 +992,19 @@ function TeamBoard({
   onRemove?: (participant: Participant, side: TeamSide) => void;
   onAdd?: () => void;
 }) {
+  const t = useT();
+  const { formatTier } = useTierLabel();
   const team = side === "blue" ? proposal.blueTeam : proposal.redTeam;
   const average = side === "blue" ? proposal.blueAvgTier : proposal.redAvgTier;
-  const name = side === "blue" ? proposal.blueTeamName || "블루팀" : proposal.redTeamName || "레드팀";
+  const name = side === "blue" ? proposal.blueTeamName || t("team.blue") : proposal.redTeamName || t("team.red");
   return (
     <section className={`tg-team-board is-${side}`}>
       <header className="tg-team-board__header">
         <h2>
           <span>{name}</span>
-          <span className="tg-chip">평균 {average.label}</span>
+          <span className="tg-chip">{t("team.avg", { label: formatTier(average) })}</span>
         </h2>
-        {onAdd && <button className="tg-button" type="button" onClick={onAdd}>선수 추가</button>}
+        {onAdd && <button className="tg-button" type="button" onClick={onAdd}>{t("team.add")}</button>}
       </header>
       {team.map((participant) => (
         <PlayerCard
@@ -993,7 +1018,7 @@ function TeamBoard({
           onRemove={onRemove ? () => onRemove(participant, side) : undefined}
         />
       ))}
-      {selected && team.some(({ puuid }) => puuid === selected) && <span className="tg-chip is-gold">교체할 반대 팀 선수를 선택하세요</span>}
+      {selected && team.some(({ puuid }) => puuid === selected) && <span className="tg-chip is-gold">{t("team.pickOpposite")}</span>}
     </section>
   );
 }
@@ -1019,9 +1044,10 @@ function TradePlayer({
 }
 
 function PowerRatio({ proposal }: { proposal: TeamProposal }) {
+  const t = useT();
   return (
     <div className="tg-stack">
-      <div className="tg-row tg-row--between"><span>블루 {proposal.bluePowerPct}%</span><span>레드 {proposal.redPowerPct}%</span></div>
+      <div className="tg-row tg-row--between"><span>{t("team.blue")} {proposal.bluePowerPct}%</span><span>{t("team.red")} {proposal.redPowerPct}%</span></div>
       <div style={{ display: "flex", height: 12, overflow: "hidden", borderRadius: 999, background: "#111" }}>
         <span style={{ width: `${proposal.bluePowerPct}%`, background: "#2589ff" }} />
         <span style={{ width: `${proposal.redPowerPct}%`, background: "#ef4f67" }} />
@@ -1031,7 +1057,14 @@ function PowerRatio({ proposal }: { proposal: TeamProposal }) {
 }
 
 function Missing({ title, href }: { title: string; href: string }) {
-  return <section className="tg-panel tg-stack"><h1>{title}</h1><p className="tg-muted">이전 단계를 먼저 완료해 주세요.</p><Link className="tg-button" href={href}>이전 단계로</Link></section>;
+  const t = useT();
+  return (
+    <section className="tg-panel tg-stack">
+      <h1>{title}</h1>
+      <p className="tg-muted">{t("session.prevRequired")}</p>
+      <Link className="tg-button" href={href}>{t("session.prevStep")}</Link>
+    </section>
+  );
 }
 
 function proposalForRound(session: Session, round: RoundNumber): TeamProposal | undefined {
@@ -1116,7 +1149,7 @@ function uniqueCurrentChampions(champions: ChampionSummary[]) {
 
 function messageOf(cause: unknown) {
   if (cause instanceof ClientApiError || cause instanceof Error) return cause.message;
-  return "요청을 처리하지 못했습니다.";
+  return "Request failed";
 }
 
 function SearchAccountCandidate({
@@ -1130,6 +1163,8 @@ function SearchAccountCandidate({
   actionLabel: string;
   onSelect: () => void;
 }) {
+  const t = useT();
+  const { formatTier } = useTierLabel();
   const icon = bootstrap ? profileIconUrl(bootstrap.version, account.profileIconId) : undefined;
   return (
     <button className="tg-player-card" type="button" onClick={onSelect}>
@@ -1137,8 +1172,11 @@ function SearchAccountCandidate({
         ? <Image className="tg-player-card__avatar" src={icon} alt="" width={44} height={44} unoptimized />
         : <span className="tg-player-card__avatar" aria-hidden />}
       <span className="tg-player-card__identity">
-        <strong>{account.gameName}#{account.tagLine}</strong>
-        <span>{account.tier?.label ?? "언랭크 · 수동 티어 입력 필요"}</span>
+        <strong className="tg-row" style={{ gap: 6 }}>
+          {account.gameName}#{account.tagLine}
+          {isDemoPuuidClient(account.puuid) && <DemoDataBadge />}
+        </strong>
+        <span>{account.tier ? formatTier(account.tier) : t("players.unranked")}</span>
       </span>
       <span className="tg-chip is-gold">{actionLabel}</span>
     </button>

@@ -23,13 +23,23 @@ npm run self-check   # 도메인 로직 자체 검증
 
 ## 환경 변수
 
-서버 전용. `NEXT_PUBLIC_*`는 사용하지 않는다.
-
 | 변수 | 용도 |
 |------|------|
-| `RIOT_API_KEY` | Riot Games API |
+| `RIOT_API_KEY` | Riot Games API (프로덕션/로컬 라이브) |
+| `DEMO_MODE` | `true`면 데모 픽스처만 사용. 미설정 시 키 없으면 자동 데모 |
 | `DDRAGON_FALLBACK_VERSION` | Data Dragon `versions.json` 실패 시 fallback |
 | `GEMINI_API_KEY` | F-09 멀티모달 점수판 분석 + F-08 텍스트 요약 |
+| `NEXT_PUBLIC_DONATION_*` | 후원(토스) UI |
+
+공개 리뷰/키 만료 시: `DEMO_MODE=true`로 두고 검색창 아래 데모 플레이어를 사용한다.
+
+```bash
+npm run generate-demo   # 유효한 RIOT_API_KEY로 익명화 fixtures 재생성
+```
+
+심사 문구: [documents/riot-api-application.md](./documents/riot-api-application.md)
+
+공개 페이지: `/about` `/how-to` `/terms` `/privacy` `/support` `/riot`
 
 ## 스타일 규칙
 

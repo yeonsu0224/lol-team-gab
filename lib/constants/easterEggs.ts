@@ -14,14 +14,14 @@ export interface EasterEggTag {
  * 실제 값을 직접 추가하되 도메인 점수·팀 배정·AI payload에서는 import하지 않는다.
  */
 export const EASTER_EGG_TAGS: EasterEggTag[] = [
-  {
-    puuid: "",
-    riotId: "가슴이두근운동#6848",
-    label: "에겐남",
-    emoji: "✨",
-    effect: "sparkle",
-    note: "재미용 태그. 전력 분석과 무관합니다.",
-  },
+  // {
+  //   puuid: "",
+  //   riotId: "가슴이두근운동#6848",
+  //   label: "에겐남",
+  //   emoji: "✨",
+  //   effect: "sparkle",
+  //   note: "재미용 태그. 전력 분석과 무관합니다.",
+  // },
 ];
 
 export function lookupEasterEgg(puuid?: string, riotId?: string): EasterEggTag | undefined {

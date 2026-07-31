@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { BeeIcon } from "@/components/shared/BeeIcon";
+import { useT } from "@/lib/i18n/context";
 import { renderSimpleMarkdown } from "@/lib/utils/simpleMarkdown";
 import type { CommentMode, Session } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export function AssistantSidebar({
   surface: string;
   onModeChange: (mode: CommentMode) => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [question, setQuestion] = useState("");
@@ -81,8 +83,8 @@ export function AssistantSidebar({
         }),
       });
       const body = await response.json() as AssistantReply & { error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "AI 설명을 불러오지 못했습니다.");
-      if (body.refused) throw new Error(body.answer || "내전과 리그 오브 레전드 관련 질문만 답할 수 있어요.");
+      if (!response.ok) throw new Error(body.error?.message ?? t("assistant.loadFail"));
+      if (body.refused) throw new Error(body.answer || t("assistant.refused"));
       const assistantText = body.answer || body.summary;
       setReply(body);
       setMessages((current) => [
@@ -93,7 +95,7 @@ export function AssistantSidebar({
       setTypingFull(assistantText);
       setQuestion("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "AI 설명을 불러오지 못했습니다.");
+      setError(cause instanceof Error ? cause.message : t("assistant.loadFail"));
     } finally {
       setLoading(false);
     }
@@ -105,20 +107,20 @@ export function AssistantSidebar({
 
   return (
     <>
-      {!open && <p className="tg-assistant-hint" aria-hidden>AI 분석을 들어보세요!</p>}
+      {!open && <p className="tg-assistant-hint" aria-hidden>{t("assistant.open")}</p>}
       <button
         className="tg-button tg-button--primary tg-assistant-fab"
         type="button"
-        aria-label="AI 설명 열기"
+        aria-label={t("assistant.open")}
         onClick={() => { setOpen(true); if (!reply && !loading) void ask(""); }}
       >
         <BeeIcon size={30} />
       </button>
       {open && (
-        <aside className="tg-assistant-sidebar" aria-label="AI 분석">
+        <aside className="tg-assistant-sidebar" aria-label={t("assistant.open")}>
           <header className="tg-row tg-row--between">
             <div>
-              <strong>AI 내전 분석</strong>
+              <strong>{t("assistant.open")}</strong>
               <div className="tg-row">
                 {(["normal", "friend"] as const).map((item) => (
                   <button
@@ -127,12 +129,12 @@ export function AssistantSidebar({
                     key={item}
                     onClick={() => onModeChange(item)}
                   >
-                    {item === "normal" ? "일반" : "찐친"}
+                    {item === "normal" ? t("assistant.normal") : t("assistant.friend")}
                   </button>
                 ))}
               </div>
             </div>
-            <button className="tg-button" type="button" onClick={close}>닫기</button>
+            <button className="tg-button" type="button" onClick={close}>{t("common.close")}</button>
           </header>
           <div className="tg-assistant-sidebar__messages">
             {messages.slice(0, -1).map((message, index) => (
@@ -152,7 +154,7 @@ export function AssistantSidebar({
             )}
             {reply?.notablePlayers?.length ? (
               <div className="tg-panel">
-                <strong>주목할 플레이어</strong>
+                <strong>{t("assistant.notable")}</strong>
                 {reply.notablePlayers.map((player) => <p key={player.riotId}><b>{player.riotId.split("#")[0]}</b> — {player.reason}</p>)}
               </div>
             ) : null}
@@ -172,7 +174,7 @@ export function AssistantSidebar({
             {loading && (
               <div className="tg-assistant-think" aria-busy>
                 <span className="tg-assistant-think__face" aria-hidden>🤔</span>
-                <p>음… 조금만 생각해 볼게요</p>
+                <p>{t("assistant.thinking")}</p>
               </div>
             )}
             {error && <div className="tg-notice tg-notice--error">{error}</div>}
@@ -190,9 +192,9 @@ export function AssistantSidebar({
               value={question}
               disabled={loading}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="내전·롤 관련만 물어보세요"
+              placeholder={t("assistant.placeholder")}
             />
-            <button className="tg-button tg-button--primary" type="submit" disabled={!question.trim() || loading}>전송</button>
+            <button className="tg-button tg-button--primary" type="submit" disabled={!question.trim() || loading}>{t("assistant.send")}</button>
           </form>
         </aside>
       )}

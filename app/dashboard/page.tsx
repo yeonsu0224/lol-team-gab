@@ -6,12 +6,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { MyPlayerPicker } from "@/components/dashboard/MyPlayerPicker";
-import { sessionStatus, sessionStatusLabel } from "@/lib/domain/sessionStatus";
+import { DemoDataBadge } from "@/components/demo/DemoDataBadge";
+import { sessionStatus, sessionStatusLabelKey } from "@/lib/domain/sessionStatus";
+import { useDemoStatus } from "@/lib/demo/useDemoStatus";
+import { useT } from "@/lib/i18n/context";
 import { loadBootstrap, profileIconUrl } from "@/lib/player/client";
 import { useSessions } from "@/lib/storage/useSessions";
 import { useUserProfile } from "@/lib/storage/useUserProfile";
 
 export default function DashboardPage() {
+  const t = useT();
+  const { demoMode } = useDemoStatus();
   const router = useRouter();
   const { sessions, hydrated, error, create, remove } = useSessions();
   const { profile } = useUserProfile();
@@ -55,36 +60,39 @@ export default function DashboardPage() {
     <main className="tg-page tg-stack">
       <section className="tg-panel tg-row tg-row--between">
         <div>
-          <p className="tg-muted">내전 준비부터 마무리까지</p>
-          <h1>{profile.displayName ? `안녕하세요, ${profile.displayName}님` : "안녕하세요, 총무님"}</h1>
+          <p className="tg-muted tg-row" style={{ gap: 8 }}>
+            {t("dashboard.greeting")}
+            {demoMode && <DemoDataBadge />}
+          </p>
+          <h1>{profile.displayName ? t("dashboard.helloNamed", { name: profile.displayName }) : t("dashboard.helloGuest")}</h1>
         </div>
         <div className="tg-row">
-          <button className="tg-dashboard-profile" type="button" onClick={() => setPickerOpen((open) => !open)} aria-label="내 플레이어 설정">
+          <button className="tg-dashboard-profile" type="button" onClick={() => setPickerOpen((open) => !open)} aria-label={t("dashboard.myPlayer")}>
             {iconUrl
               ? <Image src={iconUrl} alt="" width={36} height={36} unoptimized />
               : <span className="tg-dashboard-profile__fallback" />}
-            <span>{profile.displayName || "내 플레이어"}</span>
+            <span>{profile.displayName || t("dashboard.myPlayer")}</span>
           </button>
-          <button className="tg-button tg-button--primary" type="button" onClick={start}>새 내전 시작</button>
+          <button className="tg-button tg-button--primary" type="button" onClick={start}>{t("dashboard.newSession")}</button>
         </div>
       </section>
       {pickerOpen && <MyPlayerPicker />}
       {creating && (
         <div className="tg-modal-backdrop" onMouseDown={() => setCreating(false)}>
           <section className="tg-panel tg-modal tg-stack" role="dialog" aria-modal onMouseDown={(event) => event.stopPropagation()}>
-            <h2>내전 이름</h2>
-            <input className="tg-input" value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="예: 금요일 내전" autoFocus />
+            <h2>{t("dashboard.sessionName")}</h2>
+            <input className="tg-input" value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder={t("dashboard.sessionNamePlaceholder")} autoFocus />
             <div className="tg-row tg-row--between">
-              <button className="tg-button" type="button" onClick={() => setCreating(false)}>취소</button>
-              <button className="tg-button tg-button--primary" type="button" disabled={!nameDraft.trim()} onClick={confirmCreate}>만들기</button>
+              <button className="tg-button" type="button" onClick={() => setCreating(false)}>{t("dashboard.cancel")}</button>
+              <button className="tg-button tg-button--primary" type="button" disabled={!nameDraft.trim()} onClick={confirmCreate}>{t("dashboard.create")}</button>
             </div>
           </section>
         </div>
       )}
       <section className="tg-stack">
-        <h2>저장된 내전</h2>
+        <h2>{t("dashboard.saved")}</h2>
         {error && <div className="tg-notice tg-notice--error">{error}</div>}
-        {!hydrated ? <p aria-busy>세션을 불러오는 중입니다…</p> : sessions.length ? (
+        {!hydrated ? <p aria-busy>{t("dashboard.loading")}</p> : sessions.length ? (
           <div className="tg-grid tg-grid--auto">
             {sessions.map((session) => {
               const status = sessionStatus(session);
@@ -96,21 +104,21 @@ export default function DashboardPage() {
               return (
                 <article className={`tg-panel tg-session-card is-${status}`} key={session.id}>
                   <div className="tg-row tg-row--between">
-                    <span className={`tg-chip ${status === "completed" ? "is-gold" : status === "in_progress" ? "is-blue" : ""}`}>{sessionStatusLabel(status)}</span>
+                    <span className={`tg-chip ${status === "completed" ? "is-gold" : status === "in_progress" ? "is-blue" : ""}`}>{t(sessionStatusLabelKey(status))}</span>
                     <span className="tg-muted">{new Date(session.createdAt).toLocaleDateString("ko-KR")}</span>
                   </div>
-                  <h3>{session.name || "이름 없는 내전"}</h3>
-                  <p className="tg-muted">{session.participants.length}명 · {session.rounds.length}판 기록</p>
-                  {session.wrapUp?.performanceRating && <p>내 평점 {"★".repeat(session.wrapUp.performanceRating)}</p>}
+                  <h3>{session.name || t("dashboard.unnamed")}</h3>
+                  <p className="tg-muted">{t("dashboard.sessionMeta", { players: session.participants.length, rounds: session.rounds.length })}</p>
+                  {session.wrapUp?.performanceRating && <p>{t("dashboard.myRating")} {"★".repeat(session.wrapUp.performanceRating)}</p>}
                   <div className="tg-row">
-                    <Link className="tg-button tg-button--primary" href={href}>이어하기</Link>
-                    <button className="tg-button" type="button" onClick={() => remove(session.id)}>삭제</button>
+                    <Link className="tg-button tg-button--primary" href={href}>{t("dashboard.continue")}</Link>
+                    <button className="tg-button" type="button" onClick={() => remove(session.id)}>{t("dashboard.delete")}</button>
                   </div>
                 </article>
               );
             })}
           </div>
-        ) : <div className="tg-panel"><p className="tg-muted">아직 저장된 세션이 없습니다.</p></div>}
+        ) : <div className="tg-panel"><p className="tg-muted">{t("dashboard.empty")}</p></div>}
       </section>
     </main>
   );

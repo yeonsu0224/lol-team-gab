@@ -1609,6 +1609,8 @@ adjustedWinRate = (wins + 20 × 0.5) / (games + 20)
 ```
 /                          → 랜딩 (소개 · 고정 상단 배너/중앙 로고 → 시작하기)
 /dashboard                 → 대시보드 (총무 인사 · 내 플레이어 · 세션 그리드)  [신규 F-12]
+/scoring                   → 점수 책정 방식 안내 (D-22)
+/about · /how-to · /terms · /privacy · /support · /riot → 공개·법적 안내
 /session/[id]/players      → 참가자 등록 · 전력(티어) 분석
 /session/[id]/team         → 1판 팀 제안 (스왑·멤버 추가/제거)
 /session/[id]/trial        → 시험 판 결과 입력 (1·2·3판 탭/스텝, 보조 모달)
@@ -1617,6 +1619,8 @@ adjustedWinRate = (wins + 20 × 0.5) / (games + 20)
 ```
 
 - 랜딩은 **소개형**이며, 세션 목록·생성은 **대시보드(`/dashboard`, F-12)**에서 한다.
+- **공개 리뷰/데모 모드** (`DEMO_MODE=true` 또는 `RIOT_API_KEY` 없음): 검색창 아래 데모 플레이어 칩·Demo Data 배지·데모 안내 문구를 표시한다. 지원 이메일: `Yunsu0224@gmail.com`. 심사 문구는 `documents/riot-api-application.md`.
+- UI는 **한국어/영어** 전환을 지원한다 (상단 KO/EN).
 - **AI 요약 전용 페이지(`/summary`)는 삭제**한다. AI 요약은 team·trial·rebalance·finish 화면의 **플로팅 어시스턴트**(D-10, F-08)로 제공한다.
 - 상단 **고정 배너(중앙 로고)**는 공통 크롬으로 유지한다 (D-14, design-system TopBanner).
 - **좌측 사이드 배너(F-13)**도 공통 크롬이며, 넓은 화면(≥1500px)에서만 좌측 여백에 노출한다.

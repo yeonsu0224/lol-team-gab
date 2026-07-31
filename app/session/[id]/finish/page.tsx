@@ -9,24 +9,18 @@ import { AssistantSidebar } from "@/components/assistant/AssistantSidebar";
 import { ActionBar } from "@/components/layout/ActionBar";
 import { DonationPanel } from "@/components/shared/DonationPanel";
 import { automaticMvp, finalWinner, topHoneyBees } from "@/lib/domain/sessionWorkflow";
-import { lpValueToTier } from "@/lib/domain/lp";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { setAuroraTheme, type AuroraTheme } from "@/lib/motion/auroraTheme";
 import { loadBootstrap, profileIconUrl, type DataDragonBootstrap } from "@/lib/player/client";
+import { useT } from "@/lib/i18n/context";
+import { useTierLabel } from "@/lib/i18n/useTierLabel";
+import type { MessageKey } from "@/lib/i18n/messages/ko";
 import { useSessions } from "@/lib/storage/useSessions";
 import type { MainRole, Participant, Session, SessionWrapUp } from "@/lib/types";
 
 const STAGE_COUNT = 5;
 type Beat = "hook" | "drum" | "reveal" | "cta";
 
-/** 단계별 기대 증진 멘트. 본체와 무관하게 항상 같은 위치에 놓기 위해 밖으로 뺀다(D-20). */
-const HOOKS = [
-  "내전이 종료되었습니다! 결과를 확인 해 볼까요!",
-  "그렇다면… 최종 승리 팀은?",
-  "이번 내전의 MVP는…",
-  "그렇다면… 기대치 대비 최악의 플레이어는?",
-  "기대를 뛰어넘은 플레이어는…",
-];
 /** MVP·범인 히어로 아이콘 크기(px). */
 const HERO_AVATAR = 168;
 
@@ -54,6 +48,15 @@ function PlayerAvatar({
 }
 
 export default function FinishPage() {
+  const t = useT();
+  const { formatTier, fromLp } = useTierLabel();
+  const hooks = [
+    t("finish.hook1"),
+    t("finish.hook2"),
+    t("finish.hookMvp"),
+    t("finish.hook3"),
+    t("finish.hook4"),
+  ];
   const { id } = useParams<{ id: string }>();
   const { sessions, hydrated, error, update } = useSessions();
   const session = sessions.find((item) => item.id === id);
@@ -164,11 +167,11 @@ export default function FinishPage() {
   useEffect(() => () => setAuroraTheme("default"), []);
 
   if (error) return <main className="tg-page"><div className="tg-notice tg-notice--error">{error}</div></main>;
-  if (!hydrated) return <main className="tg-page"><p aria-busy>결과를 불러오는 중입니다…</p></main>;
-  if (!session) return <main className="tg-page"><h1>세션을 찾을 수 없습니다.</h1></main>;
+  if (!hydrated) return <main className="tg-page"><p aria-busy>{t("finish.loading")}</p></main>;
+  if (!session) return <main className="tg-page"><h1>{t("finish.notFound")}</h1></main>;
 
-  const blueName = session.preTeamProposal?.blueTeamName || "블루팀";
-  const redName = session.preTeamProposal?.redTeamName || "레드팀";
+  const blueName = session.preTeamProposal?.blueTeamName || t("team.blue");
+  const redName = session.preTeamProposal?.redTeamName || t("team.red");
   const winnerName = winner === "blue" ? blueName : winner === "red" ? redName : undefined;
   const winnerMembers = winner
     ? (winner === "blue" ? session.preTeamProposal?.blueTeam : session.preTeamProposal?.redTeam) ?? []
@@ -189,7 +192,7 @@ export default function FinishPage() {
     return (
       <main className="tg-page tg-result-reveal" aria-live="polite">
         <section className="tg-result-reveal__stage">
-          <p className="tg-result-reveal__hook is-visible">{HOOKS[stage]}</p>
+          <p className="tg-result-reveal__hook is-visible">{hooks[stage]}</p>
 
           <div className="tg-result-reveal__body">
             {showDrum && !showReveal && (
@@ -200,15 +203,15 @@ export default function FinishPage() {
 
             {stage === 0 && showReveal && (
               <>
-                <h1 className="tg-result-reveal__title is-visible">{session.name || "이름 없는 내전"}</h1>
-                <p className="tg-result-reveal__detail is-visible">총 {session.rounds.length}판 진행</p>
+                <h1 className="tg-result-reveal__title is-visible">{session.name || t("dashboard.unnamed")}</h1>
+                <p className="tg-result-reveal__detail is-visible">{t("finish.roundsPlayed", { count: session.rounds.length })}</p>
               </>
             )}
 
             {stage === 1 && showReveal && (
               <>
                 <h1 className="tg-result-reveal__title is-visible">
-                  {winnerName ? `${winnerName} 승리` : "기록 없음"}
+                  {winnerName ? t("finish.teamWon", { team: winnerName }) : t("finish.noRecord")}
                 </h1>
                 {winnerMembers.length > 0 && (
                   <ul className="tg-result-reveal__banner is-visible">
@@ -241,16 +244,16 @@ export default function FinishPage() {
                   </div>
                   {mvpStats && (
                     <p className="tg-result-reveal__detail is-visible">
-                      평균 KDA <strong>{mvpStats.averageKda.toFixed(2)}</strong>
+                      {t("finish.avgKda")} <strong>{mvpStats.averageKda.toFixed(2)}</strong>
                       {" · "}
-                      평균 챔피언 피해량 <strong>{Math.round(mvpStats.averageDamage).toLocaleString("ko-KR")}</strong>
+                      {t("finish.avgDamage")} <strong>{Math.round(mvpStats.averageDamage).toLocaleString("ko-KR")}</strong>
                       {" · "}
-                      {mvpStats.games}판
+                      {t("trial.roundTab", { round: mvpStats.games })}
                     </p>
                   )}
                 </>
               ) : (
-                <h1 className="tg-result-reveal__title is-visible">선정할 기록이 부족합니다</h1>
+                <h1 className="tg-result-reveal__title is-visible">{t("finish.mvpSparse")}</h1>
               )
             )}
 
@@ -267,12 +270,11 @@ export default function FinishPage() {
                     <h1 className="tg-result-reveal__title">{culpritParticipant.riotId}</h1>
                   </div>
                   <p className="tg-result-reveal__detail is-visible">
-                    위 플레이어는 이번 내전의 범인입니다. 아, {roleDifferenceLabel(culpritParticipant, session)} 차이라구요?
-                    그건 비밀인데… 본인만 즐거우면 된 거죠! <br/>다음 내전에서는 더 좋은 모습을 보여줄 거예요.
+                    {t("finish.culpritBody", { role: roleDifferenceLabel(culpritParticipant, session, t) })}
                   </p>
                 </>
               ) : (
-                <h1 className="tg-result-reveal__title is-visible">평가할 기록이 부족합니다</h1>
+                <h1 className="tg-result-reveal__title is-visible">{t("finish.evalSparse")}</h1>
               )
             )}
 
@@ -290,28 +292,28 @@ export default function FinishPage() {
                         <span>{participant.riotId}</span>
                         <Image
                           className="tg-result-reveal__tier-emblem"
-                          src={`/ranked-emblems/Rank=${tierAssetName(lpValueToTier(participant.currentLpValue).tier)}.png`}
-                          alt={`${lpValueToTier(participant.currentLpValue).label} 엠블럼`}
+                          src={`/ranked-emblems/Rank=${tierAssetName(fromLp(participant.currentLpValue).tier)}.png`}
+                          alt={t("card.emblemAlt", { tier: formatTier(fromLp(participant.currentLpValue)) })}
                           width={52}
                           height={52}
                         />
-                        <strong>이번 내전에서의 실력은 {lpValueToTier(participant.currentLpValue).label}급이었습니다.</strong>
+                        <strong>{t("finish.skillLevel", { tier: formatTier(fromLp(participant.currentLpValue)) })}</strong>
                       </li>
                     ))}
                   </ul>
                   <p className="tg-result-reveal__detail is-visible">
-                    기대 이상 판정을 가장 많이 받은 플레이어입니다.
+                    {t("finish.honeyDesc")}
                   </p>
                 </>
               ) : (
-                <h1 className="tg-result-reveal__title is-visible">해당 없음</h1>
+                <h1 className="tg-result-reveal__title is-visible">{t("finish.none")}</h1>
               )
             )}
           </div>
 
           <div className={`tg-result-reveal__cta tg-row${showCta ? " is-visible" : ""}`}>
             {stage === 0
-              ? <Link className="tg-button" href={previousStepHref}>이전 단계로</Link>
+              ? <Link className="tg-button" href={previousStepHref}>{t("finish.prevStep")}</Link>
               : (
                 <button
                   className="tg-button"
@@ -321,7 +323,7 @@ export default function FinishPage() {
                     setStage((current) => current - 1);
                   }}
                 >
-                  이전
+                  {t("common.prev")}
                 </button>
               )}
             <button
@@ -333,14 +335,14 @@ export default function FinishPage() {
                 setStage((current) => current + 1);
               }}
             >
-              {stage === STAGE_COUNT - 1 ? "전체 결과 보기" : "다음"}
+              {stage === STAGE_COUNT - 1 ? t("finish.seeAll") : t("common.next")}
             </button>
             <button
               className="tg-button"
               type="button"
               onClick={() => setStage(STAGE_COUNT)}
             >
-              건너뛰기
+              {t("common.skip")}
             </button>
           </div>
         </section>
@@ -368,20 +370,25 @@ export default function FinishPage() {
   return (
     <main className="tg-page tg-stack">
       <section className={`tg-panel tg-result-summary${winner ? ` is-${winner}` : ""}`}>
-        <p className="tg-muted">내전 마무리</p>
-        <h1>{winner ? `${winner === "blue" ? blueName : redName} 최종 승리` : "저장된 결과가 없습니다"}</h1>
+        <p className="tg-muted">{t("finish.wrapTitle")}</p>
+        <h1>{winner ? t("finish.winner", { team: winner === "blue" ? blueName : redName }) : t("finish.noResult")}</h1>
         <div className="tg-row">
           {session.rounds.map(({ round, trialResult }) => (
-            <span className={`tg-chip is-${trialResult.winnerTeam}`} key={round}>{round}판 {trialResult.winnerTeam === "blue" ? "블루" : "레드"} 승</span>
+            <span className={`tg-chip is-${trialResult.winnerTeam}`} key={round}>
+              {t("finish.roundWin", {
+                round,
+                side: trialResult.winnerTeam === "blue" ? t("finish.blueShort") : t("finish.redShort"),
+              })}
+            </span>
           ))}
         </div>
       </section>
       <section className="tg-grid tg-grid--2">
-        <article className="tg-panel"><p className="tg-muted">MVP</p><h2>{mvpParticipant?.riotId || "기록 부족"}</h2></article>
-        <article className="tg-panel"><p className="tg-muted">꿀벌 · 기대 이상 최다</p><h2>{honeyBeeParticipants.map(({ riotId }) => riotId).join(" · ") || "해당 없음"}</h2></article>
+        <article className="tg-panel"><p className="tg-muted">MVP</p><h2>{mvpParticipant?.riotId || t("card.noRecord")}</h2></article>
+        <article className="tg-panel"><p className="tg-muted">{t("finish.honeyTitle")}</p><h2>{honeyBeeParticipants.map(({ riotId }) => riotId).join(" · ") || t("finish.none")}</h2></article>
       </section>
       <section className="tg-panel tg-stack">
-        <h2>티어 변화와 성과</h2>
+        <h2>{t("finish.tierPerf")}</h2>
         <div className="tg-grid tg-grid--auto">
           {session.participants.map((participant) => {
             const delta = participant.currentLpValue - participant.preLpValue;
@@ -389,8 +396,10 @@ export default function FinishPage() {
               <article className={`tg-player-card ${delta > 0 ? "is-blue" : delta < 0 ? "is-red" : ""}`} key={participant.puuid}>
                 <div>
                   <strong>{participant.riotId}</strong>
-                  <p className="tg-muted">{participant.preTier.label} → {lpValueToTier(participant.currentLpValue).label}</p>
-                  <span className={`tg-chip ${delta > 0 ? "is-blue" : delta < 0 ? "is-red" : ""}`}>{delta > 0 ? "상승" : delta < 0 ? "하락" : "유지"} {Math.abs(delta)}LP</span>
+                  <p className="tg-muted">{formatTier(participant.preTier)} → {formatTier(fromLp(participant.currentLpValue))}</p>
+                  <span className={`tg-chip ${delta > 0 ? "is-blue" : delta < 0 ? "is-red" : ""}`}>
+                    {delta > 0 ? t("finish.up") : delta < 0 ? t("finish.down") : t("finish.same")} {Math.abs(delta)}LP
+                  </span>
                 </div>
               </article>
             );
@@ -398,29 +407,29 @@ export default function FinishPage() {
         </div>
       </section>
       <section className="tg-panel tg-stack">
-        <h2>내 평점</h2>
-        <div className="tg-row" role="radiogroup" aria-label="성과 별점">
+        <h2>{t("finish.rating")}</h2>
+        <div className="tg-row" role="radiogroup" aria-label={t("finish.ratingAria")}>
           {([1, 2, 3, 4, 5] as const).map((value) => (
             <button className={`tg-button ${selectedRating === value ? "tg-button--primary" : ""}`} type="button" key={value} onClick={() => setRating(value)} aria-checked={selectedRating === value} role="radio">
               {value}★
             </button>
           ))}
         </div>
-        <textarea className="tg-textarea" value={selectedFeedback} onChange={(event) => setFeedback(event.target.value)} placeholder="앱 개선 피드백을 남겨 주세요." />
-        <button className="tg-button tg-button--primary" type="button" onClick={saveWrapUp}>마무리 저장</button>
-        {saved && <div className="tg-notice tg-notice--success">대시보드에 저장했습니다.</div>}
+        <textarea className="tg-textarea" value={selectedFeedback} onChange={(event) => setFeedback(event.target.value)} placeholder={t("finish.feedbackPh")} />
+        <button className="tg-button tg-button--primary" type="button" onClick={saveWrapUp}>{t("finish.saveWrap")}</button>
+        {saved && <div className="tg-notice tg-notice--success">{t("finish.saved")}</div>}
       </section>
       <DonationPanel />
       <ActionBar>
-        <Link className="tg-button" href={previousStepHref}>이전 단계로</Link>
+        <Link className="tg-button" href={previousStepHref}>{t("finish.prevStep")}</Link>
         <button
           className="tg-button"
           type="button"
           onClick={() => { setBeat("hook"); setStage(0); }}
         >
-          결과 다시 보기
+          {t("finish.replay")}
         </button>
-        <Link className="tg-button tg-button--primary" href="/dashboard">대시보드로</Link>
+        <Link className="tg-button tg-button--primary" href="/dashboard">{t("session.toDashboard")}</Link>
       </ActionBar>
       <AssistantSidebar session={session} surface="finish" onModeChange={(commentMode) => update(id, { commentMode })} />
     </main>
@@ -481,7 +490,11 @@ function worstAgainstExpectation(session: Session) {
   return ranked.sort((a, b) => b.belowCount - a.belowCount || a.ratio - b.ratio)[0]?.puuid;
 }
 
-function roleDifferenceLabel(participant: Participant, session: Session) {
+function roleDifferenceLabel(
+  participant: Participant,
+  session: Session,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+) {
   const roles = session.rounds
     .flatMap(({ trialResult }) => trialResult.playerStats)
     .filter((stat) => stat.puuid === participant.puuid && stat.playedRole)
@@ -491,14 +504,9 @@ function roleDifferenceLabel(participant: Participant, session: Session) {
         roles.filter((item) => item === b).length - roles.filter((item) => item === a).length
       )[0]
     : participant.riotData.mainRole;
-  const labels: Record<MainRole, string> = {
-    TOP: "탑",
-    JUNGLE: "정글",
-    MIDDLE: "미드",
-    BOTTOM: "원딜",
-    UTILITY: "서폿",
-  };
-  return role ? labels[role] : "라인";
+  if (!role) return t("role.lane");
+  if (role === "UTILITY") return t("role.supportShort");
+  return t(`role.${role}` as MessageKey);
 }
 
 function tierAssetName(tier: string) {

@@ -17,6 +17,98 @@
 }
 .tg-topbar__logo { color: $gold-light; font-weight: 900; letter-spacing: 0.04em; }
 .tg-topbar__left { justify-self: start; }
+.tg-topbar__right { justify-self: end; }
+.tg-lang {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid $border;
+  border-radius: $radius-pill;
+  background: rgb(255 255 255 / 4%);
+}
+.tg-lang__btn {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: $radius-pill;
+  color: $text-muted;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.tg-lang__btn.is-active {
+  color: #09101c;
+  background: $gold-light;
+}
+
+.tg-demo-banner {
+  display: grid;
+  gap: 10px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 16px;
+  padding: 14px 16px;
+  border: 1px solid rgb(200 155 60 / 35%);
+  border-radius: $radius-md;
+  background: rgb(200 155 60 / 8%);
+}
+.tg-demo-banner__copy {
+  display: grid;
+  gap: 6px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.tg-demo-chips__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tg-demo-chips__item {
+  cursor: pointer;
+  color: $text;
+  background: rgb(255 255 255 / 5%);
+}
+.tg-demo-chips__item:hover { border-color: $border-strong; }
+.tg-chip--demo {
+  color: #09101c;
+  border-color: transparent;
+  background: $gold-light;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.tg-footer {
+  width: min(1180px, calc(100% - 32px));
+  margin: 48px auto 32px;
+  padding: 24px 0 40px;
+  border-top: 1px solid $border;
+  display: grid;
+  gap: 12px;
+}
+.tg-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+.tg-footer__links a {
+  color: $text-muted;
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+.tg-footer__links a:hover { color: $gold-light; }
+.tg-footer__disclaimer {
+  color: $text-muted;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  max-width: 72ch;
+}
+.tg-legal {
+  display: grid;
+  gap: 16px;
+  max-width: 72ch;
+}
+.tg-legal h1 { margin: 0; }
+.tg-legal p, .tg-legal li { color: $text-muted; line-height: 1.55; }
 
 /* D-23: 상단 오로라 배경. 콘텐츠 뒤(z-index -1)에서만 움직이고 입력을 가리지 않는다. */
 .tg-aurora {

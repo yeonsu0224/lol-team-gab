@@ -6,8 +6,11 @@ import { useState } from "react";
 import { lookupEasterEgg } from "@/lib/constants/easterEggs";
 import { BeeIcon } from "@/components/shared/BeeIcon";
 import { LaneIcon } from "@/components/shared/LaneIcon";
-import { lpValueToTier } from "@/lib/domain/lp";
+import { DemoDataBadge } from "@/components/demo/DemoDataBadge";
+import { isDemoPuuidClient } from "@/lib/demo/useDemoStatus";
+import { useTierLabel } from "@/lib/i18n/useTierLabel";
 import { championIconUrl, profileIconUrl, type DataDragonBootstrap } from "@/lib/player/client";
+import { useT } from "@/lib/i18n/context";
 import type { Participant, RoundNumber, TierAssessment } from "@/lib/types";
 
 export function displayGameName(riotId: string) {
@@ -38,6 +41,8 @@ export function PlayerCard({
     patch: Partial<Pick<Participant, "manualScoreAdjustment" | "tierAssessment">>,
   ) => void;
 }) {
+  const t = useT();
+  const { formatTier, fromLp } = useTierLabel();
   const [open, setOpen] = useState(false);
   const easterEgg = lookupEasterEgg(participant.puuid, participant.riotId);
   const performance = round ? participant.trialPerformanceByRound?.[round] : undefined;
@@ -48,6 +53,8 @@ export function PlayerCard({
   const topMastery = participant.riotData.masteries?.[0];
   const mostChampion = topMastery && bootstrap?.championsByKey[String(topMastery.championId)];
   const tier = participant.preTier.tier.toUpperCase();
+  const preLabel = formatTier(participant.preTier);
+  const currentLabel = formatTier(fromLp(participant.currentLpValue));
   return (
     <article
       className={`tg-player-card tg-player-card--${tier.toLowerCase()} ${changed ? "is-changed" : ""} ${open ? "is-open" : ""}`}
@@ -62,7 +69,7 @@ export function PlayerCard({
         <Image
           className="tg-player-card__emblem"
           src={`/ranked-emblems/Rank=${tierAssetName(participant.preTier.tier)}.png`}
-          alt={`${participant.preTier.tier} 티어 엠블럼`}
+          alt={t("card.emblemAlt", { tier: participant.preTier.tier })}
           width={44}
           height={44}
         />
@@ -74,46 +81,47 @@ export function PlayerCard({
             <Image
               className="tg-player-card__most"
               src={championIconUrl(bootstrap.version, mostChampion.image.full)}
-              alt={`모스트 챔피언 ${mostChampion.name}`}
-              title={`모스트 챔피언: ${mostChampion.name}`}
+              alt={t("card.mostAlt", { name: mostChampion.name })}
+              title={t("card.mostAlt", { name: mostChampion.name })}
               width={20}
               height={20}
               unoptimized
             />
           )}
           {performance?.roundHoneyBee && (
-            <span className="tg-player-card__bee" title="기대 이상" aria-label="기대 이상">
+            <span className="tg-player-card__bee" title={t("card.aboveExpect")} aria-label={t("card.aboveExpect")}>
               <BeeIcon size={20} />
             </span>
           )}
         </span>
         <div className="tg-player-card__identity">
           <strong>{displayGameName(participant.riotId)}</strong>
-          <span>{round ? `${participant.preTier.label} → ${lpValueToTier(participant.currentLpValue).label}` : participant.preTier.label}</span>
+          <span>{round ? `${preLabel} → ${currentLabel}` : preLabel}</span>
           <div className="tg-player-card__badges">
-            <span className="tg-chip is-gold">{participant.internalTierBadge === "OP" ? "★ OP" : `${participant.internalTierBadge}티어`}</span>
+            {isDemoPuuidClient(participant.puuid) && <DemoDataBadge />}
+            <span className="tg-chip is-gold">{participant.internalTierBadge === "OP" ? "★ OP" : t("card.tierBadge", { n: participant.internalTierBadge })}</span>
             <LaneIcon role={participant.riotData.mainRole} />
             {changed && (
-              <span className="tg-chip tg-trade-chip" title={tradeLabel || "팀이 교체되었습니다"}>
+              <span className="tg-chip tg-trade-chip" title={tradeLabel || t("card.tradedTitle")}>
                 <TradeIcon />
-                {tradeLabel || "트레이드"}
+                {tradeLabel || t("card.trade")}
               </span>
             )}
             {performance?.performanceGrade && (
               <span className={`tg-chip tg-grade tg-grade--${performance.performanceGrade.toLowerCase()}`}>
-                성과 {performance.performanceGrade}
+                {t("card.perf")} {performance.performanceGrade}
               </span>
             )}
-            {performance?.unrated && <span className="tg-chip">기록 부족</span>}
+            {performance?.unrated && <span className="tg-chip">{t("card.noRecord")}</span>}
             {scoreDelta != null && <span className={`tg-chip ${scoreDelta >= 0 ? "is-blue" : "is-red"}`}>{scoreDelta >= 0 ? "▲" : "▼"} {Math.abs(scoreDelta)}%</span>}
             {!registrationDetails && participant.tierAssessment && participant.tierAssessment !== "fair" && (
               <span className={`tg-chip is-${participant.tierAssessment === "overrated" ? "red" : "blue"}`}>
-                티어 {participant.tierAssessment === "overrated" ? "과대평가됨" : "과소평가됨"}
+                {t("card.tier")} {participant.tierAssessment === "overrated" ? t("card.overrated") : t("card.underrated")}
               </span>
             )}
             {!registrationDetails && (participant.manualScoreAdjustment ?? 0) !== 0 && (
               <span className={`tg-chip is-${(participant.manualScoreAdjustment ?? 0) > 0 ? "blue" : "red"}`}>
-                내부 {(participant.manualScoreAdjustment ?? 0) > 0 ? "+" : ""}{participant.manualScoreAdjustment}
+                {t("card.internal")} {(participant.manualScoreAdjustment ?? 0) > 0 ? "+" : ""}{participant.manualScoreAdjustment}
               </span>
             )}
             {easterEgg && (
@@ -134,8 +142,8 @@ export function PlayerCard({
           >
             <select
               className="tg-select"
-              aria-label="티어 평가"
-              title="티어 평가"
+              aria-label={t("card.tierEval")}
+              title={t("card.tierEval")}
               value={participant.tierAssessment ?? "fair"}
               onChange={(event) => {
                 const assessment = event.target.value as TierAssessment;
@@ -145,14 +153,14 @@ export function PlayerCard({
                 });
               }}
             >
-              <option value="overrated">과대</option>
-              <option value="fair">적정</option>
-              <option value="underrated">과소</option>
+              <option value="overrated">{t("card.over")}</option>
+              <option value="fair">{t("card.fair")}</option>
+              <option value="underrated">{t("card.under")}</option>
             </select>
             <select
               className="tg-select"
-              aria-label="내부 보정"
-              title="내부 보정 (-10~+10)"
+              aria-label={t("card.adjust")}
+              title={t("card.adjustTitle")}
               value={participant.manualScoreAdjustment ?? 0}
               onChange={(event) => onEvaluationChange({
                 manualScoreAdjustment: Number(event.target.value),
@@ -168,7 +176,7 @@ export function PlayerCard({
           className="tg-player-card__toggle"
           type="button"
           aria-expanded={open}
-          aria-label={open ? "상세 전력 접기" : "상세 전력 펼치기"}
+          aria-label={open ? t("card.collapse") : t("card.expand")}
           onClick={(event) => {
             event.stopPropagation();
             setOpen((current) => !current);
@@ -182,16 +190,16 @@ export function PlayerCard({
             type="button"
             onClick={(event) => { event.stopPropagation(); onRemove(); }}
           >
-            제외
+            {t("card.remove")}
           </button>
         )}
       </div>
       {open && (
         <div className="tg-player-card__detail">
-          <strong>상세 전력</strong>
-          <span>주 라인 표본 {participant.riotData.preMainRoleGames ?? 0}판</span>
-          <span>주 라인 KDA {participant.riotData.preMainRoleKda?.toFixed(2) ?? "기록 부족"}</span>
-          <span>평균 피해량 {participant.riotData.preMainRoleDamage?.toLocaleString("ko-KR") ?? "기록 부족"}</span>
+          <strong>{t("card.detail")}</strong>
+          <span>{t("card.sample", { games: participant.riotData.preMainRoleGames ?? 0 })}</span>
+          <span>{t("card.kda", { value: participant.riotData.preMainRoleKda?.toFixed(2) ?? t("card.noRecord") })}</span>
+          <span>{t("card.damage", { value: participant.riotData.preMainRoleDamage?.toLocaleString("ko-KR") ?? t("card.noRecord") })}</span>
         </div>
       )}
     </article>
@@ -199,7 +207,14 @@ export function PlayerCard({
 }
 
 export function roleLabel(role: string) {
-  return ({ TOP: "탑", JUNGLE: "정글", MIDDLE: "미드", BOTTOM: "원딜", UTILITY: "서포터" } as Record<string, string>)[role] ?? role;
+  const map: Record<string, string> = {
+    TOP: "탑",
+    JUNGLE: "정글",
+    MIDDLE: "미드",
+    BOTTOM: "원딜",
+    UTILITY: "서포터",
+  };
+  return map[role] ?? role;
 }
 
 function TradeIcon() {

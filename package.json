@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "self-check": "tsx scripts/domain-self-check.ts"
+    "self-check": "tsx scripts/domain-self-check.ts",
+    "generate-demo": "tsx scripts/generate-demo-fixtures.ts"
   },
   "dependencies": {
     "next": "16.2.12",

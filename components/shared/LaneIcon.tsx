@@ -1,14 +1,10 @@
+"use client";
+
 import Image from "next/image";
 
 import type { MainRole } from "@/lib/types";
-
-const LABEL: Record<MainRole, string> = {
-  TOP: "탑",
-  JUNGLE: "정글",
-  MIDDLE: "미드",
-  BOTTOM: "원딜",
-  UTILITY: "서포터",
-};
+import { useT } from "@/lib/i18n/context";
+import type { MessageKey } from "@/lib/i18n/messages/ko";
 
 /** `public/icons/white` 파일명. 라이엇 라인 키와 파일명이 달라 매핑이 필요하다. */
 const ICON: Record<MainRole, string> = {
@@ -19,12 +15,22 @@ const ICON: Record<MainRole, string> = {
   UTILITY: "sp",
 };
 
+const ROLE_KEY: Record<MainRole, MessageKey> = {
+  TOP: "role.TOP",
+  JUNGLE: "role.JUNGLE",
+  MIDDLE: "role.MIDDLE",
+  BOTTOM: "role.BOTTOM",
+  UTILITY: "role.UTILITY",
+};
+
 export function LaneIcon({ role }: { role?: MainRole }) {
-  if (!role) return <span className="tg-chip" aria-label="주 라인 미확인">?</span>;
+  const t = useT();
+  if (!role) return <span className="tg-chip" aria-label="?">?</span>;
+  const label = t(ROLE_KEY[role]);
   return (
-    <span className="tg-chip tg-lane-icon" title={LABEL[role]}>
+    <span className="tg-chip tg-lane-icon" title={label}>
       <Image src={`/icons/white/${ICON[role]}.png`} alt="" width={18} height={18} />
-      <span className="tg-sr-only">{`주 라인: ${LABEL[role]}`}</span>
+      <span className="tg-sr-only">{label}</span>
     </span>
   );
 }

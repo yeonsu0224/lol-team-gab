@@ -4,8 +4,10 @@ import Image from "next/image";
 import { useState } from "react";
 
 import { DONATION } from "@/lib/constants/donation";
+import { useT } from "@/lib/i18n/context";
 
 export function DonationPanel() {
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -18,23 +20,21 @@ export function DonationPanel() {
   return (
     <section className="tg-panel tg-donation">
       <div className="tg-stack">
-        <h2>개발자 커피 사주기 ☕</h2>
-        <p className="tg-muted">
-          재미있게 사용하셨다면 응원만으로도 감사합니다. 토스 앱으로 QR을 스캔하면 바로 후원할 수 있어요.
-        </p>
+        <h2>{t("donation.title")} ☕</h2>
+        <p className="tg-muted">{t("donation.body")}</p>
         {DONATION.account && (
           <div className="tg-row">
             <code>{DONATION.account}</code>
             {DONATION.holder && <span className="tg-muted">{DONATION.holder}</span>}
             <button className="tg-button" type="button" onClick={() => void copy()}>
-              {copied ? "복사됨" : "계좌 복사"}
+              {copied ? t("donation.copied") : t("donation.copy")}
             </button>
           </div>
         )}
       </div>
       <figure className="tg-donation__qr">
         <Image src={DONATION.qrImage} alt={DONATION.qrLabel} width={168} height={168} />
-        <figcaption className="tg-muted">토스로 후원하기</figcaption>
+        <figcaption className="tg-muted">{t("donation.toss")}</figcaption>
       </figure>
     </section>
   );
