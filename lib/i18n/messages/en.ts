@@ -180,7 +180,7 @@ export const en: Record<MessageKey, string> = {
   "support.body": "For product, demo data, or Riot API questions, email us below.",
 
   "about.title": "About",
-  "about.body": "Custom Game Steward is an unofficial League of Legends custom-game tool. It helps with power analysis, team drafting, trial results, and MVP / standout reveals.",
+  "about.body": "Custom Game Steward is an unofficial League of Legends custom-game tool. It helps with power analysis, team drafting, trial results, and MVP / standout reveals. Today it focuses on LoL; support for custom / internal games in other titles is planned.",
 
   "howTo.title": "How to use",
   "howTo.step1": "Pick a demo player under the search field or search by Riot ID.",

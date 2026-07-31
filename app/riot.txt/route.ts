@@ -1,5 +1,9 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 export function GET() {
-  return new Response("bcfa7487-365c-45c7-9415-4492af50308a", {
+  const code = readFileSync(join(process.cwd(), "public", "riot.txt"), "utf8").trim();
+  return new Response(code, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=0, must-revalidate",
