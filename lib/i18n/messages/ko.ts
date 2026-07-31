@@ -152,7 +152,7 @@ export const ko = {
   "finish.hook1": "내전이 종료되었습니다! 결과를 확인 해 볼까요!",
   "finish.hook2": "그렇다면… 최종 승리 팀은?",
   "finish.hookMvp": "이번 내전의 MVP는…",
-  "finish.hook3": "그렇다면… 기대치 대비 최악의 플레이어는?",
+  "finish.hook3": "그렇다면… 활약을 펼치지 못한 플레이어는?",
   "finish.hook4": "기대를 뛰어넘은 플레이어는…",
   "finish.winner": "{team} 최종 승리",
   "finish.noResult": "저장된 결과가 없습니다",

@@ -154,7 +154,7 @@ export const en: Record<MessageKey, string> = {
   "finish.hook1": "Custom finished! Shall we check the results?",
   "finish.hook2": "And the final winning team is…?",
   "finish.hookMvp": "This custom's MVP is…",
-  "finish.hook3": "And the player furthest below expectation…?",
+  "finish.hook3": "And the player who couldn't quite shine…?",
   "finish.hook4": "Players who exceeded expectation…",
   "finish.winner": "{team} wins",
   "finish.noResult": "No saved results",
