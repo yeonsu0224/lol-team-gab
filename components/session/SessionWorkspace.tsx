@@ -12,8 +12,9 @@ import { ActionBar } from "@/components/layout/ActionBar";
 import { StepNav } from "@/components/layout/StepNav";
 import { AnalysisTransition } from "@/components/motion/AnalysisTransition";
 import { ReasonPanel } from "@/components/shared/ReasonPanel";
+import { RANKED_TIERS, tierNameFor } from "@/lib/constants/lpTable";
 import { isDemoPuuidClient } from "@/lib/demo/useDemoStatus";
-import { useT } from "@/lib/i18n/context";
+import { useLocale, useT } from "@/lib/i18n/context";
 import type { MessageKey } from "@/lib/i18n/messages/ko";
 import { useTierLabel } from "@/lib/i18n/useTierLabel";
 import {
@@ -119,6 +120,7 @@ function PlayersView({
   save: (patch: Partial<Omit<Session, "id" | "createdAt">>) => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [remoteAccounts, setRemoteAccounts] = useState<AccountResult[]>([]);
@@ -130,6 +132,9 @@ function PlayersView({
     rank: string;
     lp: number;
   } | null>(null);
+  const manualApex = manual
+    ? RANKED_TIERS.indexOf(manual.tier.toUpperCase() as (typeof RANKED_TIERS)[number]) >= 7
+    : false;
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -325,13 +330,17 @@ function PlayersView({
             <h2>{t("manual.title")}</h2>
             <p className="tg-muted">{t("manual.body", { riotId: `${manual.account.gameName}#${manual.account.tagLine}` })}</p>
             <div className="tg-grid tg-grid--2">
-              <label className="tg-field"><span>{t("manual.tier")}</span><select className="tg-select" value={manual.tier} onChange={(event) => setManual({ ...manual, tier: event.target.value })}>
-                {["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND"].map((tier) => <option key={tier}>{tier}</option>)}
+              <label className="tg-field"><span>{t("manual.tier")}</span><select className="tg-select" value={manual.tier} onChange={(event) => {
+                const tier = event.target.value;
+                const apex = RANKED_TIERS.indexOf(tier.toUpperCase() as (typeof RANKED_TIERS)[number]) >= 7;
+                setManual({ ...manual, tier, rank: apex ? "" : manual.rank || "IV", lp: apex ? manual.lp : Math.min(99, manual.lp) });
+              }}>
+                {RANKED_TIERS.map((tier) => <option key={tier} value={tier}>{tierNameFor(tier, locale)}</option>)}
               </select></label>
-              <label className="tg-field"><span>{t("manual.rank")}</span><select className="tg-select" value={manual.rank} onChange={(event) => setManual({ ...manual, rank: event.target.value })}>
-                {["IV", "III", "II", "I"].map((rank) => <option key={rank}>{rank}</option>)}
+              <label className="tg-field"><span>{t("manual.rank")}</span><select className="tg-select" value={manualApex ? "" : manual.rank} disabled={manualApex} onChange={(event) => setManual({ ...manual, rank: event.target.value })}>
+                {manualApex ? <option value="">—</option> : ["IV", "III", "II", "I"].map((rank) => <option key={rank}>{rank}</option>)}
               </select></label>
-              <label className="tg-field"><span>{t("manual.lp")}</span><input className="tg-input" type="number" min={0} max={99} value={manual.lp} onChange={(event) => setManual({ ...manual, lp: Number(event.target.value) })} /></label>
+              <label className="tg-field"><span>{t("manual.lp")}</span><input className="tg-input" type="number" min={0} max={manualApex ? 2000 : 99} value={manual.lp} onChange={(event) => setManual({ ...manual, lp: Number(event.target.value) })} /></label>
             </div>
             <div className="tg-row">
               <button className="tg-button" type="button" onClick={() => setManual(null)}>{t("common.cancel")}</button>
@@ -1013,6 +1022,7 @@ function TeamBoard({
           bootstrap={bootstrap}
           round={round}
           changed={changed?.has(participant.puuid)}
+          selected={selected === participant.puuid}
           tradeLabel={tradeLabelByPuuid?.get(participant.puuid)}
           onClick={onSelect ? () => onSelect(participant, side) : undefined}
           onRemove={onRemove ? () => onRemove(participant, side) : undefined}

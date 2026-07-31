@@ -22,6 +22,7 @@ export function PlayerCard({
   bootstrap,
   round,
   changed,
+  selected,
   tradeLabel,
   onClick,
   onRemove,
@@ -32,6 +33,8 @@ export function PlayerCard({
   bootstrap: DataDragonBootstrap | null;
   round?: RoundNumber;
   changed?: boolean;
+  /** 팀원 트레이드 1차 선택 상태 */
+  selected?: boolean;
   /** 재밸런스에서 들어온/나간 표시. 예: "블루로 이동" */
   tradeLabel?: string;
   onClick?: () => void;
@@ -55,11 +58,17 @@ export function PlayerCard({
   const tier = participant.preTier.tier.toUpperCase();
   const preLabel = formatTier(participant.preTier);
   const currentLabel = formatTier(fromLp(participant.currentLpValue));
+  const showAssessmentChip = !registrationDetails
+    && participant.tierAssessment
+    && participant.tierAssessment !== "fair";
+  const adjustment = participant.manualScoreAdjustment ?? 0;
+  const showAdjustmentChip = !registrationDetails && adjustment !== 0;
   return (
     <article
-      className={`tg-player-card tg-player-card--${tier.toLowerCase()} ${changed ? "is-changed" : ""} ${open ? "is-open" : ""}`}
+      className={`tg-player-card tg-player-card--${tier.toLowerCase()} ${changed ? "is-changed" : ""} ${selected ? "is-selected" : ""} ${open ? "is-open" : ""}`}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
+      aria-pressed={onClick ? Boolean(selected) : undefined}
       onClick={onClick}
       onKeyDown={(event) => {
         if (onClick && (event.key === "Enter" || event.key === " ")) onClick();
@@ -114,16 +123,6 @@ export function PlayerCard({
             )}
             {performance?.unrated && <span className="tg-chip">{t("card.noRecord")}</span>}
             {scoreDelta != null && <span className={`tg-chip ${scoreDelta >= 0 ? "is-blue" : "is-red"}`}>{scoreDelta >= 0 ? "▲" : "▼"} {Math.abs(scoreDelta)}%</span>}
-            {!registrationDetails && participant.tierAssessment && participant.tierAssessment !== "fair" && (
-              <span className={`tg-chip is-${participant.tierAssessment === "overrated" ? "red" : "blue"}`}>
-                {t("card.tier")} {participant.tierAssessment === "overrated" ? t("card.overrated") : t("card.underrated")}
-              </span>
-            )}
-            {!registrationDetails && (participant.manualScoreAdjustment ?? 0) !== 0 && (
-              <span className={`tg-chip is-${(participant.manualScoreAdjustment ?? 0) > 0 ? "blue" : "red"}`}>
-                {t("card.internal")} {(participant.manualScoreAdjustment ?? 0) > 0 ? "+" : ""}{participant.manualScoreAdjustment}
-              </span>
-            )}
             {easterEgg && (
               <span
                 className={`tg-easter-egg tg-easter-egg--${easterEgg.effect ?? "none"}`}
@@ -200,6 +199,20 @@ export function PlayerCard({
           <span>{t("card.sample", { games: participant.riotData.preMainRoleGames ?? 0 })}</span>
           <span>{t("card.kda", { value: participant.riotData.preMainRoleKda?.toFixed(2) ?? t("card.noRecord") })}</span>
           <span>{t("card.damage", { value: participant.riotData.preMainRoleDamage?.toLocaleString("ko-KR") ?? t("card.noRecord") })}</span>
+          {(showAssessmentChip || showAdjustmentChip) && (
+            <div className="tg-player-card__detail-badges">
+              {showAssessmentChip && (
+                <span className={`tg-chip is-${participant.tierAssessment === "overrated" ? "red" : "blue"}`}>
+                  {t("card.tier")} {participant.tierAssessment === "overrated" ? t("card.overrated") : t("card.underrated")}
+                </span>
+              )}
+              {showAdjustmentChip && (
+                <span className={`tg-chip is-${adjustment > 0 ? "blue" : "red"}`}>
+                  {t("card.internal")} {adjustment > 0 ? "+" : ""}{adjustment}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </article>

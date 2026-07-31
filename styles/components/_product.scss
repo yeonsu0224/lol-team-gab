@@ -463,7 +463,14 @@ button.tg-player-card { color: inherit; text-align: inherit; cursor: pointer; }
   animation: tg-fade-up 220ms $ease-emphasized both;
 
   strong { color: $gold-light; font-size: 0.82rem; }
-  span { color: $text-muted; font-size: 0.8rem; }
+  > span { color: $text-muted; font-size: 0.8rem; }
+}
+/* 과대/과소·Internal 보정은 요약 줄이 아니라 아코디언 안에 둔다. */
+.tg-player-card__detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
 }
 .tg-trade-chip {
   gap: 4px;
@@ -478,6 +485,23 @@ button.tg-player-card { color: inherit; text-align: inherit; cursor: pointer; }
     linear-gradient(var(--tg-card-sheen-angle), rgb(200 155 60 / 28%), transparent 58%),
     rgb(200 155 60 / 10%);
   box-shadow: 0 0 0 1px rgb(200 155 60 / 35%), 0 0 22px rgb(200 155 60 / 18%);
+}
+/* 팀원 트레이드 1차 선택: 그라디언트 대신 솔리드 금색으로 고른 카드를 고정한다. */
+.tg-player-card.is-selected {
+  border-color: $gold-light;
+  background: $gold;
+  box-shadow: 0 0 0 2px rgb(240 213 140 / 55%), 0 0 18px rgb(200 155 60 / 35%);
+  color: $bg-deep;
+
+  .tg-player-card__identity > span,
+  .tg-player-card__toggle {
+    color: rgb(3 7 18 / 72%);
+  }
+
+  .tg-player-card__toggle {
+    border-color: rgb(3 7 18 / 28%);
+    background: rgb(3 7 18 / 12%);
+  }
 }
 .tg-player-card.is-blue { border-color: rgb(37 137 255 / 55%); background: $blue-soft; }
 .tg-player-card.is-red { border-color: rgb(239 79 103 / 55%); background: $red-soft; }
