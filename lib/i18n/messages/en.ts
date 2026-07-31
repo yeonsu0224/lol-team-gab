@@ -292,7 +292,7 @@ export const en: Record<MessageKey, string> = {
   "finish.avgKda": "Avg KDA",
   "finish.avgDamage": "Avg champion damage",
   "finish.mvpSparse": "Not enough record to pick MVP",
-  "finish.culpritBody": "This player was the culprit this custom. Oh, a {role} gap? That's a secret… as long as they're having fun! Next time they'll show a better side.",
+  "finish.culpritBody": "This player couldn't quite shine this custom. Oh, a {role} gap? That's a secret… as long as they're having fun! Next time they'll show a better side.",
   "finish.evalSparse": "Not enough record to evaluate",
   "finish.skillLevel": "This custom, their level looked like {tier}.",
   "finish.honeyDesc": "Most above-expectation awards this custom.",

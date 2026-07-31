@@ -290,7 +290,7 @@ export const ko = {
   "finish.avgKda": "평균 KDA",
   "finish.avgDamage": "평균 챔피언 피해량",
   "finish.mvpSparse": "선정할 기록이 부족합니다",
-  "finish.culpritBody": "위 플레이어는 이번 내전의 범인입니다. 아, {role} 차이라구요? 그건 비밀인데… 본인만 즐거우면 된 거죠! 다음 내전에서는 더 좋은 모습을 보여줄 거예요.",
+  "finish.culpritBody": "이번 내전에서 활약을 펼치지 못한 플레이어입니다. 아, {role} 차이라구요? 그건 비밀인데… 본인만 즐거우면 된 거죠! 다음 내전에서는 더 좋은 모습을 보여줄 거예요.",
   "finish.evalSparse": "평가할 기록이 부족합니다",
   "finish.skillLevel": "이번 내전에서의 실력은 {tier}급이었습니다.",
   "finish.honeyDesc": "기대 이상 판정을 가장 많이 받은 플레이어입니다.",
