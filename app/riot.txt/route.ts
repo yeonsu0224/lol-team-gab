@@ -1,12 +1,10 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+const RIOT_VERIFICATION_CODE = "bd8fd52c-cae2-49cb-8537-cd1464bde6f3";
 
 export function GET() {
-  const code = readFileSync(join(process.cwd(), "public", "riot.txt"), "utf8").trim();
-  return new Response(code, {
+  return new Response(RIOT_VERIFICATION_CODE, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Cache-Control": "no-store",
     },
   });
 }
